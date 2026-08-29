@@ -34,65 +34,93 @@ function buildReport(d, s) {
     || row(["—", "no assisted hours logged", ""]);
 
   const cover = (obj) => Object.entries(obj).map(([k, v]) =>
-    `${cap1(k)}: <b>${v}</b>${v > 0 ? " ✓" : ""}`).join(" &nbsp;&nbsp; ");
+    `${cap1(k)}: <b>${v}</b>${v > 0 ? ' <span class="yes">✓</span>' : ""}`).join(" &nbsp;&nbsp; ");
+
+  const flame = `<svg width="20" height="24" viewBox="0 0 22 26" style="vertical-align:-4px">
+    <defs><linearGradient id="fl" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#bfe8ff"/><stop offset="1" stop-color="#ffffff"/></linearGradient></defs>
+    <path fill="url(#fl)" d="M11 0c1 5-3 7-5 11-2 3.6-2 6 0 8.5-3-.5-4.5-3-4.5-6C1.5 19 3 23 7 25c-1.6-1.8-2-4 .3-6.7 1.8-2 2.2-3.6 2-5.6 2 1.4 3 3.6 3 6 0 1.9-.7 3.7-2 5 3.4-.8 5.7-4 5.7-8C19 9 13 6 11 0z"/></svg>`;
+  const barPct = Math.max(2, Math.min(100, s.pctGoal));
 
   return `<!doctype html><html><head><meta charset="utf-8"><title>Gas Portfolio Progress</title>
   <style>
-    @page { size: A4; margin: 16mm; }
+    @page { size: A4; margin: 0; }
     * { box-sizing: border-box; }
     html, body { background: #fff; }
-    body { font: 12px/1.5 -apple-system, "Segoe UI", Arial, sans-serif; color: #1a1a1a; margin: 0; padding: 4px; }
-    h1 { font-size: 20px; margin: 0 0 2px; }
-    .meta { color: #555; font-size: 11px; margin-bottom: 18px; }
-    h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: #444;
-         border-bottom: 1.5px solid #222; padding-bottom: 3px; margin: 20px 0 8px; }
-    .kpis { display: flex; flex-wrap: wrap; gap: 10px; margin: 6px 0 4px; }
-    .kpi { border: 1px solid #ccc; border-radius: 6px; padding: 8px 12px; min-width: 120px; }
-    .kpi .n { font-size: 18px; font-weight: 700; }
-    .kpi .l { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: .5px; }
-    table { border-collapse: collapse; width: 100%; margin: 6px 0 4px; font-size: 11px; }
-    th, td { border: 1px solid #ccc; padding: 5px 8px; text-align: left; }
-    th { background: #f0f0f0; }
-    .note { font-size: 10px; color: #666; margin-top: 4px; }
-    footer { margin-top: 26px; border-top: 1px solid #ccc; padding-top: 6px; font-size: 10px; color: #777; }
+    body { font: 12px/1.5 -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+           color: #1b1e24; margin: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .wrap { padding: 14px 16mm 14mm; }
+    .head { background: linear-gradient(135deg, #2f7fd6, #59b8ff); color: #fff;
+            padding: 18px 16mm; display: flex; align-items: center; gap: 12px; }
+    .head .eyebrow { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; opacity: .85; }
+    .head h1 { font-size: 21px; margin: 1px 0 0; font-weight: 800; letter-spacing: -.3px; }
+    .head .gen { margin-left: auto; font-size: 10.5px; opacity: .9; text-align: right; }
+    h2 { font-size: 11px; text-transform: uppercase; letter-spacing: 1.6px; color: #2f7fd6;
+         border-bottom: 2px solid #d7e6f7; padding-bottom: 4px; margin: 22px 0 10px; }
+    .kpis { display: flex; flex-wrap: wrap; gap: 9px; }
+    .kpi { border: 1px solid #e2e6ec; border-radius: 11px; padding: 9px 13px; min-width: 118px; }
+    .kpi .n { font-size: 18px; font-weight: 800; letter-spacing: -.5px; }
+    .kpi .l { font-size: 9px; color: #6b7480; text-transform: uppercase; letter-spacing: .6px; margin-top: 1px; }
+    .bar { height: 8px; border-radius: 4px; background: #e9eef5; position: relative; margin: 12px 0 4px; }
+    .bar > i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; background: #4caf7d; }
+    .bar > b { position: absolute; top: -3px; bottom: -3px; width: 2px; background: #1b1e24; }
+    .barlbl { font-size: 9px; color: #6b7480; }
+    table { border-collapse: collapse; width: 100%; margin: 4px 0; font-size: 10.5px; }
+    th, td { border: 1px solid #e2e6ec; padding: 6px 9px; text-align: left; }
+    th { background: #eef4fb; color: #2f5c8a; font-weight: 700; text-transform: uppercase;
+         font-size: 9px; letter-spacing: .6px; }
+    .cov { font-size: 10.5px; color: #444; margin-top: 6px; }
+    .cov b { color: #1b1e24; } .yes { color: #2f8f5f; font-weight: 700; }
+    .note { font-size: 9.5px; color: #6b7480; margin-top: 6px; }
+    footer { margin-top: 24px; border-top: 1px solid #e2e6ec; padding-top: 7px;
+             font-size: 9px; color: #9098a3; display: flex; align-items: center; gap: 5px; }
+    .fmark { width: 9px; height: 11px; display: inline-block; background: linear-gradient(0deg,#2f7fd6,#59b8ff);
+      clip-path: polygon(50% 0,62% 22%,78% 42%,74% 68%,88% 62%,74% 92%,50% 100%,26% 92%,16% 66%,30% 74%,24% 46%,40% 26%); }
   </style></head><body>
-    <h1>Gas Portfolio Progress</h1>
-    <div class="meta">Generated ${gen}</div>
-
-    <h2>Hours</h2>
-    <div class="kpis">
-      <div class="kpi"><div class="n">${s.total} h</div><div class="l">Total logged</div></div>
-      <div class="kpi"><div class="n">${s.past275 ? "reached" : s.toRequired + " h"}</div><div class="l">To pass mark (${d.required})</div></div>
-      <div class="kpi"><div class="n">${s.toGoal} h</div><div class="l">To goal (${d.goal})</div></div>
-      <div class="kpi"><div class="n">${Math.round(s.pctGoal)}%</div><div class="l">Of goal</div></div>
-      <div class="kpi"><div class="n">${s.assistedHours} h</div><div class="l">Assisted</div></div>
-      <div class="kpi"><div class="n">${s.jobHours} h</div><div class="l">In write-ups</div></div>
+    <div class="head">
+      ${flame}
+      <div><div class="eyebrow">Gas Portfolio Tracker</div><h1>Progress report</h1></div>
+      <div class="gen">Generated<br>${gen}</div>
     </div>
+    <div class="wrap">
 
-    <h2>Deadline &amp; pace</h2>
-    <div class="kpis">
-      <div class="kpi"><div class="n">${d.deadline}</div><div class="l">Deadline</div></div>
-      <div class="kpi"><div class="n">${s.availDays}</div><div class="l">Working days left</div></div>
-      <div class="kpi"><div class="n">${s.perDayGoal} h/day</div><div class="l">Rate needed</div></div>
+      <h2>Hours</h2>
+      <div class="kpis">
+        <div class="kpi"><div class="n">${s.total} h</div><div class="l">Total logged</div></div>
+        <div class="kpi"><div class="n">${s.past275 ? "reached" : s.toRequired + " h"}</div><div class="l">To pass mark (${d.required})</div></div>
+        <div class="kpi"><div class="n">${s.toGoal} h</div><div class="l">To goal (${d.goal})</div></div>
+        <div class="kpi"><div class="n">${Math.round(s.pctGoal)}%</div><div class="l">Of goal</div></div>
+        <div class="kpi"><div class="n">${s.assistedHours} h</div><div class="l">Assisted</div></div>
+        <div class="kpi"><div class="n">${s.jobHours} h</div><div class="l">In write-ups</div></div>
+      </div>
+      <div class="bar"><i style="width:${barPct}%"></i><b style="left:${s.requiredMark}%"></b></div>
+      <div class="barlbl">0 &nbsp;·&nbsp; the mark is the ${d.required} h pass line &nbsp;·&nbsp; ${d.goal} h</div>
+
+      <h2>Deadline &amp; pace</h2>
+      <div class="kpis">
+        <div class="kpi"><div class="n">${d.deadline}</div><div class="l">Deadline</div></div>
+        <div class="kpi"><div class="n">${s.availDays}</div><div class="l">Working days left</div></div>
+        <div class="kpi"><div class="n">${s.perDayGoal} h/day</div><div class="l">Rate needed</div></div>
+      </div>
+      <div class="note">Working day = Mon–Fri, excluding college block weeks and booked holidays. &mdash; ${esc(s.verdict)}.</div>
+
+      <h2>Unassisted write-ups &mdash; ${s.jobsDone} of ${s.jobsTotal}</h2>
+      <table>${row(["Category", "Logged", "Target"], true)}
+        ${row(["Installs", s.install, d.jobTargets.install])}
+        ${row(["Services", s.service, d.jobTargets.service])}
+        ${row(["Repairs", s.repair, d.jobTargets.repair])}
+      </table>
+      <div class="cov">Boiler types &nbsp;&nbsp; ${cover(s.boiler)}</div>
+      <div class="cov">Repair faults &nbsp;&nbsp; ${cover(s.fault)}</div>
+
+      <h2>Write-up log</h2>
+      <table>${row(["Date", "Category", "Boiler", "Fault", "Hours"], true)}${jobRows}</table>
+
+      <h2>Assisted hours log</h2>
+      <table>${row(["Date", "Hours", "Note"], true)}${hourRows}</table>
+
+      <footer><span class="fmark"></span> Generated by Gas Portfolio Tracker &nbsp;·&nbsp; ${gen}</footer>
     </div>
-    <div class="note">Working day = Mon–Fri, excluding college block weeks and booked holidays. Verdict: ${esc(s.verdict)}.</div>
-
-    <h2>Unassisted write-ups &nbsp;—&nbsp; ${s.jobsDone} of ${s.jobsTotal}</h2>
-    <table>${row(["Category", "Logged", "Target"], true)}
-      ${row(["Installs", s.install, d.jobTargets.install])}
-      ${row(["Services", s.service, d.jobTargets.service])}
-      ${row(["Repairs", s.repair, d.jobTargets.repair])}
-    </table>
-    <div class="note">Boiler types &nbsp; ${cover(s.boiler)}</div>
-    <div class="note">Repair faults &nbsp; ${cover(s.fault)}</div>
-
-    <h2>Write-up log</h2>
-    <table>${row(["Date", "Category", "Boiler", "Fault", "Hours"], true)}${jobRows}</table>
-
-    <h2>Assisted hours log</h2>
-    <table>${row(["Date", "Hours", "Note"], true)}${hourRows}</table>
-
-    <footer>Generated by Gas Portfolio Tracker · ${gen}</footer>
   </body></html>`;
 }
 
