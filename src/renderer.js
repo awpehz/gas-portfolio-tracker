@@ -412,7 +412,7 @@ function helpPane() {
     <h4>Hours tab</h4>
     <p>Assisted work — hours alongside a Gas&nbsp;Safe engineer. Type the hours, pick the
     date, <b>Log hours</b>. Tick <b>whole-week total</b> to set one figure for the week
-    instead of adding. <b>undo last</b> removes the most recent entry.</p>
+    instead of adding. Each entry in the Recent list has its own <b>&times;</b> to delete just that one.</p>
     <h4>Write-ups tab</h4>
     <p>Your 14 unassisted jobs (5 / 5 / 4, all editable in Settings). Pick the type, the
     <b>boiler</b> and, for repairs, the <b>fault</b>, set the hours, <b>Log write-up</b>.
@@ -428,7 +428,7 @@ function helpPane() {
 
     <h3 style="margin-top:16px">FAQ</h3>
     ${faq("Does any of this leave my computer?", "No. Everything is saved on your machine. The PDF and data export are files you choose to share.")}
-    ${faq("I logged the wrong thing.", "<b>undo last</b> on the Hours or Write-ups tab. Or open the raw file — app menu → Data → Reveal data file.")}
+    ${faq("I logged the wrong thing.", "Hit the <b>&times;</b> next to that entry in the Recent list. Or open the raw file — app menu → Data → Reveal data file.")}
     ${faq("Why did the rate needed jump up?", "It's spread only over the days you're actually available. Adding a college week or a holiday takes days out, so the rate on the days that remain goes up.")}
     ${faq("Can I log for a day in the past?", "Yes — the Hours tab has a date picker next to the hours box.")}
     ${faq("I got a new laptop.", "Settings → <b>export my data</b> on the old one, <b>import data</b> on the new one.")}

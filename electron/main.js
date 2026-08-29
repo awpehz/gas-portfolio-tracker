@@ -64,7 +64,8 @@ function createWindow() {
     frame: false,
     transparent: process.platform === "darwin",
     backgroundColor: process.platform === "darwin" ? "#00000000" : "#0e0f13",
-    titleBarStyle: "hidden",
+    roundedCorners: true,
+    hasShadow: true,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
