@@ -7,14 +7,29 @@
   <title>Gas Portfolio Tracker</title>
 </head>
 <body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <linearGradient id="flameGrad" x1="0" y1="1" x2="0" y2="0">
+        <stop offset="0" stop-color="#2f7fd6" />
+        <stop offset="0.55" stop-color="#6fbcff" />
+        <stop offset="1" stop-color="#dff1ff" />
+      </linearGradient>
+    </defs>
+  </svg>
+
   <div id="splash">
-    <div class="splash-mark"><span class="flame xl"></span></div>
+    <div class="splash-mark">
+      <svg class="flame xl" viewBox="0 0 24 24"><path d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67z" fill="url(#flameGrad)"/></svg>
+    </div>
     <div class="splash-name">Gas Portfolio Tracker</div>
     <div class="splash-sub">made by Connor W</div>
   </div>
 
   <header class="titlebar">
-    <span class="tb-title"><span class="flame"></span> Gas Portfolio Tracker</span>
+    <span class="tb-title">
+      <svg class="flame" viewBox="0 0 24 24"><path d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67z" fill="url(#flameGrad)"/></svg>
+      Gas Portfolio Tracker
+    </span>
     <div class="tb-btns">
       <button id="widget" title="Widget mode">◱</button>
       <button id="pin" title="Keep on top">pin</button>

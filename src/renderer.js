@@ -15,7 +15,7 @@ const { computeStatus, DEFAULT_DATA, toISO } = window.GasLogic;
 const app = document.getElementById("app");
 
 let data = {};
-let tab = "assisted";
+let tab = "home";
 
 function todayISO() { return toISO(new Date()); }
 function esc(s) { return String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
@@ -37,10 +37,10 @@ function buildReport(d, s) {
   const cover = (obj) => Object.entries(obj).map(([k, v]) =>
     `${cap1(k)}: <b>${v}</b>${v > 0 ? ' <span class="yes">â</span>' : ""}`).join(" &nbsp;&nbsp; ");
 
-  const flame = `<svg width="34" height="40" viewBox="0 0 22 26" style="vertical-align:-4px">
+  const flame = `<svg width="34" height="40" viewBox="0 0 24 24" style="vertical-align:-6px">
     <defs><linearGradient id="fl" x1="0" y1="1" x2="0" y2="0">
       <stop offset="0" stop-color="#bfe8ff"/><stop offset="1" stop-color="#ffffff"/></linearGradient></defs>
-    <path fill="url(#fl)" d="M11 0c1 5-3 7-5 11-2 3.6-2 6 0 8.5-3-.5-4.5-3-4.5-6C1.5 19 3 23 7 25c-1.6-1.8-2-4 .3-6.7 1.8-2 2.2-3.6 2-5.6 2 1.4 3 3.6 3 6 0 1.9-.7 3.7-2 5 3.4-.8 5.7-4 5.7-8C19 9 13 6 11 0z"/></svg>`;
+    <path fill="url(#fl)" d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67z"/></svg>`;
   const barPct = Math.max(2, Math.min(100, s.pctGoal));
 
   return `<!doctype html><html><head><meta charset="utf-8"><title>Gas Portfolio Progress${name ? " â " + esc(name) : ""}</title>
@@ -78,7 +78,8 @@ function buildReport(d, s) {
     footer { margin-top: 24px; border-top: 1px solid rgba(255,255,255,.1); padding-top: 7px;
              font-size: 9px; color: rgba(255,255,255,.35); display: flex; align-items: center; gap: 5px; }
     .fmark { width: 9px; height: 11px; display: inline-block; background: linear-gradient(0deg,#2f7fd6,#59b8ff);
-      clip-path: polygon(50% 0,62% 22%,78% 42%,74% 68%,88% 62%,74% 92%,50% 100%,26% 92%,16% 66%,30% 74%,24% 46%,40% 26%); }
+      -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67z'/%3E%3C/svg%3E") center/contain no-repeat;
+      mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67z'/%3E%3C/svg%3E") center/contain no-repeat; }
   </style></head><body>
     <div class="head">
       ${flame}
@@ -223,6 +224,7 @@ function trimNum(n, dp) { return dp ? n.toFixed(dp).replace(/\.0$/, "") : String
 
 // ---------- render ----------
 const TABS = [
+  ["home", "Home"],
   ["assisted", "Hours"],
   ["unassisted", "Write-ups"],
   ["report", "Report"],
@@ -235,7 +237,8 @@ function render() {
   app.innerHTML = "";
   app.appendChild(tabBar());
   if (tab === "assisted" || tab === "unassisted") app.appendChild(dash(s));
-  if (tab === "assisted") app.appendChild(hoursPane(s));
+  if (tab === "home") app.appendChild(homePane(s));
+  else if (tab === "assisted") app.appendChild(hoursPane(s));
   else if (tab === "unassisted") app.appendChild(writeupsPane(s));
   else if (tab === "report") app.appendChild(reportPane(s));
   else if (tab === "help") app.appendChild(helpPane());
@@ -256,6 +259,58 @@ function tabBar() {
   }
   return el;
 }
+
+function homePane(s) {
+  const el = document.createElement("section");
+  el.className = "card dash home";
+  const paceCls = s.verdictOk ? "ok" : "warn";
+  const weekAim = Math.round(s.perDayGoal * 5 * 10) / 10;
+  const college = s.atCollegeNow
+    ? `At college now — back on the tools ${s.backOnTools}`
+    : `Next college block ${s.nextBlock}${s.nextBlockDays != null ? ` · in ${s.nextBlockDays} days` : ""}`;
+  const cov = (obj) => Object.entries(obj).map(([k, v]) =>
+    `<span class="${v > 0 ? "ok" : "dim"}">${cap1(k)}</span>`).join('<span class="dim"> · </span>');
+  el.innerHTML = `
+    <div class="hsec hero">
+      <svg class="flame md" viewBox="0 0 24 24"><path d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67z" fill="url(#flameGrad)"/></svg>
+      <div class="hcap">Progress</div>
+      <div class="stat"><span class="v" data-to="${s.total}">0</span><small> / ${s.goal} h</small></div>
+      <div class="bar"><i style="--w:${Math.max(3, s.pctGoal)}%"></i><b style="left:${s.requiredMark}%"></b></div>
+      <div class="dim sm">${s.past275 ? "past the 275 pass mark" : `<span class="v" data-to="${s.toRequired}">0</span> h to pass`} &middot; ${s.toGoal} h to goal</div>
+    </div>
+
+    <div class="hsec">
+      <div class="hcap">On track</div>
+      <div class="pace ${paceCls}"><span class="v" data-to="${s.perDayGoal}" data-dp="1">0</span> h per working day</div>
+      <div class="dim sm">${esc(s.verdict)}</div>
+      <div class="dim sm">${s.availDays} working days left &middot; deadline ${s.dl || d0(data).deadline}</div>
+      <div class="dim sm">this week: <b class="${s.weekLogged >= weekAim && weekAim > 0 ? "ok" : ""}">${s.weekLogged} h</b> logged &middot; aim ~${weekAim} h</div>
+    </div>
+
+    <div class="hsec">
+      <div class="hcap">Write-ups &nbsp;<span class="dim">${s.jobsDone} / ${s.jobsTotal}</span></div>
+      <div class="dim sm">Installs ${s.install}/${s.targets.install} &middot; Services ${s.service}/${s.targets.service} &middot; Repairs ${s.repair}/${s.targets.repair}</div>
+      <div class="dim sm">Boilers ${cov(s.boiler)} &nbsp;·&nbsp; Faults ${cov(s.fault)}</div>
+    </div>
+
+    <div class="hsec">
+      <div class="hcap">College</div>
+      <div class="dim sm">${esc(college)}</div>
+    </div>
+
+    <div class="hsec">
+      <div class="hcap">Quick log</div>
+      <div class="qrow">
+        <button class="pill" data-q="2">+2 h</button>
+        <button class="pill" data-q="3">+3 h</button>
+        <button class="pill" data-q="4">+4 h</button>
+        <button class="pill go" data-goto="unassisted">Log a write-up &rarr;</button>
+      </div>
+    </div>`;
+  return el;
+}
+
+function d0(x) { return { ...DEFAULT_DATA, ...x }; }
 
 function dash(s) {
   const el = document.createElement("section");
@@ -465,6 +520,12 @@ function wireTitlebar() {
 
 // ---------- wiring (re-run each render; #app is rebuilt, so no listener leak) ----------
 function wire(s) {
+  if (tab === "home") {
+    app.querySelectorAll("[data-q]").forEach((b) =>
+      b.addEventListener("click", () => addHours(b.dataset.q, todayISO())));
+    app.querySelectorAll("[data-goto]").forEach((b) =>
+      b.addEventListener("click", () => { tab = b.dataset.goto; render(); }));
+  }
   app.querySelectorAll(".del").forEach((b) =>
     b.addEventListener("click", () => removeEntry(b.dataset.arr, parseInt(b.dataset.i, 10))));
   if (tab === "assisted") {
