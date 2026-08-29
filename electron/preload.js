@@ -1,0 +1,9 @@
+const { contextBridge, ipcRenderer } = require("electron");
+
+contextBridge.exposeInMainWorld("api", {
+  getData: () => ipcRenderer.invoke("get-data"),
+  setData: (d) => ipcRenderer.invoke("set-data", d),
+  isPinned: () => ipcRenderer.invoke("is-pinned"),
+  win: (cmd) => ipcRenderer.send("win", cmd),
+  onDataChanged: (cb) => ipcRenderer.on("data-changed", (_e, d) => cb(d)),
+});

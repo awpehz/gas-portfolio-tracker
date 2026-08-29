@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self';" />
+  <link rel="stylesheet" href="style.css" />
+  <title>Gas Portfolio Tracker</title>
+</head>
+<body>
+  <header class="titlebar">
+    <span class="tb-title"><span class="flame"></span> Gas Portfolio Tracker</span>
+    <div class="tb-btns">
+      <button id="pin" title="Keep on top">pin</button>
+      <button id="min" title="Minimise">–</button>
+      <button id="close" title="Close">×</button>
+    </div>
+  </header>
+
+  <main id="app"></main>
+  <footer class="credit">Gas Portfolio Tracker — made by Connor Wales</footer>
+
+  <script src="logic.js"></script>
+  <script src="renderer.js"></script>
+</body>
+</html>
