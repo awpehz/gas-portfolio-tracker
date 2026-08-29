@@ -45,14 +45,15 @@ body {
   justify-content: space-between;
   padding: 10px 10px 8px 15px;
 }
-.tb-title { display: flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 700; letter-spacing: 0.2px; }
+.tb-title { display: flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 700; letter-spacing: 0.2px; }
 .flame {
-  width: 11px; height: 13px; display: inline-block;
+  width: 15px; height: 18px; display: inline-block; flex: none;
   background: linear-gradient(0deg, #2f7fd6, #6fbcff 55%, #d3efff);
   clip-path: polygon(50% 0, 62% 22%, 78% 42%, 74% 68%, 88% 62%, 74% 92%, 50% 100%, 26% 92%, 16% 66%, 30% 74%, 24% 46%, 40% 26%);
   animation: flicker 3s ease-in-out infinite;
-  filter: drop-shadow(0 0 3px rgba(90, 162, 240, 0.55));
+  filter: drop-shadow(0 0 4px rgba(90, 162, 240, 0.6));
 }
+.flame.xl { width: 58px; height: 70px; }
 @keyframes flicker {
   0%, 100% { transform: scaleY(1) translateY(0); opacity: 1; }
   45% { transform: scaleY(1.08) translateY(-0.5px); opacity: 0.92; }
@@ -380,6 +381,60 @@ button:focus-visible, a:focus-visible, .tile:focus-visible, summary:focus-visibl
 }
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
+}
+
+/* ---------- splash ---------- */
+#splash {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  -webkit-app-region: drag;
+  background: radial-gradient(circle at 50% 40%, #1c2432, #0c0e13 72%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  animation: splashOut 0.55s ease 3.9s forwards;
+}
+#splash .splash-mark {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+#splash .splash-mark::before {
+  content: "";
+  position: absolute;
+  width: 150px; height: 150px;
+  background: radial-gradient(circle, rgba(90, 162, 240, 0.35), transparent 68%);
+  filter: blur(6px);
+  animation: glowPulse 2.6s ease-in-out 0.9s infinite;
+}
+#splash .flame.xl {
+  position: relative;
+  animation: flameIn 1s cubic-bezier(0.2, 1, 0.3, 1) both, flicker 2.4s ease-in-out 1s infinite;
+}
+#splash .splash-name {
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: -0.4px;
+  opacity: 0;
+  animation: fadeUp 0.7s ease 0.95s both;
+}
+#splash .splash-sub {
+  font-size: 11px;
+  color: var(--ink-3);
+  letter-spacing: 0.3px;
+  opacity: 0;
+  animation: fadeUp 0.7s ease 1.4s both;
+}
+@keyframes flameIn { from { transform: translateY(16px) scale(0.35); opacity: 0; filter: blur(5px); } }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(9px); } to { opacity: 1; transform: none; } }
+@keyframes glowPulse { 0%, 100% { opacity: 0.7; transform: scale(1); } 50% { opacity: 1; transform: scale(1.08); } }
+@keyframes splashOut { to { opacity: 0; visibility: hidden; } }
+@media (prefers-reduced-motion: reduce) {
+  #splash { animation: splashOut 0.01s linear 1s forwards; }
+  #splash .flame.xl, #splash .splash-name, #splash .splash-sub, #splash .splash-mark::before { animation: none; opacity: 1; }
 }
 
 /* ---------- toast + credit ---------- */

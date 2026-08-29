@@ -37,7 +37,7 @@ function buildReport(d, s) {
   const cover = (obj) => Object.entries(obj).map(([k, v]) =>
     `${cap1(k)}: <b>${v}</b>${v > 0 ? ' <span class="yes">✓</span>' : ""}`).join(" &nbsp;&nbsp; ");
 
-  const flame = `<svg width="20" height="24" viewBox="0 0 22 26" style="vertical-align:-4px">
+  const flame = `<svg width="34" height="40" viewBox="0 0 22 26" style="vertical-align:-4px">
     <defs><linearGradient id="fl" x1="0" y1="1" x2="0" y2="0">
       <stop offset="0" stop-color="#bfe8ff"/><stop offset="1" stop-color="#ffffff"/></linearGradient></defs>
     <path fill="url(#fl)" d="M11 0c1 5-3 7-5 11-2 3.6-2 6 0 8.5-3-.5-4.5-3-4.5-6C1.5 19 3 23 7 25c-1.6-1.8-2-4 .3-6.7 1.8-2 2.2-3.6 2-5.6 2 1.4 3 3.6 3 6 0 1.9-.7 3.7-2 5 3.4-.8 5.7-4 5.7-8C19 9 13 6 11 0z"/></svg>`;
@@ -556,6 +556,7 @@ function normalise(raw) {
 }
 
 (async function () {
+  setTimeout(() => document.getElementById("splash")?.remove(), 4800);
   try {
     if (window.api.appVersion) window.__ver = await window.api.appVersion();
     data = normalise(await window.api.getData());
