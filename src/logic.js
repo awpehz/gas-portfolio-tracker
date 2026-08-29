@@ -1,4 +1,6 @@
 // Pure computation — no DOM, no Node. Shared by renderer (and testable).
+// Wrapped so nothing leaks into global scope (renderer.js runs in the same scope).
+(function () {
 
 const DAY = 86400000;
 
@@ -27,7 +29,7 @@ function fmtShort(dt) {
 }
 
 const DEFAULT_DATA = {
-  baseHours: 29,
+  baseHours: 0,        // hours you already had before using this — set yours in Settings
   required: 275,
   goal: 330,
   hoursPerDay: 8,
@@ -134,3 +136,5 @@ function computeStatus(data, now = new Date()) {
 const GasLogic = { computeStatus, DEFAULT_DATA, toISO, parseISO };
 if (typeof module !== "undefined" && module.exports) module.exports = GasLogic;
 if (typeof window !== "undefined") window.GasLogic = GasLogic;
+
+})();

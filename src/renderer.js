@@ -1,3 +1,16 @@
+// Runs under Electron (window.api from preload) OR as a plain web page (localStorage fallback).
+if (!window.api) {
+  const KEY = "gaslog-data";
+  window.api = {
+    getData: async () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; } },
+    setData: async (d) => { localStorage.setItem(KEY, JSON.stringify(d)); return true; },
+    isPinned: async () => false,
+    win: (cmd) => { if (cmd === "close") window.close(); },
+    onDataChanged: () => {},
+  };
+  document.documentElement.classList.add("web");
+}
+
 const { computeStatus, DEFAULT_DATA, toISO } = window.GasLogic;
 const app = document.getElementById("app");
 
