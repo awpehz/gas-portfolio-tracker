@@ -34,6 +34,9 @@ move your whole tracker between machines, or start from someone else's setup.
 
 ## Install (for classmates)
 
+**Download page:** https://github.com/awpehz/gas-portfolio-tracker/releases/latest
+(on the repo, it's the **Releases** link in the right-hand sidebar — the installers are under **Assets**)
+
 ### macOS
 1. Download `Gas Portfolio Tracker-1.0.0-arm64.dmg`
 2. Open it, drag the app to Applications
