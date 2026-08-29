@@ -10,4 +10,7 @@ contextBridge.exposeInMainWorld("api", {
   checkUpdate: () => ipcRenderer.invoke("check-update"),
   appVersion: () => ipcRenderer.invoke("app-version"),
   openUrl: (u) => ipcRenderer.send("open-url", u),
+  widget: (on) => ipcRenderer.send("widget-mode", on),
+  widgetState: () => ipcRenderer.invoke("widget-state"),
+  onWidgetMode: (cb) => ipcRenderer.on("widget-mode", (_e, on) => cb(on)),
 });

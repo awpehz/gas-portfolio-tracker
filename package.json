@@ -1,7 +1,7 @@
 {
   "name": "gas-portfolio-tracker",
   "productName": "Gas Portfolio Tracker",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Track gas portfolio hours and unassisted write-ups toward the deadline.",
   "main": "electron/main.js",
   "scripts": {

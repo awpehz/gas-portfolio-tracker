@@ -438,6 +438,35 @@ button:focus-visible, a:focus-visible, .tile:focus-visible, summary:focus-visibl
   #splash .flame.xl, #splash .splash-name, #splash .splash-sub, #splash .splash-mark::before { animation: none; opacity: 1; }
 }
 
+/* ---------- widget mode (compact, pinned) ---------- */
+html.widget, html.widget body { border-radius: 14px; }
+html.widget .titlebar { padding: 5px 7px 2px 11px; -webkit-app-region: drag; }
+html.widget .tb-title { font-size: 0; gap: 0; }
+html.widget .tb-title .flame { width: 13px; height: 16px; }
+html.widget #pin, html.widget #min, html.widget #close { display: none; }
+html.widget #widget { width: 20px; height: 17px; font-size: 11px; }
+html.widget main { padding: 1px 10px 9px; gap: 0; overflow: hidden; }
+html.widget .tabs,
+html.widget main > .card:not(.dash),
+html.widget #update,
+html.widget .credit { display: none !important; }
+html.widget .dash {
+  padding: 8px 10px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  animation: none;
+  -webkit-app-region: drag;
+}
+html.widget .dash-top .right { display: none; }
+html.widget .stat { font-size: 22px; letter-spacing: -0.5px; }
+html.widget .stat small { font-size: 11px; }
+html.widget .stat-l { font-size: 10px; }
+html.widget .bar { margin: 7px 0 3px; height: 6px; }
+html.widget .pace { font-size: 12.5px; margin-top: 5px; }
+html.widget .pace .dim { font-size: 11px; }
+html.widget .dash > .dim.sm { display: none; }
+
 /* ---------- toast + credit ---------- */
 #toast {
   position: fixed;

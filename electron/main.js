@@ -50,6 +50,35 @@ function loadBounds() {
   return { width: 520, height: 880 };
 }
 
+const STATE_FILE = path.join(app.getPath("userData"), "ui-state.json");
+function loadState() { try { return JSON.parse(fs.readFileSync(STATE_FILE, "utf8")) || {}; } catch { return {}; } }
+function saveState(s) { try { fs.writeFileSync(STATE_FILE, JSON.stringify(s)); } catch {} }
+
+let widgetOn = false;
+let fullBounds = null;
+function setWidget(on) {
+  if (!win || widgetOn === on) return;
+  widgetOn = on;
+  if (on) {
+    fullBounds = win.getBounds();
+    win.setResizable(false);
+    win.setMinimumSize(210, 96);
+    win.setSize(252, 138, true);
+    win.setAlwaysOnTop(true, "floating");
+    if (process.platform === "darwin") win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  } else {
+    if (process.platform === "darwin") win.setVisibleOnAllWorkspaces(false);
+    win.setAlwaysOnTop(false);
+    win.setResizable(true);
+    win.setMinimumSize(400, 560);
+    if (fullBounds) win.setBounds(fullBounds, true);
+  }
+  saveState({ ...loadState(), widget: on });
+  win.webContents.send("widget-mode", on);
+  const mi = Menu.getApplicationMenu() && Menu.getApplicationMenu().getMenuItemById("widgetToggle");
+  if (mi) mi.checked = on;
+}
+
 let win;
 function createWindow() {
   const b = loadBounds();
@@ -73,8 +102,12 @@ function createWindow() {
     },
   });
   win.loadFile(path.join(__dirname, "..", "src", "index.html"));
+  win.webContents.once("did-finish-load", () => {
+    if (loadState().widget) setWidget(true);
+  });
 
   const saveBounds = () => {
+    if (widgetOn) return;
     try { fs.writeFileSync(BOUNDS_FILE, JSON.stringify(win.getBounds())); } catch {}
   };
   win.on("resize", saveBounds);
@@ -90,6 +123,13 @@ function createWindow() {
           type: "checkbox",
           accelerator: "CmdOrCtrl+T",
           click: (item) => win.setAlwaysOnTop(item.checked),
+        },
+        {
+          id: "widgetToggle",
+          label: "Widget Mode",
+          type: "checkbox",
+          accelerator: "CmdOrCtrl+Shift+W",
+          click: (item) => setWidget(item.checked),
         },
         { role: "reload" },
         { role: "toggleDevTools" },
@@ -127,6 +167,8 @@ ipcMain.on("win", (_e, cmd) => {
   if (cmd === "pin") win.setAlwaysOnTop(!win.isAlwaysOnTop());
 });
 ipcMain.handle("is-pinned", () => (win ? win.isAlwaysOnTop() : false));
+ipcMain.on("widget-mode", (_e, on) => setWidget(!!on));
+ipcMain.handle("widget-state", () => widgetOn);
 ipcMain.handle("check-update", () => checkForUpdate());
 ipcMain.handle("app-version", () => app.getVersion());
 ipcMain.on("open-url", (_e, url) => {

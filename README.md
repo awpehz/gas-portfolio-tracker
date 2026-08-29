@@ -32,7 +32,7 @@ move your whole tracker between machines, or start from someone else's setup.
 
 ---
 
-## Install (for classmates)
+## Install
 
 **Download page:** https://github.com/awpehz/gas-portfolio-tracker/releases/latest
 (on the repo, it's the **Releases** link in the right-hand sidebar — the installers are under **Assets**)
