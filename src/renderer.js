@@ -24,6 +24,7 @@ function cap1(s) { return String(s || "").charAt(0).toUpperCase() + String(s || 
 // A standalone, print-ready HTML report to hand to a lecturer.
 function buildReport(d, s) {
   const gen = new Date().toLocaleString(undefined, { dateStyle: "long", timeStyle: "short" });
+  const name = (d.name || "").trim();
   const row = (cells, th) => `<tr>${cells.map((c) => `<${th ? "th" : "td"}>${c}</${th ? "th" : "td"}>`).join("")}</tr>`;
 
   const jobRows = [...d.jobs].sort((a, b) => (a.date < b.date ? -1 : 1))
@@ -42,44 +43,46 @@ function buildReport(d, s) {
     <path fill="url(#fl)" d="M11 0c1 5-3 7-5 11-2 3.6-2 6 0 8.5-3-.5-4.5-3-4.5-6C1.5 19 3 23 7 25c-1.6-1.8-2-4 .3-6.7 1.8-2 2.2-3.6 2-5.6 2 1.4 3 3.6 3 6 0 1.9-.7 3.7-2 5 3.4-.8 5.7-4 5.7-8C19 9 13 6 11 0z"/></svg>`;
   const barPct = Math.max(2, Math.min(100, s.pctGoal));
 
-  return `<!doctype html><html><head><meta charset="utf-8"><title>Gas Portfolio Progress</title>
+  return `<!doctype html><html><head><meta charset="utf-8"><title>Gas Portfolio Progress${name ? " — " + esc(name) : ""}</title>
   <style>
     @page { size: A4; margin: 0; }
     * { box-sizing: border-box; }
-    html, body { background: #fff; }
+    html, body { background: #14161b; }
     body { font: 12px/1.5 -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-           color: #1b1e24; margin: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .wrap { padding: 14px 16mm 14mm; }
+           color: #eef1f5; margin: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .wrap { padding: 16px 16mm 16mm; }
     .head { background: linear-gradient(135deg, #2f7fd6, #59b8ff); color: #fff;
             padding: 18px 16mm; display: flex; align-items: center; gap: 12px; }
     .head .eyebrow { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; opacity: .85; }
-    .head h1 { font-size: 21px; margin: 1px 0 0; font-weight: 800; letter-spacing: -.3px; }
-    .head .gen { margin-left: auto; font-size: 10.5px; opacity: .9; text-align: right; }
-    h2 { font-size: 11px; text-transform: uppercase; letter-spacing: 1.6px; color: #2f7fd6;
-         border-bottom: 2px solid #d7e6f7; padding-bottom: 4px; margin: 22px 0 10px; }
+    .head h1 { font-size: 20px; margin: 1px 0 0; font-weight: 800; letter-spacing: -.3px; }
+    .head .gen { margin-left: auto; font-size: 10.5px; opacity: .92; text-align: right; }
+    h2 { font-size: 11px; text-transform: uppercase; letter-spacing: 1.6px; color: #7cb8f6;
+         border-bottom: 1px solid rgba(255,255,255,.14); padding-bottom: 4px; margin: 22px 0 10px; }
     .kpis { display: flex; flex-wrap: wrap; gap: 9px; }
-    .kpi { border: 1px solid #e2e6ec; border-radius: 11px; padding: 9px 13px; min-width: 118px; }
+    .kpi { background: #1c1f27; border: 1px solid rgba(255,255,255,.09); border-radius: 11px;
+           padding: 9px 13px; min-width: 118px; }
     .kpi .n { font-size: 18px; font-weight: 800; letter-spacing: -.5px; }
-    .kpi .l { font-size: 9px; color: #6b7480; text-transform: uppercase; letter-spacing: .6px; margin-top: 1px; }
-    .bar { height: 8px; border-radius: 4px; background: #e9eef5; position: relative; margin: 12px 0 4px; }
-    .bar > i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; background: #4caf7d; }
-    .bar > b { position: absolute; top: -3px; bottom: -3px; width: 2px; background: #1b1e24; }
-    .barlbl { font-size: 9px; color: #6b7480; }
+    .kpi .l { font-size: 9px; color: rgba(255,255,255,.42); text-transform: uppercase; letter-spacing: .6px; margin-top: 1px; }
+    .bar { height: 8px; border-radius: 4px; background: rgba(255,255,255,.12); position: relative; margin: 12px 0 4px; }
+    .bar > i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; background: #63c894; }
+    .bar > b { position: absolute; top: -3px; bottom: -3px; width: 2px; background: #fff; }
+    .barlbl { font-size: 9px; color: rgba(255,255,255,.42); }
     table { border-collapse: collapse; width: 100%; margin: 4px 0; font-size: 10.5px; }
-    th, td { border: 1px solid #e2e6ec; padding: 6px 9px; text-align: left; }
-    th { background: #eef4fb; color: #2f5c8a; font-weight: 700; text-transform: uppercase;
+    th, td { border: 1px solid rgba(255,255,255,.1); padding: 6px 9px; text-align: left; }
+    th { background: #22262e; color: #9dc4ef; font-weight: 700; text-transform: uppercase;
          font-size: 9px; letter-spacing: .6px; }
-    .cov { font-size: 10.5px; color: #444; margin-top: 6px; }
-    .cov b { color: #1b1e24; } .yes { color: #2f8f5f; font-weight: 700; }
-    .note { font-size: 9.5px; color: #6b7480; margin-top: 6px; }
-    footer { margin-top: 24px; border-top: 1px solid #e2e6ec; padding-top: 7px;
-             font-size: 9px; color: #9098a3; display: flex; align-items: center; gap: 5px; }
+    td { color: rgba(255,255,255,.8); }
+    .cov { font-size: 10.5px; color: rgba(255,255,255,.68); margin-top: 6px; }
+    .cov b { color: #eef1f5; } .yes { color: #63c894; font-weight: 700; }
+    .note { font-size: 9.5px; color: rgba(255,255,255,.42); margin-top: 6px; }
+    footer { margin-top: 24px; border-top: 1px solid rgba(255,255,255,.1); padding-top: 7px;
+             font-size: 9px; color: rgba(255,255,255,.35); display: flex; align-items: center; gap: 5px; }
     .fmark { width: 9px; height: 11px; display: inline-block; background: linear-gradient(0deg,#2f7fd6,#59b8ff);
       clip-path: polygon(50% 0,62% 22%,78% 42%,74% 68%,88% 62%,74% 92%,50% 100%,26% 92%,16% 66%,30% 74%,24% 46%,40% 26%); }
   </style></head><body>
     <div class="head">
       ${flame}
-      <div><div class="eyebrow">Gas Portfolio Tracker</div><h1>Progress report</h1></div>
+      <div><div class="eyebrow">Gas Portfolio Tracker</div><h1>Progress report${name ? " — " + esc(name) : ""}</h1></div>
       <div class="gen">Generated<br>${gen}</div>
     </div>
     <div class="wrap">
@@ -190,10 +193,11 @@ function addOff(startISO, days) {
   data.off.sort();
   toast(`${n} work day(s) off added`); save();
 }
-function undoLast(arrName) {
-  if (data[arrName] && data[arrName].length) {
-    data[arrName].pop();
-    toast("undone"); save();
+function removeEntry(arrName, idx) {
+  const arr = data[arrName];
+  if (Array.isArray(arr) && idx >= 0 && idx < arr.length) {
+    arr.splice(idx, 1);
+    toast("removed"); save();
   }
 }
 
@@ -281,8 +285,9 @@ function dash(s) {
 function hoursPane(s) {
   const el = document.createElement("section");
   el.className = "card";
-  const recent = [...data.hours].slice(-8).reverse().map((r) =>
-    `<li>${esc(r.date)}<span>${r.h} h${r.note ? " · " + esc(r.note) : ""}</span></li>`).join("");
+  const recent = data.hours.map((r, i) => ({ r, i })).slice(-10).reverse().map(({ r, i }) =>
+    `<li><span class="li-d">${esc(r.date)}</span><span class="li-v">${r.h} h${r.note ? " · " + esc(r.note) : ""}</span>` +
+    `<button class="del" data-arr="hours" data-i="${i}" title="delete">×</button></li>`).join("");
   el.innerHTML = `
     <h3>Assisted hours <span class="h3-r">this week ${s.weekLogged} h</span></h3>
     <p class="dim">Hours worked alongside a Gas&nbsp;Safe engineer.</p>
@@ -293,7 +298,7 @@ function hoursPane(s) {
     <label class="chk"><input type="checkbox" id="awk"> this is my whole-week total (replaces the week)</label>
     <button class="btn" id="ahlog">Log hours</button>
     <div class="listwrap">
-      <div class="list-h">Recent <a id="ahundo">undo last</a></div>
+      <div class="list-h">Recent</div>
       <ul class="list">${recent || '<li class="empty">nothing logged yet</li>'}</ul>
     </div>`;
   return el;
@@ -310,9 +315,10 @@ function writeupsPane(s) {
   const cover = (obj) => Object.entries(obj).map(([k, v]) =>
     `<span class="${v > 0 ? "ok" : "dim"}">${cap1(k)} ${v}</span>`).join('<span class="dim"> · </span>');
   const opt = (o) => `<option value="${o}">${cap1(o)}</option>`;
-  const recent = [...data.jobs].slice(-8).reverse().map((r) => {
+  const recent = data.jobs.map((r, i) => ({ r, i })).slice(-10).reverse().map(({ r, i }) => {
     const bits = [r.type, r.boiler, r.fault].filter(Boolean).map(cap1).join(" · ");
-    return `<li>${esc(r.date)}<span>${esc(bits)} · ${r.h} h</span></li>`;
+    return `<li><span class="li-d">${esc(r.date)}</span><span class="li-v">${esc(bits)} · ${r.h} h</span>` +
+      `<button class="del" data-arr="jobs" data-i="${i}" title="delete">×</button></li>`;
   }).join("");
   el.innerHTML = `
     <h3>Unassisted write-ups <span class="h3-r">${s.jobsDone}/${s.jobsTotal} · ${s.jobHours} h</span></h3>
@@ -330,7 +336,7 @@ function writeupsPane(s) {
     <button class="btn" id="jlog">Log write-up</button>
     <p class="dim sm">Tapping a tile logs one straight away using the dropdowns. Fault only counts on repairs.</p>
     <div class="listwrap">
-      <div class="list-h">Recent <a id="jundo">undo last</a></div>
+      <div class="list-h">Recent</div>
       <ul class="list">${recent || '<li class="empty">nothing logged yet</li>'}</ul>
     </div>`;
   return el;
@@ -341,11 +347,12 @@ function reportPane(s) {
   el.className = "card";
   el.innerHTML = `
     <h3>Portfolio report</h3>
-    <p class="dim">A one-page progress sheet to hand your lecturer — hours vs the pass
-    mark and goal, deadline and pace, write-up counts, boiler &amp; fault coverage, and
-    the full log of everything you've entered. It carries <b>no name</b> and no author
-    credit.</p>
-    <div class="report-preview">
+    <p class="dim">A one-page progress sheet for your lecturer — hours vs the pass mark
+    and goal, deadline and pace, write-up counts, boiler &amp; fault coverage, and the
+    full log of everything you've entered.</p>
+    <label class="wide">Your name (appears on the sheet)
+      <input type="text" id="r_name" value="${esc(data.name || "")}" placeholder="e.g. C. Wales" maxlength="60"></label>
+    <div class="report-preview" style="margin-top:12px">
       <div><b>${s.total} h</b><span>total logged</span></div>
       <div><b>${s.jobsDone}/${s.jobsTotal}</b><span>write-ups</span></div>
       <div><b>${s.perDayGoal} h/day</b><span>rate needed</span></div>
@@ -412,7 +419,7 @@ function helpPane() {
     Those hours count toward your total too. Tapping a tile logs one instantly. The
     coverage lines confirm you've hit every boiler type and every fault type.</p>
     <h4>Report tab</h4>
-    <p><b>Export PDF</b> — a one-page progress sheet for your lecturer. No name on it.</p>
+    <p><b>Export PDF</b> — a one-page progress sheet for your lecturer. Add your name on the Report tab before exporting.</p>
     <h4>Settings</h4>
     <p>Every number is adjustable. <b>export / import data</b> moves your whole tracker
     between machines.</p>
@@ -446,6 +453,8 @@ function wireTitlebar() {
 
 // ---------- wiring (re-run each render; #app is rebuilt, so no listener leak) ----------
 function wire(s) {
+  app.querySelectorAll(".del").forEach((b) =>
+    b.addEventListener("click", () => removeEntry(b.dataset.arr, parseInt(b.dataset.i, 10))));
   if (tab === "assisted") {
     const h = document.getElementById("ah");
     const go = () => {
@@ -454,7 +463,6 @@ function wire(s) {
     };
     document.getElementById("ahlog").onclick = go;
     h.addEventListener("keydown", (e) => { if (e.key === "Enter") go(); });
-    document.getElementById("ahundo").onclick = () => undoLast("hours");
     h.focus({ preventScroll: true });
   }
 
@@ -478,11 +486,12 @@ function wire(s) {
     const go = () => addJob(jt.value, jh.value, jb.value, jt.value === "repair" ? jf.value : undefined);
     document.getElementById("jlog").onclick = go;
     jh.addEventListener("keydown", (e) => { if (e.key === "Enter") go(); });
-    document.getElementById("jundo").onclick = () => undoLast("jobs");
   }
 
   if (tab === "report") {
-    document.getElementById("r_pdf").onclick = exportPdf;
+    const nm = document.getElementById("r_name");
+    nm.addEventListener("input", () => { data.name = nm.value.trim(); });
+    document.getElementById("r_pdf").onclick = () => { data.name = nm.value.trim(); save(); exportPdf(); };
   }
 
   if (tab === "settings") {
