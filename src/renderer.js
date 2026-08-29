@@ -228,6 +228,7 @@ const TABS = [
   ["assisted", "Hours"],
   ["unassisted", "Write-ups"],
   ["report", "Report"],
+  ["methods", "Methods"],
   ["settings", "Settings"],
   ["help", "Help"],
 ];
@@ -240,6 +241,7 @@ function render() {
   else if (tab === "assisted") app.appendChild(hoursPane(s));
   else if (tab === "unassisted") app.appendChild(writeupsPane(s));
   else if (tab === "report") app.appendChild(reportPane(s));
+  else if (tab === "methods") app.appendChild(methodsPane());
   else if (tab === "help") app.appendChild(helpPane());
   else app.appendChild(settingsPane());
   countUp(app);
@@ -265,8 +267,8 @@ function homePane(s) {
   const paceCls = s.verdictOk ? "ok" : "warn";
   const weekAim = Math.round(s.perDayGoal * 5 * 10) / 10;
   const college = s.atCollegeNow
-    ? `At college now &mdash; back on the tools ${s.backOnTools}`
-    : `Next college block ${s.nextBlock}${s.nextBlockDays != null ? ` &middot; in ${s.nextBlockDays} days` : ""}`;
+    ? `At college now — back on the tools ${s.backOnTools}`
+    : `Next college block ${s.nextBlock}${s.nextBlockDays != null ? ` · in ${s.nextBlockDays} days` : ""}`;
   const cov = (obj) => Object.entries(obj).map(([k, v]) =>
     `<span class="${v > 0 ? "ok" : "dim"}">${cap1(k)}</span>`).join('<span class="dim"> &middot; </span>');
   el.innerHTML = `
@@ -443,12 +445,102 @@ function settingsPane() {
       <button class="btn ghost" id="off_add">Add</button>
     </div>
     <button class="btn" id="s_save">Save settings</button>
+    <label class="chk" id="s_widget_l"><input type="checkbox" id="s_widget"> Show desktop widget &mdash; a translucent card on your desktop, controlled from the menu bar</label>
     <div class="row-links">
       <a id="s_export">export my data</a>
       <label class="filelink">import data<input type="file" id="s_import" accept="application/json" hidden></label>
       <a id="s_reset" class="danger">reset everything</a>
     </div>
     <p class="dim sm" style="margin-top:12px;text-align:center">v${window.__ver || "1.0"}</p>`;
+  return el;
+}
+
+function methodsPane() {
+  const el = document.createElement("section");
+  el.className = "card help methods";
+  const m = (title, open, body) =>
+    `<details${open ? " open" : ""}><summary>${title}</summary><div class="m">${body}</div></details>`;
+  el.innerHTML = `
+    <h3>Methods &mdash; how-to and working</h3>
+    <p class="lead">The common jobs, step by step, so you can do the working on paper &mdash; where calculators and apps aren't allowed.</p>
+
+    ${m("Gas rating &mdash; checking the heat input", true, `
+      <p class="when">Measure the volume of gas the appliance burns over a timed period, convert it to a heat input in kW, and compare against the appliance data badge.</p>
+      <p class="when"><b>Before you start</b></p>
+      <ol>
+        <li>Isolate every other gas appliance on the installation.</li>
+        <li>Set the appliance under test to maximum rate and let it stabilise for about <b>10 minutes</b> before timing.</li>
+      </ol>
+      <p class="when"><b>Metric meter (m&sup3;)</b></p>
+      <ol>
+        <li>Record the meter index.</li>
+        <li>Time the test &mdash; <b>2 minutes</b>, or <b>1 minute</b> (permitted by Gas Safe TB 162 for domestic metric meters). Add any extra seconds for the test dial to reach the next whole unit.</li>
+        <li>Record the index again. Second reading &minus; first reading = <b>volume used</b> (m&sup3;).</li>
+        <li>Gas rate: <code>volume used &times; 3600 &divide; test time (s) = m&sup3;/h</code></li>
+        <li>Gross heat input: <code>m&sup3;/h &times; 38.76 &divide; 3.6 = kW gross</code></li>
+        <li>The data badge normally states a <b>net</b> input &mdash; divide by <b>1.1</b> to compare like for like.</li>
+      </ol>
+      <div class="eg"><b>Example:</b> 0.08 m&sup3; used in 2 min 6 s (126 s). &nbsp; 0.08 &times; 3600 &divide; 126 = <b>2.29 m&sup3;/h</b> &rarr; 2.29 &times; 38.76 &divide; 3.6 = <b>24.6 kW gross</b> &rarr; &divide; 1.1 = <b>22.4 kW net</b>.</div>
+      <p class="when"><b>Imperial meter (ft&sup3;)</b></p>
+      <ol>
+        <li>Note the test dial size &mdash; <b>1, 2, 5 or 10 ft&sup3;</b> per revolution (marked on the dial). Time <b>one complete revolution</b>.</li>
+        <li>Gas rate: <code>ft&sup3; per rev &times; 3600 &divide; time for one rev (s) = ft&sup3;/h</code></li>
+        <li>Heat input: <code>ft&sup3;/h &times; 1040 = Btu/h</code>, then <code>&divide; 3412 = kW gross</code>, then <code>&divide; 1.1 = kW net</code></li>
+      </ol>
+      <div class="eg"><b>Example:</b> 2 ft&sup3; dial, one revolution in 68 s. &nbsp; 2 &times; 3600 &divide; 68 = <b>105.9 ft&sup3;/h</b> &rarr; &times; 1040 = 110,118 Btu/h &rarr; &divide; 3412 = <b>32.3 kW gross</b> &rarr; &divide; 1.1 = <b>29.3 kW net</b>.</div>
+      <p class="chk">The net figure should be within about <b>5%</b> of the appliance data badge &mdash; the manufacturer's instructions take precedence. Figures per NICEIC Pocket Guide Gas 3 / ACS &amp; BPEC teaching.</p>
+    `)}
+
+    ${m("Air supply &mdash; is purpose-provided ventilation needed?", false, `
+      <p class="when">Applies to <b>open-flued</b> appliances (combustion air drawn from the room). A <b>room-sealed</b> / balanced-flue appliance takes its air from outside and normally needs no vent.</p>
+      <ol>
+        <li>Get the appliance's <b>net</b> heat input in kW (data badge, or from the gas rate above).</li>
+        <li><b>7 kW or below:</b> no purpose-provided ventilation required &mdash; adventitious ventilation (natural infiltration through the building fabric) is taken to cover it.</li>
+        <li><b>Above 7 kW:</b> <code>(net kW &minus; 7) &times; 5 = free area required (cm&sup2;)</code></li>
+        <li>That figure is the <b>free area</b> &mdash; the actual unobstructed opening. Size the grille from its stated free area, not its overall dimensions.</li>
+      </ol>
+      <div class="eg"><b>Example:</b> 18 kW net. &nbsp; (18 &minus; 7) &times; 5 = <b>55 cm&sup2;</b> of permanent free area.</div>
+      <p class="when">Air may be taken direct from outside, or from an adjacent room that itself has an equivalent vent to outside. Appliances in a compartment use a separate, larger set of figures with high- and low-level vents.</p>
+      <p class="chk">BS 5440-2:2023 (superseded the 2009 edition on 31 Dec 2023).</p>
+    `)}
+
+    ${m("Tightness test &mdash; proving soundness", false, `
+      <p class="when">Carried out after any work on the installation pipework, before gas is admitted for use. Domestic natural gas, IGEM/UP/1B.</p>
+      <ol>
+        <li>Connect a manometer to a test point, raise the installation to <b>20&ndash;21 mbar</b>, then close the ECV.</li>
+        <li><b>Let-by test:</b> the pressure must not <em>rise</em>. A rise shows the ECV is letting by &mdash; investigate before continuing.</li>
+        <li>Allow <b>1 minute</b> for temperature stabilisation.</li>
+        <li>Time the test for <b>2 minutes</b> and record the pressure drop.</li>
+        <li>Compare the drop against the permitted figure.</li>
+      </ol>
+      <p class="when"><b>Permitted drop &mdash; current (IGEM/UP/1B Edition 3), by meter</b></p>
+      <div class="figs">Diaphragm meter &le; 6 m&sup3;/h (U6 / G4): <b>4 mbar</b> for pipework &le; 28 mm, <b>2.5 mbar</b> for pipework &gt; 28 mm.</div>
+      <p class="when"><b>Permitted drop &mdash; from 1 Oct 2026 (IGEM/UP/1B Edition 4), by installation volume (IV)</b></p>
+      <div class="figs">
+        IV &le; 0.005 m&sup3; &rarr; <b>8 mbar</b> &nbsp;&middot;&nbsp;
+        &gt; 0.005&ndash;0.010 m&sup3; &rarr; <b>4 mbar</b><br>
+        &gt; 0.010&ndash;0.015 m&sup3; &rarr; <b>2.5 mbar</b> &nbsp;&middot;&nbsp;
+        &gt; 0.015&ndash;0.035 m&sup3; &rarr; <b>1 mbar</b> (typical dwelling)
+      </div>
+      <div class="eg">New pipework, nothing connected &mdash; <b>no perceptible drop permitted</b>. Any drop beyond the permitted figure, any let-by, or any smell of gas is a <b>fail</b>; do not admit gas.</div>
+      <p class="chk">IGEM/UP/1B Edition 4 replaces Edition 3 on <b>1 Oct 2026</b> (Edition 3 withdrawn 30 Sep 2026) &mdash; the basis moves from meter size to installation volume. Work to the edition your centre assesses on.</p>
+    `)}
+
+    ${m("Pipe sizing &mdash; the 1 mbar method", false, `
+      <p class="when">A new run must be sized so the total pressure loss from the meter outlet to any appliance does not exceed <b>1 mbar</b>.</p>
+      <ol>
+        <li>Determine the gas rate carried by each section in m&sup3;/h &mdash; sum the connected appliances. Convert each: <code>kW gross &divide; 10.8 = m&sup3;/h</code> (or use the manufacturer's figure).</li>
+        <li>Measure each section's actual length, then add the <b>equivalent length</b> for every fitting (elbow, tee, etc.) from the BS 6891 table.</li>
+        <li>For each section, read the pressure loss from the BS 6891 discharge table for that material and diameter at its gas rate and effective length (tabulated for a 1.0 mbar drop, relative density 0.6).</li>
+        <li>Sum the losses along the <b>index run</b> (the longest / most onerous route). If the total exceeds 1 mbar, increase the pipe size and repeat.</li>
+      </ol>
+      <div class="eg"><b>Example:</b> a 22 mm copper section &mdash; 6 m actual + fittings &asymp; <b>7.6 m effective length</b> &mdash; carrying 1.8 m&sup3;/h. The BS 6891 table gives well under <b>1 mbar</b> for that section; confirm the whole index run still totals under 1 mbar.</div>
+      <p class="chk">BS 6891:2015 (+A1:2019), Annex A. Use the discharge and equivalent-length tables for the pipe material being installed.</p>
+    `)}
+
+    <p class="disc">Revision notes to support your training &mdash; not a substitute for it, the current standards, or the appliance instructions. On site, the calorific value and gross-to-net factor come from the gas supplier's declared values. Not endorsed by Gas Safe, BPEC or IGEM.<br><br>
+    Checked Aug 2026 against: NICEIC Pocket Guide Gas 3; Gas Safe TB 162 (1-minute gas rate, Sep 2023); BS 5440-2:2023; IGEM/UP/1B Edition 3 and Edition 4 (in force 1 Oct 2026); BS 6891:2015+A1:2019. Always work to the current edition and the one your centre assesses on.</p>
+  `;
   return el;
 }
 
@@ -477,8 +569,8 @@ function helpPane() {
     <h4>Settings</h4>
     <p>Every number is adjustable. <b>export / import data</b> moves your whole tracker
     between machines.</p>
-    <h4>Widget mode</h4>
-    <p>The <span class="k">&#9713;</span> button (or Ctrl/Cmd + Shift + W) shrinks the app to a small always-on-top panel showing just your hours, the bar and the daily rate &mdash; a desktop reminder while you work. The same button brings the full window back. The <span class="k">pin</span> button on its own just keeps the full window on top.</p>
+    <h4>Desktop widget</h4>
+    <p>Turn it on with the <span class="k">&#9713;</span> button, <span class="k">Cmd/Ctrl + Shift + W</span>, or the tick-box in Settings. It sits on your desktop behind your windows &mdash; total, bar and daily rate, updating live &mdash; and stays there even when the app is closed. Control it from the <b>menu-bar flame</b> at the top of the screen: open the app, log +2 h, move the widget to another corner, or set it to start at login. Closing the app window just tucks it away; the widget and menu-bar icon keep going until you pick <b>Quit</b>. The <span class="k">pin</span> button just keeps the app window itself on top.</p>
 
     <h3 style="margin-top:16px">FAQ</h3>
     ${faq("Does any of this leave my computer?", "No. Everything is saved on your machine. The PDF and data export are files you choose to share.")}
@@ -508,12 +600,18 @@ function wireTitlebar() {
   if (wbtn) {
     if (!window.api.widget) { wbtn.style.display = "none"; }
     else {
-      wbtn.onclick = () =>
-        window.api.widget(!document.documentElement.classList.contains("widget"));
+      wbtn.onclick = () => window.api.widget(!wbtn.classList.contains("on"));
+      if (window.api.widgetState) {
+        window.api.widgetState().then((on) => wbtn.classList.toggle("on", !!on)).catch(() => {});
+      }
     }
   }
   if (window.api.onWidgetMode) {
-    window.api.onWidgetMode((on) => document.documentElement.classList.toggle("widget", on));
+    window.api.onWidgetMode((on) => {
+      document.getElementById("widget")?.classList.toggle("on", !!on);
+      const chk = document.getElementById("s_widget");
+      if (chk) chk.checked = !!on;
+    });
   }
 }
 
@@ -567,6 +665,13 @@ function wire(s) {
   }
 
   if (tab === "settings") {
+    const wchk = document.getElementById("s_widget");
+    if (!window.api.widget) {
+      document.getElementById("s_widget_l").style.display = "none";
+    } else {
+      if (window.api.widgetState) window.api.widgetState().then((on) => { wchk.checked = !!on; }).catch(() => {});
+      wchk.onchange = () => window.api.widget(wchk.checked);
+    }
     document.getElementById("off_add").onclick = () =>
       addOff(document.getElementById("off_start").value, Number(document.getElementById("off_days").value));
     document.getElementById("s_save").onclick = () => {
@@ -631,9 +736,6 @@ function normalise(raw) {
   setTimeout(() => document.getElementById("splash")?.remove(), 4800);
   try {
     if (window.api.appVersion) window.__ver = await window.api.appVersion();
-    if (window.api.widgetState) {
-      try { document.documentElement.classList.toggle("widget", await window.api.widgetState()); } catch {}
-    }
     data = normalise(await window.api.getData());
     wireTitlebar();
     window.api.onDataChanged((d) => { data = normalise(d); render(); });

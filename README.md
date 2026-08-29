@@ -41,9 +41,13 @@ Everything is stored on your machine. Nothing is uploaded.
 |---|---|---|
 | ![Home](docs/home.png) | ![Hours](docs/hours.png) | ![Write-ups](docs/write-ups.png) |
 
-| Report — PDF for your assessor | Widget mode |
+| Report — PDF for your assessor | Methods — learn the working |
 |---|---|
-| ![Report](docs/report.png) | ![Widget](docs/widget.png) |
+| ![Report](docs/report.png) | ![Methods](docs/methods.png) |
+
+| Desktop widget |
+|---|
+| ![Widget](docs/widget.png) |
 
 ## Features
 
@@ -55,11 +59,18 @@ Everything is stored on your machine. Nothing is uploaded.
   count toward your total too. Coverage lines light up as you hit each boiler and fault.
 - **Report** — one-page PDF for your assessor, in the app's colours, with your name on
   it: hours, pace, write-up counts, boiler &amp; fault coverage, and the full log.
+- **Methods** — the working behind the common jobs (gas rating, ventilation, tightness
+  testing, pipe sizing), each with the formula and a worked example, so you can do it on
+  paper in the centre where calculators aren't allowed. Revision aid, not a calculator.
 - **Settings** — every number is editable (starting hours, pass mark, goal, deadline,
   work-day length, job targets, college block weeks, holidays). Export / import your
   whole tracker as a file.
-- **Widget mode** — shrink to a small always-on-top panel (Cmd/Ctrl + Shift + W)
-  showing just your hours, the bar and the daily rate.
+- **Desktop widget** — an optional translucent card that sits on your desktop, behind
+  your windows, and stays there even when the app is closed. Total, bar and daily rate,
+  updating live. It's driven from a **menu-bar icon**: open the app, log +2 h, move the
+  widget between corners, start it at login. Closing the app window just tucks it away;
+  the widget and menu-bar icon keep running until you Quit. Toggle with the titlebar
+  button, Cmd/Ctrl + Shift + W, or the Settings tick-box.
 - **Update check** — on launch it checks GitHub for a newer release and offers a
   one-click download if there is one.
 
@@ -99,7 +110,8 @@ npm run dist:win     # -> dist/*.exe   (on Windows)
 | `src/logic.js` | the maths — pure, no DOM, unit-tested |
 | `src/renderer.js` | the UI |
 | `src/style.css` | the look |
-| `electron/main.js` | window, menu, data file, update check, widget mode |
+| `electron/main.js` | main window, menu, data file, update check, desktop-widget window |
+| `src/widget.html` / `widget.js` | the standalone desktop widget |
 | `scripts/shots.js` | regenerates the screenshots in `docs/` |
 
 MIT licensed.

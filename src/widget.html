@@ -1,0 +1,101 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self';" />
+  <title>Gas Portfolio</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 100%; height: 100%; overflow: hidden; background: transparent;
+      font: 13px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      color: #eaf2fb; -webkit-user-select: none; user-select: none; cursor: default;
+    }
+    /* One widget: a frosted card that lives on the desktop. No controls — the
+       menu-bar (tray) icon drives everything. Frosted over the wallpaper, so the
+       fill stays dark enough to read on any background. */
+    .glass {
+      position: absolute; inset: 7px;
+      border-radius: 17px;
+      padding: 13px 14px 12px;
+      display: flex; flex-direction: column; gap: 7px;
+      background: rgba(16, 19, 26, 0.52);
+      backdrop-filter: blur(24px) saturate(155%);
+      -webkit-backdrop-filter: blur(24px) saturate(155%);
+      border: 1px solid rgba(150, 200, 255, 0.16);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.10), 0 12px 30px rgba(0, 0, 0, 0.30);
+      animation: breathe 6.5s ease-in-out infinite;
+    }
+    @keyframes breathe {
+      0%, 100% {
+        border-color: rgba(120, 185, 255, 0.14);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 12px 26px rgba(0,0,0,0.26), 0 0 0 rgba(94,176,255,0);
+      }
+      50% {
+        border-color: rgba(150, 205, 255, 0.32);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.13), 0 12px 32px rgba(0,0,0,0.30), 0 0 20px rgba(94,176,255,0.20);
+      }
+    }
+
+    .brand {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 10.5px; letter-spacing: 0.6px; text-transform: uppercase;
+      font-weight: 700; color: rgba(220, 235, 255, 0.6);
+    }
+    .flame {
+      width: 13px; height: 15px; transform-origin: 50% 90%;
+      filter: drop-shadow(0 0 3px rgba(90, 162, 240, 0.5));
+      animation: flicker 2.4s ease-in-out infinite;
+    }
+    @keyframes flicker {
+      0%, 100% { transform: scale(1) skewX(0deg); filter: drop-shadow(0 0 3px rgba(90,162,240,0.5)); }
+      50%      { transform: scale(1.06) skewX(-2deg); filter: drop-shadow(0 0 6px rgba(120,190,255,0.7)); }
+    }
+
+    .big { font-size: 32px; font-weight: 800; letter-spacing: -0.6px; line-height: 1; }
+    .big small { font-size: 12px; font-weight: 600; color: rgba(220, 235, 255, 0.42); margin-left: 5px; letter-spacing: 0; }
+
+    .bar { position: relative; height: 7px; border-radius: 4px; background: rgba(255, 255, 255, 0.10); }
+    .bar > i {
+      position: absolute; left: 0; top: 0; bottom: 0; width: 0; border-radius: 4px;
+      background: linear-gradient(90deg, #3f8fd8, #6fbcff); transition: width 0.5s ease;
+    }
+    .bar > b { position: absolute; top: -3px; bottom: -3px; width: 2px; background: rgba(255, 255, 255, 0.8); border-radius: 1px; }
+
+    .line { font-size: 12px; color: rgba(220, 235, 255, 0.72); }
+    .line.warn { color: #ffb4a0; }
+    .line.ok { color: #9fe6c0; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .glass, .flame { animation: none; }
+      .bar > i { transition: none; }
+    }
+  </style>
+</head>
+<body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <linearGradient id="flameGrad" x1="0" y1="1" x2="0" y2="0">
+        <stop offset="0" stop-color="#2f7fd6" />
+        <stop offset="0.55" stop-color="#6fbcff" />
+        <stop offset="1" stop-color="#dff1ff" />
+      </linearGradient>
+    </defs>
+  </svg>
+
+  <div class="glass" id="card">
+    <span class="brand">
+      <svg class="flame" viewBox="0 0 24 24"><path d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67z" fill="url(#flameGrad)"/></svg>
+      Gas Portfolio
+    </span>
+
+    <div class="big"><span id="total">0</span><small id="goal">/ 330 h</small></div>
+
+    <div class="bar"><i id="fill"></i><b id="mark"></b></div>
+
+    <div class="line" id="pace">&mdash;</div>
+  </div>
+
+  <script src="widget.js"></script>
+</body>
+</html>
