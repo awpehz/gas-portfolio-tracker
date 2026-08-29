@@ -544,4 +544,18 @@ function normalise(raw) {
     if (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) return;
     render();
   }, 1000 * 60 * 15);
+
+  // check GitHub for a newer release (Electron only; the web build is always latest)
+  if (window.api.checkUpdate) {
+    window.api.checkUpdate().then((u) => {
+      if (!u || !u.newer) return;
+      const bar = document.getElementById("update");
+      bar.hidden = false;
+      bar.innerHTML =
+        `<span>Update available — <b>${esc(u.tag)}</b></span>` +
+        `<a id="u_dl">Download</a><span class="x" id="u_x">×</span>`;
+      document.getElementById("u_dl").onclick = () => window.api.openUrl(u.url);
+      document.getElementById("u_x").onclick = () => { bar.hidden = true; };
+    }).catch(() => {});
+  }
 })();

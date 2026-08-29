@@ -7,4 +7,7 @@ contextBridge.exposeInMainWorld("api", {
   win: (cmd) => ipcRenderer.send("win", cmd),
   onDataChanged: (cb) => ipcRenderer.on("data-changed", (_e, d) => cb(d)),
   exportPdf: (html) => ipcRenderer.invoke("export-pdf", html),
+  checkUpdate: () => ipcRenderer.invoke("check-update"),
+  appVersion: () => ipcRenderer.invoke("app-version"),
+  openUrl: (u) => ipcRenderer.send("open-url", u),
 });
