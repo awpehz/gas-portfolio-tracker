@@ -90,7 +90,7 @@ ipcMain.handle("export-pdf", async (_e, html) => {
   const pdf = await pdfWin.webContents.printToPDF({
     printBackground: true,
     pageSize: "A4",
-    margins: { marginType: "custom", top: 0.5, bottom: 0.5, left: 0.55, right: 0.55 },
+    margins: { marginType: "none" },   // the report's own CSS controls spacing / full-bleed header
   });
   pdfWin.destroy();
   const { canceled, filePath } = await dialog.showSaveDialog(win, {

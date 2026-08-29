@@ -128,13 +128,16 @@ async function exportPdf() {
   const d = { ...DEFAULT_DATA, ...data };
   const html = buildReport(d, computeStatus(data));
   if (window.api.exportPdf) {
-    const r = await window.api.exportPdf(html);
-    toast(r && r.ok ? "PDF saved" : "cancelled");
+    try {
+      const r = await window.api.exportPdf(html);
+      toast(r && r.ok ? "PDF saved" : "cancelled");
+    } catch (e) { toast("PDF export failed"); }
   } else {
     const w = window.open("", "_blank");
+    if (!w) { toast("allow pop-ups, then try again"); return; }
     w.document.write(html); w.document.close();
     w.focus();
-    setTimeout(() => w.print(), 300);
+    setTimeout(() => { try { w.print(); } catch (e) {} }, 400);
   }
 }
 
@@ -150,26 +153,21 @@ async function save() { await window.api.setData(data); render(); }
 
 // ---------- actions ----------
 function addHours(h, dateISO, note) {
-  h = Number(h); if (!h || h <= 0) return;
+  h = Number(h);
+  if (isNaN(h) || h <= 0) { toast("enter hours as a number"); return; }
   data.hours.push({ date: dateISO || todayISO(), h, note: note || "" });
   toast(`+${h}h logged`); save();
 }
 function setWeekTotal(h) {
-  h = Number(h); if (isNaN(h)) return;
-  const wk = window.GasLogic.parseISO(todayISO());
-  const key = wkKey(wk);
-  data.hours = data.hours.filter((r) => wkKey(window.GasLogic.parseISO(r.date)) !== key);
+  h = Number(h);
+  if (isNaN(h) || h < 0) { toast("enter a number"); return; }
+  const key = window.GasLogic.isoWeek(new Date());
+  data.hours = data.hours.filter((r) => {
+    const d = window.GasLogic.parseISO(r.date);
+    return isNaN(d) || window.GasLogic.isoWeek(d) !== key;
+  });
   data.hours.push({ date: todayISO(), h, note: "week total" });
   toast(`week set to ${h}h`); save();
-}
-function wkKey(d) {
-  // mirror logic.js isoWeek roughly for filtering
-  const t = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  const day = (t.getDay() + 6) % 7;
-  t.setDate(t.getDate() - day + 3);
-  const firstThu = new Date(t.getFullYear(), 0, 4);
-  const w = 1 + Math.round(((t - firstThu) / 86400000 - 3 + ((firstThu.getDay() + 6) % 7)) / 7);
-  return `${t.getFullYear()}-W${w}`;
 }
 function addJob(type, h, boiler, fault) {
   h = Number(h) || 2;
@@ -181,13 +179,16 @@ function addJob(type, h, boiler, fault) {
 }
 function addOff(startISO, days) {
   const d0 = window.GasLogic.parseISO(startISO);
+  if (isNaN(d0) || !days) { toast("pick a start date"); return; }
   let n = 0;
-  for (let i = 0; i < days; i++) {
-    const iso = toISO(new Date(d0.getTime() + i * 86400000));
+  const cur = new Date(d0);
+  for (let i = 0; i < days; i++, cur.setDate(cur.getDate() + 1)) {
+    if (cur.getDay() === 0 || cur.getDay() === 6) continue;   // weekdays only
+    const iso = toISO(cur);
     if (!data.off.includes(iso)) { data.off.push(iso); n++; }
   }
   data.off.sort();
-  toast(`${n} day(s) off added`); save();
+  toast(`${n} work day(s) off added`); save();
 }
 function undoLast(arrName) {
   if (data[arrName] && data[arrName].length) {
@@ -201,9 +202,17 @@ function render() {
   const s = computeStatus(data);
   app.innerHTML = "";
   app.appendChild(progressCard(s));
+  if (!data.hours.length && !data.jobs.length && tab !== "settings" && tab !== "help") {
+    const hint = document.createElement("div");
+    hint.className = "card";
+    hint.style.borderColor = "rgba(108,191,255,.4)";
+    hint.innerHTML = `<div class="tiny" style="color:var(--mut)">New here? Open <b style="color:var(--blue);cursor:pointer" id="gohint">Settings</b> and set your <b>starting hours</b>, <b>deadline</b>, <b>college block weeks</b> and any <b>holidays</b> first — the pace maths depends on them.</div>`;
+    app.appendChild(hint);
+  }
   app.appendChild(tabBar());
   if (tab === "assisted") app.appendChild(assistedPane(s));
   else if (tab === "unassisted") app.appendChild(unassistedPane(s));
+  else if (tab === "help") app.appendChild(helpPane());
   else app.appendChild(settingsPane());
   wire(s);
 }
@@ -229,7 +238,7 @@ function progressCard(s) {
 function tabBar() {
   const el = document.createElement("div");
   el.className = "tabs";
-  for (const [k, label] of [["assisted", "Assisted"], ["unassisted", "Unassisted"], ["settings", "Settings"]]) {
+  for (const [k, label] of [["assisted", "Assisted"], ["unassisted", "Unassisted"], ["settings", "Settings"], ["help", "Help"]]) {
     const b = document.createElement("button");
     b.textContent = label;
     b.className = tab === k ? "on" : "";
@@ -299,6 +308,67 @@ function unassistedPane(s) {
   return el;
 }
 
+function helpPane() {
+  const el = document.createElement("div");
+  el.className = "card help";
+  const faq = (q, a) => `<details><summary>${q}</summary><p>${a}</p></details>`;
+  el.innerHTML = `
+    <div class="cap"><span>How it works</span></div>
+
+    <h4>The top card</h4>
+    <p>The big number is your <b>total logged hours</b> against your goal. The white
+    tick on the bar is the <b>pass mark</b>. <b>Rate needed</b> is hours per working
+    day to reach the goal by your deadline — a working day being Mon–Fri that isn't a
+    college block week or a booked holiday. The line under it says, in plain words,
+    whether that's realistic.</p>
+
+    <h4>Assisted tab</h4>
+    <p>Hours worked <b>alongside a Gas Safe engineer</b>. Type the hours, set the date
+    (defaults to today), hit <span class="k">Log</span>. Tick <b>whole-week total</b>
+    to replace that week with one figure instead of adding. <span class="k">undo last</span>
+    removes your most recent entry.</p>
+
+    <h4>Unassisted tab</h4>
+    <p>Your <b>14 write-up jobs</b> — 5 installs, 5 services, 4 repairs (all editable in
+    Settings). For each: pick the type, the <b>boiler</b> (traditional / combi / system)
+    and, for repairs, the <b>fault</b> (water / gas / electrical), set the hours, Log.
+    Those hours count toward your total too. Tapping a tile is a quick log using
+    whatever the dropdowns show. The two coverage lines confirm you've hit every
+    boiler type and every fault type.</p>
+
+    <h4>Settings</h4>
+    <p>Everything is adjustable — starting hours, pass mark, goal, deadline, hours in a
+    work day, and how many of each job you need. <b>College block weeks</b>: one Monday
+    per line. <b>Holidays</b>: one date per line, or use <b>add range</b>.
+    <b>Export my data / import data</b> moves your whole tracker between machines.
+    <b>Export portfolio PDF</b> makes a branded progress sheet for your lecturer — it
+    carries no personal name.</p>
+
+    <h4>Keep it visible</h4>
+    <p>The <span class="k">pin</span> button in the title bar keeps the window above
+    everything else, like a widget.</p>
+
+    <div class="cap" style="margin-top:16px"><span>FAQ</span></div>
+    ${faq("Does any of this leave my computer?",
+      "No. Everything is saved on your machine. The PDF and data export are files you choose to share.")}
+    ${faq("I logged the wrong thing.",
+      "Use <b>undo last</b> on the Assisted or Unassisted tab. You can also open the raw data file — app menu → Data → Reveal data file.")}
+    ${faq("Why did the rate needed jump up?",
+      "It's spread only over the days you're actually available. Adding a college week or a holiday takes days out, so the rate on the days that remain goes up.")}
+    ${faq("Can I log for a day in the past?",
+      "Yes — the Assisted tab has a date picker next to the hours box.")}
+    ${faq("I got a new laptop.",
+      "Settings → <b>export my data</b> on the old one, <b>import data</b> on the new one.")}
+    ${faq("The Windows app says “unknown publisher”.",
+      "It isn't code-signed. Click <b>More info → Run anyway</b> on Windows, or right-click → Open on Mac. It's safe — the source is on GitHub.")}
+    ${faq("My numbers disappeared.",
+      "Data is stored per machine (and per browser for the web version). Clearing site data or switching browser loses it unless you exported a backup first.")}
+    ${faq("What if I go past the pass mark?",
+      "The bar shows it and the wording changes to “past pass”. Keep logging toward your personal goal for a safety margin.")}
+  `;
+  return el;
+}
+
 function settingsPane() {
   const el = document.createElement("div");
   el.className = "card";
@@ -307,10 +377,13 @@ function settingsPane() {
     <div class="cap"><span>Settings</span></div>
     <div class="grid" style="display:grid;grid-template-columns:1fr auto;gap:6px 10px;align-items:center">
       <span class="lbl">Starting hours</span><input type="number" id="s_base" value="${d.baseHours}" />
-      <span class="lbl">Pass mark</span><input type="number" id="s_req" value="${d.required}" />
-      <span class="lbl">Personal goal</span><input type="number" id="s_goal" value="${d.goal}" />
+      <span class="lbl">Pass mark (hours)</span><input type="number" id="s_req" value="${d.required}" />
+      <span class="lbl">Personal goal (hours)</span><input type="number" id="s_goal" value="${d.goal}" />
       <span class="lbl">Hours in a work day</span><input type="number" id="s_hpd" value="${d.hoursPerDay}" />
       <span class="lbl">Deadline</span><input type="date" id="s_dl" value="${d.deadline}" />
+      <span class="lbl">Installs needed</span><input type="number" id="s_ti" value="${d.jobTargets.install}" />
+      <span class="lbl">Services needed</span><input type="number" id="s_ts" value="${d.jobTargets.service}" />
+      <span class="lbl">Repairs needed</span><input type="number" id="s_tr" value="${d.jobTargets.repair}" />
     </div>
     <div class="lbl" style="margin-top:10px">College block weeks — one Monday per line (YYYY-MM-DD)</div>
     <textarea id="s_blocks">${d.blocks.join("\n")}</textarea>
@@ -336,14 +409,23 @@ function settingsPane() {
   return el;
 }
 
-// ---------- wiring ----------
-function wire(s) {
-  document.getElementById("pin")?.addEventListener("click", async (e) => {
+// titlebar buttons live outside #app, so wire them ONCE
+function wireTitlebar() {
+  const pin = document.getElementById("pin");
+  if (pin) pin.onclick = async () => {
     window.api.win("pin");
-    setTimeout(async () => e.target.classList.toggle("on", await window.api.isPinned()), 60);
-  });
-  document.getElementById("min")?.addEventListener("click", () => window.api.win("min"));
-  document.getElementById("close")?.addEventListener("click", () => window.api.win("close"));
+    setTimeout(async () => pin.classList.toggle("on", await window.api.isPinned()), 60);
+  };
+  const min = document.getElementById("min");
+  if (min) min.onclick = () => window.api.win("min");
+  const close = document.getElementById("close");
+  if (close) close.onclick = () => window.api.win("close");
+}
+
+// ---------- wiring (re-run every render; #app is rebuilt so no listener leak here) ----------
+function wire(s) {
+  const gh = document.getElementById("gohint");
+  if (gh) gh.onclick = () => { tab = "settings"; render(); };
 
   if (tab === "assisted") {
     const hEl = document.getElementById("ah");
@@ -369,9 +451,13 @@ function wire(s) {
     };
     jt.addEventListener("change", syncFault);
     syncFault();
+    // tile = quick add of the type shown, using the boiler + hours currently set
     document.querySelectorAll(".job").forEach((j) =>
-      j.addEventListener("click", () => addJob(j.dataset.type, 2, jb.value, jf.value)));
-    const go = () => addJob(jt.value, jh.value, jb.value, jf.value);
+      j.addEventListener("click", () => {
+        const type = j.dataset.type;
+        addJob(type, Number(jh.value) || 2, jb.value, type === "repair" ? jf.value : undefined);
+      }));
+    const go = () => addJob(jt.value, jh.value, jb.value, jt.value === "repair" ? jf.value : undefined);
     document.getElementById("jlog").onclick = go;
     jh.addEventListener("keydown", (e) => { if (e.key === "Enter") go(); });
     document.getElementById("jundo").onclick = () => undoLast("jobs");
@@ -382,13 +468,25 @@ function wire(s) {
       addOff(document.getElementById("off_start").value, Number(document.getElementById("off_days").value));
     document.getElementById("s_pdf").onclick = exportPdf;
     document.getElementById("s_save").onclick = () => {
-      data.baseHours = Number(document.getElementById("s_base").value);
-      data.required = Number(document.getElementById("s_req").value);
-      data.goal = Number(document.getElementById("s_goal").value);
-      data.hoursPerDay = Number(document.getElementById("s_hpd").value);
-      data.deadline = document.getElementById("s_dl").value;
-      data.blocks = document.getElementById("s_blocks").value.split("\n").map((x) => x.trim()).filter(Boolean);
-      data.off = document.getElementById("s_off").value.split("\n").map((x) => x.trim()).filter(Boolean);
+      const num = (id, min, fallback) => {
+        const v = Number(document.getElementById(id).value);
+        return isNaN(v) || v < min ? fallback : v;
+      };
+      data.baseHours = num("s_base", 0, 0);
+      data.required = num("s_req", 1, DEFAULT_DATA.required);
+      data.goal = num("s_goal", 1, DEFAULT_DATA.goal);
+      data.hoursPerDay = num("s_hpd", 1, DEFAULT_DATA.hoursPerDay);
+      const dl = document.getElementById("s_dl").value;
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dl)) data.deadline = dl;
+      data.jobTargets = {
+        install: num("s_ti", 0, DEFAULT_DATA.jobTargets.install),
+        service: num("s_ts", 0, DEFAULT_DATA.jobTargets.service),
+        repair: num("s_tr", 0, DEFAULT_DATA.jobTargets.repair),
+      };
+      const dates = (id) => document.getElementById(id).value.split("\n")
+        .map((x) => x.trim()).filter((x) => /^\d{4}-\d{2}-\d{2}$/.test(x));
+      data.blocks = dates("s_blocks");
+      data.off = dates("s_off");
       toast("settings saved"); save();
     };
     document.getElementById("s_export").onclick = () => {
@@ -419,10 +517,31 @@ function wire(s) {
 }
 
 // ---------- boot ----------
+function normalise(raw) {
+  const d = { ...structuredClone(DEFAULT_DATA), ...(raw || {}) };
+  for (const k of ["hours", "jobs", "off", "blocks"])
+    if (!Array.isArray(d[k])) d[k] = structuredClone(DEFAULT_DATA[k]);
+  if (!d.jobTargets || typeof d.jobTargets !== "object") d.jobTargets = structuredClone(DEFAULT_DATA.jobTargets);
+  if (!Array.isArray(d.boilerTypes) || !d.boilerTypes.length) d.boilerTypes = [...DEFAULT_DATA.boilerTypes];
+  if (!Array.isArray(d.repairFaults) || !d.repairFaults.length) d.repairFaults = [...DEFAULT_DATA.repairFaults];
+  if (typeof d.deadline !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(d.deadline)) d.deadline = DEFAULT_DATA.deadline;
+  return d;
+}
+
 (async function () {
-  data = { ...structuredClone(DEFAULT_DATA), ...(await window.api.getData()) };
-  for (const k of ["hours", "jobs", "off", "blocks"]) if (!Array.isArray(data[k])) data[k] = structuredClone(DEFAULT_DATA[k]);
-  window.api.onDataChanged((d) => { data = { ...structuredClone(DEFAULT_DATA), ...d }; render(); });
-  render();
-  setInterval(render, 1000 * 60 * 30); // keep day-countdown fresh
+  try {
+    data = normalise(await window.api.getData());
+    wireTitlebar();
+    window.api.onDataChanged((d) => { data = normalise(d); render(); });
+    render();
+  } catch (e) {
+    document.getElementById("app").innerHTML =
+      `<div class="card"><b>Couldn't start</b><div class="tiny" style="margin-top:6px">${esc(String(e))}</div></div>`;
+  }
+  // refresh the day-countdown, but never while the user is typing
+  setInterval(() => {
+    const a = document.activeElement;
+    if (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) return;
+    render();
+  }, 1000 * 60 * 15);
 })();

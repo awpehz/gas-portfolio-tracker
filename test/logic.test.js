@@ -103,5 +103,29 @@ t("custom settings are honoured", () => {
   assert.strictEqual(s.toRequired, 50);
 });
 
+t("job targets are adjustable", () => {
+  const s = computeStatus({ jobTargets: { install: 3, service: 2, repair: 1 } }, NOW);
+  assert.strictEqual(s.jobsTotal, 6);
+  assert.strictEqual(s.targets.install, 3);
+});
+
+t("isoWeek is exported and stable across a DST boundary", () => {
+  const { isoWeek } = require("../src/logic.js");
+  // 26 Oct 2026 is the Monday after the UK clocks go back (25 Oct)
+  assert.strictEqual(isoWeek(new Date(2026, 9, 26)), isoWeek(new Date(2026, 9, 30)));
+});
+
+t("availDays walk is unaffected by the Oct DST change", () => {
+  // deadline just past the change; every weekday 26-30 Oct should count once
+  const s = computeStatus({ deadline: "2026-10-30", blocks: [], off: [] }, new Date(2026, 9, 26));
+  assert.strictEqual(s.workDays, 5);
+  assert.strictEqual(s.availDays, 5);
+});
+
+t("garbage in the block/holiday lists doesn't crash", () => {
+  const s = computeStatus({ blocks: ["not-a-date", ""], off: ["2026-13-99"] }, NOW);
+  assert.ok(typeof s.perDayGoal === "number");
+});
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

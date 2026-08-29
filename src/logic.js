@@ -76,10 +76,10 @@ function computeStatus(data, now = new Date()) {
   const pctGoal = Math.min(100, (total / d.goal) * 100);
   const requiredMark = (d.required / d.goal) * 100;
 
-  // walk every day to the deadline, classify weekdays
+  // walk every day to the deadline, classify weekdays.
+  // Step by calendar date (not +86400000ms) so the Oct DST change can't drift.
   let workDays = 0, collegeDays = 0, offDays = 0, availDays = 0;
-  for (let t = today.getTime(); t <= deadline.getTime(); t += DAY) {
-    const dt = new Date(t);
+  for (const dt = new Date(today); dt <= deadline; dt.setDate(dt.getDate() + 1)) {
     if (dt.getDay() === 0 || dt.getDay() === 6) continue;
     workDays++;
     if (collegeWeeks.has(isoWeek(dt))) collegeDays++;
@@ -120,8 +120,8 @@ function computeStatus(data, now = new Date()) {
   }
   let backOnTools = null;
   if (atCollegeNow) {
-    let m = mondayOf(today);
-    do { m = new Date(m.getTime() + 7 * DAY); } while (collegeWeeks.has(isoWeek(m)));
+    const m = mondayOf(today);
+    do { m.setDate(m.getDate() + 7); } while (collegeWeeks.has(isoWeek(m)));
     backOnTools = fmtShort(m);
   }
   const blocksBeforeDeadline = d.blocks.filter((b) => {
@@ -145,7 +145,7 @@ function computeStatus(data, now = new Date()) {
   };
 }
 
-const GasLogic = { computeStatus, DEFAULT_DATA, toISO, parseISO };
+const GasLogic = { computeStatus, DEFAULT_DATA, toISO, parseISO, isoWeek };
 if (typeof module !== "undefined" && module.exports) module.exports = GasLogic;
 if (typeof window !== "undefined") window.GasLogic = GasLogic;
 

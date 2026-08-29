@@ -21,7 +21,9 @@ the tools (college weeks and holidays removed).
 - **Settings** — every number is editable: starting hours, pass mark, goal,
   deadline, hours in a work day, the college block weeks, and holidays. Change them
   for your own portfolio.
-- Runs as a normal window or, with **View → Always on Top**, as a pinned panel.
+- Runs as a normal window or, with **View → Always on Top** (or the title-bar
+  **pin** button), as a pinned panel.
+- A **Help** tab explains every part and answers common questions.
 
 Data is stored locally per person (`gaslog-data.json` in your user data folder —
 `View → Data → Reveal data file`). Nothing leaves your machine.
