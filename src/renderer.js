@@ -197,48 +197,53 @@ function undoLast(arrName) {
   }
 }
 
+
+
+const RM = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+function countUp(scope) {
+  scope.querySelectorAll(".v[data-to]").forEach((el) => {
+    const to = parseFloat(el.dataset.to) || 0;
+    const dp = el.dataset.dp != null ? parseInt(el.dataset.dp, 10) : (to % 1 === 0 ? 0 : 1);
+    if (RM || to === 0) { el.textContent = trimNum(to, dp); return; }
+    const t0 = performance.now(), dur = 460;
+    const tick = (now) => {
+      const k = Math.min(1, (now - t0) / dur);
+      const e = 1 - Math.pow(1 - k, 3);
+      el.textContent = trimNum(to * e, dp);
+      if (k < 1) requestAnimationFrame(tick); else el.textContent = trimNum(to, dp);
+    };
+    requestAnimationFrame(tick);
+  });
+}
+function trimNum(n, dp) { return dp ? n.toFixed(dp).replace(/\.0$/, "") : String(Math.round(n)); }
+
 // ---------- render ----------
+const TABS = [
+  ["assisted", "Hours"],
+  ["unassisted", "Write-ups"],
+  ["report", "Report"],
+  ["settings", "Settings"],
+  ["help", "Help"],
+];
+
 function render() {
   const s = computeStatus(data);
   app.innerHTML = "";
-  app.appendChild(progressCard(s));
-  if (!data.hours.length && !data.jobs.length && tab !== "settings" && tab !== "help") {
-    const hint = document.createElement("div");
-    hint.className = "card";
-    hint.style.borderColor = "rgba(108,191,255,.4)";
-    hint.innerHTML = `<div class="tiny" style="color:var(--mut)">New here? Open <b style="color:var(--blue);cursor:pointer" id="gohint">Settings</b> and set your <b>starting hours</b>, <b>deadline</b>, <b>college block weeks</b> and any <b>holidays</b> first — the pace maths depends on them.</div>`;
-    app.appendChild(hint);
-  }
   app.appendChild(tabBar());
-  if (tab === "assisted") app.appendChild(assistedPane(s));
-  else if (tab === "unassisted") app.appendChild(unassistedPane(s));
+  if (tab === "assisted" || tab === "unassisted") app.appendChild(dash(s));
+  if (tab === "assisted") app.appendChild(hoursPane(s));
+  else if (tab === "unassisted") app.appendChild(writeupsPane(s));
+  else if (tab === "report") app.appendChild(reportPane(s));
   else if (tab === "help") app.appendChild(helpPane());
   else app.appendChild(settingsPane());
+  countUp(app);
   wire(s);
 }
 
-function progressCard(s) {
-  const el = document.createElement("div");
-  el.className = "card";
-  const college = s.atCollegeNow
-    ? `at college now · back on the tools ${s.backOnTools}`
-    : `college: next block ${s.nextBlock}${s.nextBlockDays != null ? ` (in ${s.nextBlockDays}d)` : ""}`;
-  el.innerHTML = `
-    <div class="cap"><span>Progress</span><span>goal ${s.goal}</span></div>
-    <div class="row"><span class="big">${s.total}<small> / ${s.goal} h</small></span>
-      <span class="sub">${s.past275 ? "✓ past pass" : s.toRequired + "h to pass (275)"}</span></div>
-    <div class="bar"><i style="width:${Math.max(3, s.pctGoal)}%"></i><b style="left:${s.requiredMark}%"></b></div>
-    <div class="row"><span class="sub">Rate needed</span>
-      <span class="rate ${s.verdictOk ? "ok" : "warn"}">${s.perDayGoal}<span style="font-size:11px;color:var(--faint)"> h / working day</span></span></div>
-    <div class="verdict ${s.verdictOk ? "ok" : "warn"}">${esc(s.verdict)}</div>
-    <div class="tiny">${s.availDays} working days left · ${esc(college)}</div>`;
-  return el;
-}
-
 function tabBar() {
-  const el = document.createElement("div");
+  const el = document.createElement("nav");
   el.className = "tabs";
-  for (const [k, label] of [["assisted", "Assisted"], ["unassisted", "Unassisted"], ["settings", "Settings"], ["help", "Help"]]) {
+  for (const [k, label] of TABS) {
     const b = document.createElement("button");
     b.textContent = label;
     b.className = tab === k ? "on" : "";
@@ -248,168 +253,185 @@ function tabBar() {
   return el;
 }
 
-function assistedPane(s) {
-  const el = document.createElement("div");
-  el.className = "card";
-  const recent = [...data.hours].slice(-6).reverse().map((r, i) =>
-    `<div class="row" style="font-size:11px;color:var(--mut);margin:2px 0">
-       <span>${esc(r.date)} · ${r.h}h${r.note ? " · " + esc(r.note) : ""}</span></div>`).join("");
+function dash(s) {
+  const el = document.createElement("section");
+  el.className = "card dash";
+  const paceCls = s.verdictOk ? "ok" : "warn";
+  const college = s.atCollegeNow
+    ? `At college now — back on the tools ${s.backOnTools}`
+    : `Next college block ${s.nextBlock}${s.nextBlockDays != null ? ` · in ${s.nextBlockDays} days` : ""}`;
   el.innerHTML = `
-    <div class="cap"><span>Assisted hours</span><span>this week ${s.weekLogged}h</span></div>
-    <div class="field">
-      <input type="number" id="ah" step="0.5" min="0" placeholder="hours" />
-      <input type="date" id="ad" value="${todayISO()}" />
-      <span class="pill blue" id="ahlog" style="flex:0 0 auto;min-width:56px">Log</span>
+    <div class="dash-top">
+      <div>
+        <div class="stat"><span class="v" data-to="${s.total}">0</span><small> / ${s.goal} h</small></div>
+        <div class="stat-l">${s.past275 ? "past the 275 pass mark" : `<span class="v" data-to="${s.toRequired}">0</span> h to pass (275)`}</div>
+      </div>
+      <div class="right">
+        <div class="stat"><span class="v" data-to="${s.jobsDone}">0</span><small> / ${s.jobsTotal}</small></div>
+        <div class="stat-l">write-ups</div>
+      </div>
     </div>
-    <label class="chk"><input type="checkbox" id="awk" /> this is my whole-week total</label>
-    <div class="links" style="margin-top:8px"><a id="ahundo">undo last</a></div>
-    <div style="margin-top:8px">${recent || '<div class="tiny">no entries yet</div>'}</div>`;
+    <div class="bar"><i style="--w:${Math.max(3, s.pctGoal)}%"></i><b style="left:${s.requiredMark}%"></b></div>
+    <div class="pace ${paceCls}"><span class="v" data-to="${s.perDayGoal}" data-dp="1">0</span> h/day needed<span class="dim"> · ${s.availDays} working days left</span></div>
+    <div class="dim sm">${esc(s.verdict)}</div>
+    <div class="dim sm" style="margin-top:4px">${esc(college)}</div>`;
   return el;
 }
 
-function unassistedPane(s) {
-  const el = document.createElement("div");
+function hoursPane(s) {
+  const el = document.createElement("section");
   el.className = "card";
-  const t = s.targets;
-  const cap = (str) => str.charAt(0).toUpperCase() + str.slice(1);
-  const jb = (label, key, n, tgt) =>
-    `<div class="job" data-type="${key}">
-       <div class="n ${n >= tgt ? "done" : ""}">${n}</div><div class="of">of ${tgt}</div>
-       <div class="lbl">${label}</div></div>`;
-  const sel = (id, opts) =>
-    `<select id="${id}" class="sel">` +
-    opts.map((o) => `<option value="${o}">${cap(o)}</option>`).join("") + `</select>`;
-  const cover = (obj, allDone) =>
-    Object.entries(obj).map(([k, v]) =>
-      `<span style="color:${v > 0 ? "var(--sage)" : "var(--faint)"}">${cap(k)} ${v}</span>`
-    ).join('<span style="color:var(--faint)"> · </span>') +
-    (allDone ? ' <span style="color:var(--sage)">✓ all covered</span>' : "");
-  const recent = [...data.jobs].slice(-6).reverse().map((r) => {
-    const parts = [r.date, r.type, r.boiler, r.fault, r.h + "h"].filter(Boolean).map(esc);
-    return `<div class="row" style="font-size:11px;color:var(--mut);margin:2px 0"><span>${parts.join(" · ")}</span></div>`;
-  }).join("");
+  const recent = [...data.hours].slice(-8).reverse().map((r) =>
+    `<li>${esc(r.date)}<span>${r.h} h${r.note ? " · " + esc(r.note) : ""}</span></li>`).join("");
   el.innerHTML = `
-    <div class="cap"><span>Unassisted write-ups</span><span>${s.jobsDone}/${s.jobsTotal} · ${s.jobHours}h</span></div>
-    <div class="jobs">${jb("Install", "install", s.install, t.install)}${jb("Service", "service", s.service, t.service)}${jb("Repair", "repair", s.repair, t.repair)}</div>
-
-    <div class="tiny" style="margin-top:10px">Boiler types &nbsp; ${cover(s.boiler, s.boilerCovered)}</div>
-    <div class="tiny" style="margin-top:3px">Repair faults &nbsp; ${cover(s.fault, s.faultsCovered)}</div>
-
-    <div class="jobform">
-      ${sel("jtype", ["install", "service", "repair"])}
-      ${sel("jboiler", s.boilerTypes)}
-      ${sel("jfault", s.repairFaults)}
-      <input type="number" id="jh" step="0.5" min="0" value="2" />
-      <span class="pill blue" id="jlog">Log</span>
+    <h3>Assisted hours <span class="h3-r">this week ${s.weekLogged} h</span></h3>
+    <p class="dim">Hours worked alongside a Gas&nbsp;Safe engineer.</p>
+    <div class="form2">
+      <label>Hours<input type="number" id="ah" step="0.5" min="0" inputmode="decimal" placeholder="e.g. 6.5"></label>
+      <label>Date<input type="date" id="ad" value="${todayISO()}"></label>
     </div>
-    <div class="tiny">tiles above = quick +1 using the dropdowns · fault only counts on repairs</div>
-    <div class="links" style="margin-top:8px"><a id="jundo">undo last</a></div>
-    <div style="margin-top:8px">${recent || '<div class="tiny">no write-ups yet</div>'}</div>`;
-  return el;
-}
-
-function helpPane() {
-  const el = document.createElement("div");
-  el.className = "card help";
-  const faq = (q, a) => `<details><summary>${q}</summary><p>${a}</p></details>`;
-  el.innerHTML = `
-    <div class="cap"><span>How it works</span></div>
-
-    <h4>The top card</h4>
-    <p>The big number is your <b>total logged hours</b> against your goal. The white
-    tick on the bar is the <b>pass mark</b>. <b>Rate needed</b> is hours per working
-    day to reach the goal by your deadline — a working day being Mon–Fri that isn't a
-    college block week or a booked holiday. The line under it says, in plain words,
-    whether that's realistic.</p>
-
-    <h4>Assisted tab</h4>
-    <p>Hours worked <b>alongside a Gas Safe engineer</b>. Type the hours, set the date
-    (defaults to today), hit <span class="k">Log</span>. Tick <b>whole-week total</b>
-    to replace that week with one figure instead of adding. <span class="k">undo last</span>
-    removes your most recent entry.</p>
-
-    <h4>Unassisted tab</h4>
-    <p>Your <b>14 write-up jobs</b> — 5 installs, 5 services, 4 repairs (all editable in
-    Settings). For each: pick the type, the <b>boiler</b> (traditional / combi / system)
-    and, for repairs, the <b>fault</b> (water / gas / electrical), set the hours, Log.
-    Those hours count toward your total too. Tapping a tile is a quick log using
-    whatever the dropdowns show. The two coverage lines confirm you've hit every
-    boiler type and every fault type.</p>
-
-    <h4>Settings</h4>
-    <p>Everything is adjustable — starting hours, pass mark, goal, deadline, hours in a
-    work day, and how many of each job you need. <b>College block weeks</b>: one Monday
-    per line. <b>Holidays</b>: one date per line, or use <b>add range</b>.
-    <b>Export my data / import data</b> moves your whole tracker between machines.
-    <b>Export portfolio PDF</b> makes a branded progress sheet for your lecturer — it
-    carries no personal name.</p>
-
-    <h4>Keep it visible</h4>
-    <p>The <span class="k">pin</span> button in the title bar keeps the window above
-    everything else, like a widget.</p>
-
-    <div class="cap" style="margin-top:16px"><span>FAQ</span></div>
-    ${faq("Does any of this leave my computer?",
-      "No. Everything is saved on your machine. The PDF and data export are files you choose to share.")}
-    ${faq("I logged the wrong thing.",
-      "Use <b>undo last</b> on the Assisted or Unassisted tab. You can also open the raw data file — app menu → Data → Reveal data file.")}
-    ${faq("Why did the rate needed jump up?",
-      "It's spread only over the days you're actually available. Adding a college week or a holiday takes days out, so the rate on the days that remain goes up.")}
-    ${faq("Can I log for a day in the past?",
-      "Yes — the Assisted tab has a date picker next to the hours box.")}
-    ${faq("I got a new laptop.",
-      "Settings → <b>export my data</b> on the old one, <b>import data</b> on the new one.")}
-    ${faq("The Windows app says “unknown publisher”.",
-      "It isn't code-signed. Click <b>More info → Run anyway</b> on Windows, or right-click → Open on Mac. It's safe — the source is on GitHub.")}
-    ${faq("My numbers disappeared.",
-      "Data is stored per machine (and per browser for the web version). Clearing site data or switching browser loses it unless you exported a backup first.")}
-    ${faq("What if I go past the pass mark?",
-      "The bar shows it and the wording changes to “past pass”. Keep logging toward your personal goal for a safety margin.")}
-  `;
-  return el;
-}
-
-function settingsPane() {
-  const el = document.createElement("div");
-  el.className = "card";
-  const d = { ...DEFAULT_DATA, ...data };
-  el.innerHTML = `
-    <div class="cap"><span>Settings</span></div>
-    <div class="grid" style="display:grid;grid-template-columns:1fr auto;gap:6px 10px;align-items:center">
-      <span class="lbl">Starting hours</span><input type="number" id="s_base" value="${d.baseHours}" />
-      <span class="lbl">Pass mark (hours)</span><input type="number" id="s_req" value="${d.required}" />
-      <span class="lbl">Personal goal (hours)</span><input type="number" id="s_goal" value="${d.goal}" />
-      <span class="lbl">Hours in a work day</span><input type="number" id="s_hpd" value="${d.hoursPerDay}" />
-      <span class="lbl">Deadline</span><input type="date" id="s_dl" value="${d.deadline}" />
-      <span class="lbl">Installs needed</span><input type="number" id="s_ti" value="${d.jobTargets.install}" />
-      <span class="lbl">Services needed</span><input type="number" id="s_ts" value="${d.jobTargets.service}" />
-      <span class="lbl">Repairs needed</span><input type="number" id="s_tr" value="${d.jobTargets.repair}" />
-    </div>
-    <div class="lbl" style="margin-top:10px">College block weeks — one Monday per line (YYYY-MM-DD)</div>
-    <textarea id="s_blocks">${d.blocks.join("\n")}</textarea>
-    <div class="lbl" style="margin-top:6px">Holidays / days off — one date per line (YYYY-MM-DD)</div>
-    <textarea id="s_off">${(d.off || []).join("\n")}</textarea>
-    <div class="field" style="margin-top:8px">
-      <span class="sub">add range</span>
-      <input type="date" id="off_start" value="${todayISO()}" />
-      <input type="number" id="off_days" value="5" min="1" style="width:56px" />
-      <span class="pill" id="off_add" style="flex:0 0 auto">add</span>
-    </div>
-    <span class="pill blue" id="s_pdf" style="display:block;margin-top:12px;text-align:center">Export portfolio PDF for lecturer</span>
-    <div class="links" style="margin-top:10px;flex-wrap:wrap">
-      <a id="s_save">save settings</a>
-      <a id="s_export">export my data</a>
-      <label style="font-size:11px;color:var(--blue);cursor:pointer">import data<input type="file" id="s_import" accept="application/json" hidden></label>
-      <a id="s_reset">reset everything</a>
-    </div>
-    <div class="tiny" style="margin-top:6px">PDF = a printable progress sheet. Data export = a backup file to re-import elsewhere.</div>
-    <div class="tiny" style="margin-top:12px;text-align:center">
-      Gas Portfolio Tracker v1.0 &middot; made by <b style="color:var(--mut)">Connor W</b>
+    <label class="chk"><input type="checkbox" id="awk"> this is my whole-week total (replaces the week)</label>
+    <button class="btn" id="ahlog">Log hours</button>
+    <div class="listwrap">
+      <div class="list-h">Recent <a id="ahundo">undo last</a></div>
+      <ul class="list">${recent || '<li class="empty">nothing logged yet</li>'}</ul>
     </div>`;
   return el;
 }
 
-// titlebar buttons live outside #app, so wire them ONCE
+function writeupsPane(s) {
+  const el = document.createElement("section");
+  el.className = "card";
+  const t = s.targets;
+  const tile = (label, key, n, tg) =>
+    `<button class="tile" data-type="${key}">
+       <span class="tile-n ${n >= tg ? "done" : ""}">${n}<i>/${tg}</i></span>
+       <span class="tile-l">${label}</span></button>`;
+  const cover = (obj) => Object.entries(obj).map(([k, v]) =>
+    `<span class="${v > 0 ? "ok" : "dim"}">${cap1(k)} ${v}</span>`).join('<span class="dim"> · </span>');
+  const opt = (o) => `<option value="${o}">${cap1(o)}</option>`;
+  const recent = [...data.jobs].slice(-8).reverse().map((r) => {
+    const bits = [r.type, r.boiler, r.fault].filter(Boolean).map(cap1).join(" · ");
+    return `<li>${esc(r.date)}<span>${esc(bits)} · ${r.h} h</span></li>`;
+  }).join("");
+  el.innerHTML = `
+    <h3>Unassisted write-ups <span class="h3-r">${s.jobsDone}/${s.jobsTotal} · ${s.jobHours} h</span></h3>
+    <div class="tiles">${tile("Installs", "install", s.install, t.install)}${tile("Services", "service", s.service, t.service)}${tile("Repairs", "repair", s.repair, t.repair)}</div>
+    <div class="cover">
+      <div><span class="cl">Boilers</span> ${cover(s.boiler)}${s.boilerCovered ? ' <span class="ok">✓</span>' : ""}</div>
+      <div><span class="cl">Faults</span> ${cover(s.fault)}${s.faultsCovered ? ' <span class="ok">✓</span>' : ""}</div>
+    </div>
+    <div class="form3">
+      <label>Type<select id="jtype">${["install", "service", "repair"].map(opt).join("")}</select></label>
+      <label>Boiler<select id="jboiler">${s.boilerTypes.map(opt).join("")}</select></label>
+      <label>Fault<select id="jfault">${s.repairFaults.map(opt).join("")}</select></label>
+      <label>Hours<input type="number" id="jh" step="0.5" min="0" value="2" inputmode="decimal"></label>
+    </div>
+    <button class="btn" id="jlog">Log write-up</button>
+    <p class="dim sm">Tapping a tile logs one straight away using the dropdowns. Fault only counts on repairs.</p>
+    <div class="listwrap">
+      <div class="list-h">Recent <a id="jundo">undo last</a></div>
+      <ul class="list">${recent || '<li class="empty">nothing logged yet</li>'}</ul>
+    </div>`;
+  return el;
+}
+
+function reportPane(s) {
+  const el = document.createElement("section");
+  el.className = "card";
+  el.innerHTML = `
+    <h3>Portfolio report</h3>
+    <p class="dim">A one-page progress sheet to hand your lecturer — hours vs the pass
+    mark and goal, deadline and pace, write-up counts, boiler &amp; fault coverage, and
+    the full log of everything you've entered. It carries <b>no name</b> and no author
+    credit.</p>
+    <div class="report-preview">
+      <div><b>${s.total} h</b><span>total logged</span></div>
+      <div><b>${s.jobsDone}/${s.jobsTotal}</b><span>write-ups</span></div>
+      <div><b>${s.perDayGoal} h/day</b><span>rate needed</span></div>
+      <div><b>${s.availDays}</b><span>working days left</span></div>
+    </div>
+    <button class="btn" id="r_pdf">Export PDF</button>
+    <p class="dim sm">${window.api.exportPdf ? "Opens a Save dialog." : "Opens a print view — choose “Save as PDF”."}</p>`;
+  return el;
+}
+
+function settingsPane() {
+  const el = document.createElement("section");
+  el.className = "card";
+  const d = { ...DEFAULT_DATA, ...data };
+  el.innerHTML = `
+    <h3>Settings</h3>
+    <div class="sgrid">
+      <label>Starting hours<input type="number" id="s_base" value="${d.baseHours}"></label>
+      <label>Hours in a work day<input type="number" id="s_hpd" value="${d.hoursPerDay}"></label>
+      <label>Pass mark (h)<input type="number" id="s_req" value="${d.required}"></label>
+      <label>Personal goal (h)<input type="number" id="s_goal" value="${d.goal}"></label>
+      <label class="wide">Deadline<input type="date" id="s_dl" value="${d.deadline}"></label>
+      <label>Installs needed<input type="number" id="s_ti" value="${d.jobTargets.install}"></label>
+      <label>Services needed<input type="number" id="s_ts" value="${d.jobTargets.service}"></label>
+      <label>Repairs needed<input type="number" id="s_tr" value="${d.jobTargets.repair}"></label>
+    </div>
+    <label class="ta">College block weeks — one Monday per line (YYYY-MM-DD)
+      <textarea id="s_blocks">${d.blocks.join("\n")}</textarea></label>
+    <label class="ta">Holidays / days off — one date per line
+      <textarea id="s_off">${(d.off || []).join("\n")}</textarea></label>
+    <div class="form3" style="align-items:end">
+      <label>Time off from<input type="date" id="off_start" value="${todayISO()}"></label>
+      <label>Days<input type="number" id="off_days" value="5" min="1"></label>
+      <button class="btn ghost" id="off_add">Add</button>
+    </div>
+    <button class="btn" id="s_save">Save settings</button>
+    <div class="row-links">
+      <a id="s_export">export my data</a>
+      <label class="filelink">import data<input type="file" id="s_import" accept="application/json" hidden></label>
+      <a id="s_reset" class="danger">reset everything</a>
+    </div>
+    <p class="dim sm" style="margin-top:12px;text-align:center">v${window.__ver || "1.0"}</p>`;
+  return el;
+}
+
+function helpPane() {
+  const el = document.createElement("section");
+  el.className = "card help";
+  const faq = (q, a) => `<details><summary>${q}</summary><p>${a}</p></details>`;
+  el.innerHTML = `
+    <h3>How it works</h3>
+    <h4>The top panel</h4>
+    <p>Your <b>total hours vs goal</b>, the bar (the tick is the <b>pass mark</b>),
+    <b>rate needed</b> — hours per working day to reach the goal by your deadline — and
+    whether that's realistic. A working day is Mon–Fri that isn't a college block week
+    or a booked holiday.</p>
+    <h4>Hours tab</h4>
+    <p>Assisted work — hours alongside a Gas&nbsp;Safe engineer. Type the hours, pick the
+    date, <b>Log hours</b>. Tick <b>whole-week total</b> to set one figure for the week
+    instead of adding. <b>undo last</b> removes the most recent entry.</p>
+    <h4>Write-ups tab</h4>
+    <p>Your 14 unassisted jobs (5 / 5 / 4, all editable in Settings). Pick the type, the
+    <b>boiler</b> and, for repairs, the <b>fault</b>, set the hours, <b>Log write-up</b>.
+    Those hours count toward your total too. Tapping a tile logs one instantly. The
+    coverage lines confirm you've hit every boiler type and every fault type.</p>
+    <h4>Report tab</h4>
+    <p><b>Export PDF</b> — a one-page progress sheet for your lecturer. No name on it.</p>
+    <h4>Settings</h4>
+    <p>Every number is adjustable. <b>export / import data</b> moves your whole tracker
+    between machines.</p>
+    <h4>Keep it visible</h4>
+    <p>The <span class="k">pin</span> button in the title bar keeps the window on top.</p>
+
+    <h3 style="margin-top:16px">FAQ</h3>
+    ${faq("Does any of this leave my computer?", "No. Everything is saved on your machine. The PDF and data export are files you choose to share.")}
+    ${faq("I logged the wrong thing.", "<b>undo last</b> on the Hours or Write-ups tab. Or open the raw file — app menu → Data → Reveal data file.")}
+    ${faq("Why did the rate needed jump up?", "It's spread only over the days you're actually available. Adding a college week or a holiday takes days out, so the rate on the days that remain goes up.")}
+    ${faq("Can I log for a day in the past?", "Yes — the Hours tab has a date picker next to the hours box.")}
+    ${faq("I got a new laptop.", "Settings → <b>export my data</b> on the old one, <b>import data</b> on the new one.")}
+    ${faq("The Windows app says “unknown publisher”.", "It isn't code-signed. <b>More info → Run anyway</b> on Windows, or right-click → Open on Mac. The source is on GitHub.")}
+    ${faq("My numbers disappeared.", "Data is per machine. Clearing site data or switching browser loses it unless you exported a backup first.")}
+  `;
+  return el;
+}
+
+// titlebar buttons live outside #app — wire once
 function wireTitlebar() {
   const pin = document.getElementById("pin");
   if (pin) pin.onclick = async () => {
@@ -422,21 +444,18 @@ function wireTitlebar() {
   if (close) close.onclick = () => window.api.win("close");
 }
 
-// ---------- wiring (re-run every render; #app is rebuilt so no listener leak here) ----------
+// ---------- wiring (re-run each render; #app is rebuilt, so no listener leak) ----------
 function wire(s) {
-  const gh = document.getElementById("gohint");
-  if (gh) gh.onclick = () => { tab = "settings"; render(); };
-
   if (tab === "assisted") {
-    const hEl = document.getElementById("ah");
+    const h = document.getElementById("ah");
     const go = () => {
-      if (document.getElementById("awk").checked) setWeekTotal(hEl.value);
-      else addHours(hEl.value, document.getElementById("ad").value);
+      if (document.getElementById("awk").checked) setWeekTotal(h.value);
+      else addHours(h.value, document.getElementById("ad").value);
     };
     document.getElementById("ahlog").onclick = go;
-    hEl.addEventListener("keydown", (e) => { if (e.key === "Enter") go(); });
+    h.addEventListener("keydown", (e) => { if (e.key === "Enter") go(); });
     document.getElementById("ahundo").onclick = () => undoLast("hours");
-    hEl.focus();
+    h.focus({ preventScroll: true });
   }
 
   if (tab === "unassisted") {
@@ -447,14 +466,13 @@ function wire(s) {
     const syncFault = () => {
       const on = jt.value === "repair";
       jf.disabled = !on;
-      jf.style.opacity = on ? "1" : "0.35";
+      jf.closest("label").style.opacity = on ? "1" : "0.4";
     };
     jt.addEventListener("change", syncFault);
     syncFault();
-    // tile = quick add of the type shown, using the boiler + hours currently set
-    document.querySelectorAll(".job").forEach((j) =>
-      j.addEventListener("click", () => {
-        const type = j.dataset.type;
+    document.querySelectorAll(".tile").forEach((el) =>
+      el.addEventListener("click", () => {
+        const type = el.dataset.type;
         addJob(type, Number(jh.value) || 2, jb.value, type === "repair" ? jf.value : undefined);
       }));
     const go = () => addJob(jt.value, jh.value, jb.value, jt.value === "repair" ? jf.value : undefined);
@@ -463,14 +481,17 @@ function wire(s) {
     document.getElementById("jundo").onclick = () => undoLast("jobs");
   }
 
+  if (tab === "report") {
+    document.getElementById("r_pdf").onclick = exportPdf;
+  }
+
   if (tab === "settings") {
     document.getElementById("off_add").onclick = () =>
       addOff(document.getElementById("off_start").value, Number(document.getElementById("off_days").value));
-    document.getElementById("s_pdf").onclick = exportPdf;
     document.getElementById("s_save").onclick = () => {
-      const num = (id, min, fallback) => {
+      const num = (id, min, fb) => {
         const v = Number(document.getElementById(id).value);
-        return isNaN(v) || v < min ? fallback : v;
+        return isNaN(v) || v < min ? fb : v;
       };
       data.baseHours = num("s_base", 0, 0);
       data.required = num("s_req", 1, DEFAULT_DATA.required);
@@ -501,9 +522,7 @@ function wire(s) {
     document.getElementById("s_import").onchange = async (e) => {
       const f = e.target.files[0]; if (!f) return;
       try {
-        const incoming = JSON.parse(await f.text());
-        data = { ...structuredClone(DEFAULT_DATA), ...incoming };
-        for (const k of ["hours", "jobs", "off", "blocks"]) if (!Array.isArray(data[k])) data[k] = [];
+        data = normalise(JSON.parse(await f.text()));
         toast("data imported"); save();
       } catch (err) { toast("not a valid data file"); }
     };
@@ -515,7 +534,6 @@ function wire(s) {
     };
   }
 }
-
 // ---------- boot ----------
 function normalise(raw) {
   const d = { ...structuredClone(DEFAULT_DATA), ...(raw || {}) };
@@ -530,6 +548,7 @@ function normalise(raw) {
 
 (async function () {
   try {
+    if (window.api.appVersion) window.__ver = await window.api.appVersion();
     data = normalise(await window.api.getData());
     wireTitlebar();
     window.api.onDataChanged((d) => { data = normalise(d); render(); });

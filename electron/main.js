@@ -41,13 +41,25 @@ function saveData(d) {
   fs.writeFileSync(DATA_FILE, JSON.stringify(d, null, 2));
 }
 
+const BOUNDS_FILE = path.join(app.getPath("userData"), "window-bounds.json");
+function loadBounds() {
+  try {
+    const b = JSON.parse(fs.readFileSync(BOUNDS_FILE, "utf8"));
+    if (b && b.width > 300 && b.height > 380) return b;
+  } catch {}
+  return { width: 520, height: 880 };
+}
+
 let win;
 function createWindow() {
+  const b = loadBounds();
   win = new BrowserWindow({
-    width: 384,
-    height: 620,
-    minWidth: 340,
-    minHeight: 420,
+    width: b.width,
+    height: b.height,
+    x: b.x,
+    y: b.y,
+    minWidth: 400,
+    minHeight: 560,
     resizable: true,
     frame: false,
     transparent: process.platform === "darwin",
@@ -60,6 +72,12 @@ function createWindow() {
     },
   });
   win.loadFile(path.join(__dirname, "..", "src", "index.html"));
+
+  const saveBounds = () => {
+    try { fs.writeFileSync(BOUNDS_FILE, JSON.stringify(win.getBounds())); } catch {}
+  };
+  win.on("resize", saveBounds);
+  win.on("move", saveBounds);
 
   const menu = Menu.buildFromTemplate([
     ...(process.platform === "darwin" ? [{ role: "appMenu" }] : []),
