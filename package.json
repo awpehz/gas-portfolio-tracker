@@ -1,14 +1,15 @@
 {
   "name": "gas-portfolio-tracker",
   "productName": "Gas Portfolio Tracker",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "Track gas portfolio hours and unassisted write-ups toward the deadline.",
   "main": "electron/main.js",
   "scripts": {
     "start": "electron .",
     "dist": "electron-builder --publish never",
     "dist:mac": "electron-builder --mac --publish never",
-    "dist:win": "electron-builder --win --publish never"
+    "dist:win": "electron-builder --win --publish never",
+    "test": "node test/logic.test.js"
   },
   "author": "Connor W",
   "license": "MIT",
@@ -20,17 +21,29 @@
     "appId": "local.gaslog.tracker",
     "productName": "Gas Portfolio Tracker",
     "copyright": "Made by Connor W",
-    "directories": { "output": "dist" },
-    "files": ["electron/**/*", "src/**/*", "package.json"],
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "electron/**/*",
+      "src/**/*",
+      "package.json"
+    ],
     "mac": {
-      "target": ["dmg"],
+      "target": [
+        "dmg"
+      ],
       "category": "public.app-category.productivity",
       "icon": "build/icon.icns",
       "identity": null
     },
-    "dmg": { "title": "Gas Portfolio Tracker" },
+    "dmg": {
+      "title": "Gas Portfolio Tracker"
+    },
     "win": {
-      "target": ["nsis"],
+      "target": [
+        "nsis"
+      ],
       "icon": "build/icon.png"
     },
     "nsis": {

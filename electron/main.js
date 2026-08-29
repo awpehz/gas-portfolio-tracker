@@ -57,13 +57,14 @@ function saveState(s) { try { fs.writeFileSync(STATE_FILE, JSON.stringify(s)); }
 let widgetOn = false;
 let fullBounds = null;
 function setWidget(on) {
+  on = !!on;
   if (!win || widgetOn === on) return;
   widgetOn = on;
   if (on) {
     fullBounds = win.getBounds();
+    win.setMinimumSize(200, 90);
+    win.setContentSize(250, 132);
     win.setResizable(false);
-    win.setMinimumSize(210, 96);
-    win.setSize(252, 138, true);
     win.setAlwaysOnTop(true, "floating");
     if (process.platform === "darwin") win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
   } else {
@@ -71,11 +72,14 @@ function setWidget(on) {
     win.setAlwaysOnTop(false);
     win.setResizable(true);
     win.setMinimumSize(400, 560);
-    if (fullBounds) win.setBounds(fullBounds, true);
+    const b = fullBounds || { width: 520, height: 880 };
+    win.setSize(b.width, b.height, true);
+    if (b.x != null) win.setPosition(b.x, b.y, true);
   }
   saveState({ ...loadState(), widget: on });
   win.webContents.send("widget-mode", on);
-  const mi = Menu.getApplicationMenu() && Menu.getApplicationMenu().getMenuItemById("widgetToggle");
+  const menu = Menu.getApplicationMenu();
+  const mi = menu && menu.getMenuItemById("widgetToggle");
   if (mi) mi.checked = on;
 }
 

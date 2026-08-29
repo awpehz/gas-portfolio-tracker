@@ -1,0 +1,62 @@
+// Capture product screenshots into docs/  ->  run:  npx electron scripts/shots.js
+const { app, BrowserWindow } = require("electron");
+const path = require("path");
+const fs = require("fs");
+
+const OUT = path.join(__dirname, "..", "docs");
+fs.mkdirSync(OUT, { recursive: true });
+
+const SAMPLE = {
+  name: "C. Wales", baseHours: 29, goal: 330, required: 275, hoursPerDay: 8, deadline: "2026-12-22",
+  jobTargets: { install: 5, service: 5, repair: 4 },
+  boilerTypes: ["traditional", "combi", "system"], repairFaults: ["water", "gas", "electrical"],
+  blocks: ["2026-09-14", "2026-10-05", "2026-11-02", "2026-11-23", "2026-12-14"],
+  off: ["2026-11-09", "2026-11-10"],
+  hours: [
+    { date: "2026-09-01", h: 6, note: "boiler swap assist" },
+    { date: "2026-09-08", h: 4.5, note: "" },
+    { date: "2026-09-15", h: 6, note: "landlord checks" },
+  ],
+  jobs: [
+    { date: "2026-09-03", type: "install", h: 3, boiler: "combi" },
+    { date: "2026-09-10", type: "repair", h: 2, boiler: "system", fault: "water" },
+    { date: "2026-09-17", type: "service", h: 1.5, boiler: "traditional" },
+  ],
+};
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const js = (w, code) => w.webContents.executeJavaScript(code, true);
+
+async function shot(win, name) {
+  const img = await win.webContents.capturePage();
+  fs.writeFileSync(path.join(OUT, name + ".png"), img.toPNG());
+  console.log("wrote docs/" + name + ".png");
+}
+
+app.whenReady().then(async () => {
+  const win = new BrowserWindow({
+    width: 520, height: 900, show: true, frame: false, transparent: false,
+    backgroundColor: "#12141a", x: -3000, y: 60,
+    webPreferences: { contextIsolation: true },
+  });
+  await win.loadFile(path.join(__dirname, "..", "src", "index.html"));
+  await js(win, `localStorage.setItem('gaslog-data', ${JSON.stringify(JSON.stringify(SAMPLE))}); true`);
+  win.reload();
+  await sleep(1400);
+  await js(win, `document.getElementById('splash') && document.getElementById('splash').remove()`);
+  await sleep(500);
+
+  for (const tab of ["Home", "Hours", "Write-ups", "Report"]) {
+    await js(win, `[...document.querySelectorAll('.tabs button')].find(b=>b.textContent===${JSON.stringify(tab)}).click(); document.querySelector('main').scrollTop=0; true`);
+    await sleep(650);
+    await shot(win, tab.toLowerCase().replace(/[^a-z]+/g, "-"));
+  }
+
+  // widget mode
+  await js(win, `document.documentElement.classList.add('widget'); true`);
+  win.setSize(252, 140);
+  await sleep(500);
+  await shot(win, "widget");
+
+  app.quit();
+});
