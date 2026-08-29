@@ -79,6 +79,23 @@ t("past the pass mark flips past275", () => {
   assert.strictEqual(s.toRequired, 0);
 });
 
+t("boiler-type and repair-fault coverage aggregate correctly", () => {
+  const s = computeStatus({ jobs: [
+    { date: "2026-08-29", type: "install", h: 2, boiler: "combi" },
+    { date: "2026-08-29", type: "repair", h: 2, boiler: "system", fault: "water" },
+    { date: "2026-08-29", type: "repair", h: 2, boiler: "traditional", fault: "gas" },
+    { date: "2026-08-29", type: "service", h: 2, boiler: "combi", fault: "electrical" }, // fault ignored (not a repair)
+  ] }, NOW);
+  assert.strictEqual(s.boiler.combi, 2);
+  assert.strictEqual(s.boiler.system, 1);
+  assert.strictEqual(s.boiler.traditional, 1);
+  assert.strictEqual(s.boilerCovered, true);
+  assert.strictEqual(s.fault.water, 1);
+  assert.strictEqual(s.fault.gas, 1);
+  assert.strictEqual(s.fault.electrical, 0);      // service row does not count
+  assert.strictEqual(s.faultsCovered, false);
+});
+
 t("custom settings are honoured", () => {
   const s = computeStatus({ baseHours: 100, goal: 200, required: 150 }, NOW);
   assert.strictEqual(s.total, 100);

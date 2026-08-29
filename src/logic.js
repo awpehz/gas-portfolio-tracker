@@ -35,6 +35,8 @@ const DEFAULT_DATA = {
   hoursPerDay: 8,
   deadline: "2026-12-22",
   jobTargets: { install: 5, service: 5, repair: 4 },
+  boilerTypes: ["traditional", "combi", "system"],
+  repairFaults: ["water", "gas", "electrical"],
   blocks: [
     "2026-08-24", "2026-09-14", "2026-10-05", "2026-11-02", "2026-11-23",
     "2026-12-14", "2027-01-25", "2027-02-15", "2027-03-08", "2027-04-12",
@@ -97,9 +99,17 @@ function computeStatus(data, now = new Date()) {
 
   // jobs
   const counts = { install: 0, service: 0, repair: 0 };
-  for (const j of d.jobs) if (counts[j.type] != null) counts[j.type]++;
+  const boiler = Object.fromEntries(d.boilerTypes.map((k) => [k, 0]));
+  const fault = Object.fromEntries(d.repairFaults.map((k) => [k, 0]));
+  for (const j of d.jobs) {
+    if (counts[j.type] != null) counts[j.type]++;
+    if (boiler[j.boiler] != null) boiler[j.boiler]++;
+    if (j.type === "repair" && fault[j.fault] != null) fault[j.fault]++;
+  }
   const jobsDone = counts.install + counts.service + counts.repair;
   const jobsTotal = d.jobTargets.install + d.jobTargets.service + d.jobTargets.repair;
+  const boilerCovered = Object.values(boiler).every((v) => v > 0);
+  const faultsCovered = Object.values(fault).every((v) => v > 0);
 
   // college schedule
   const atCollegeNow = today.getDay() >= 1 && today.getDay() <= 5 && collegeWeeks.has(twKey);
@@ -129,6 +139,8 @@ function computeStatus(data, now = new Date()) {
     perDayGoal, perDayPass, slack, verdict, verdictOk,
     weekLogged, assistedHours: Math.round(assisted * 10) / 10, jobHours: Math.round(jobH * 10) / 10,
     jobsDone, jobsTotal, ...counts, targets: d.jobTargets,
+    boiler, fault, boilerCovered, faultsCovered,
+    boilerTypes: d.boilerTypes, repairFaults: d.repairFaults,
     atCollegeNow, backOnTools, nextBlock, nextBlockDays, blocksBeforeDeadline,
   };
 }

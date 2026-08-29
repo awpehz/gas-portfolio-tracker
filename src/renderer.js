@@ -53,10 +53,13 @@ function wkKey(d) {
   const w = 1 + Math.round(((t - firstThu) / 86400000 - 3 + ((firstThu.getDay() + 6) % 7)) / 7);
   return `${t.getFullYear()}-W${w}`;
 }
-function addJob(type, h) {
+function addJob(type, h, boiler, fault) {
   h = Number(h) || 2;
-  data.jobs.push({ date: todayISO(), type, h });
-  toast(`${type} logged (+${h}h)`); save();
+  const row = { date: todayISO(), type, h, boiler: boiler || "" };
+  if (type === "repair" && fault) row.fault = fault;
+  data.jobs.push(row);
+  const bits = [type, boiler, type === "repair" && fault ? fault : null].filter(Boolean).join(" · ");
+  toast(`${bits} (+${h}h)`); save();
 }
 function addOff(startISO, days) {
   const d0 = window.GasLogic.parseISO(startISO);
@@ -141,25 +144,38 @@ function unassistedPane(s) {
   const el = document.createElement("div");
   el.className = "card";
   const t = s.targets;
+  const cap = (str) => str.charAt(0).toUpperCase() + str.slice(1);
   const jb = (label, key, n, tgt) =>
     `<div class="job" data-type="${key}">
        <div class="n ${n >= tgt ? "done" : ""}">${n}</div><div class="of">of ${tgt}</div>
        <div class="lbl">${label}</div></div>`;
-  const recent = [...data.jobs].slice(-6).reverse().map((r) =>
-    `<div class="row" style="font-size:11px;color:var(--mut);margin:2px 0">
-       <span>${esc(r.date)} · ${esc(r.type)} · ${r.h}h</span></div>`).join("");
+  const sel = (id, opts) =>
+    `<select id="${id}" class="sel">` +
+    opts.map((o) => `<option value="${o}">${cap(o)}</option>`).join("") + `</select>`;
+  const cover = (obj, allDone) =>
+    Object.entries(obj).map(([k, v]) =>
+      `<span style="color:${v > 0 ? "var(--sage)" : "var(--faint)"}">${cap(k)} ${v}</span>`
+    ).join('<span style="color:var(--faint)"> · </span>') +
+    (allDone ? ' <span style="color:var(--sage)">✓ all covered</span>' : "");
+  const recent = [...data.jobs].slice(-6).reverse().map((r) => {
+    const parts = [r.date, r.type, r.boiler, r.fault, r.h + "h"].filter(Boolean).map(esc);
+    return `<div class="row" style="font-size:11px;color:var(--mut);margin:2px 0"><span>${parts.join(" · ")}</span></div>`;
+  }).join("");
   el.innerHTML = `
     <div class="cap"><span>Unassisted write-ups</span><span>${s.jobsDone}/${s.jobsTotal} · ${s.jobHours}h</span></div>
     <div class="jobs">${jb("Install", "install", s.install, t.install)}${jb("Service", "service", s.service, t.service)}${jb("Repair", "repair", s.repair, t.repair)}</div>
-    <div class="field" style="margin-top:10px">
-      <span class="sub">type</span>
-      <select id="jtype" style="background:rgba(255,255,255,.08);border:.5px solid var(--line);border-radius:7px;color:var(--fg);padding:5px 7px;font:inherit">
-        <option value="install">Install</option><option value="service">Service</option><option value="repair">Repair</option>
-      </select>
+
+    <div class="tiny" style="margin-top:10px">Boiler types &nbsp; ${cover(s.boiler, s.boilerCovered)}</div>
+    <div class="tiny" style="margin-top:3px">Repair faults &nbsp; ${cover(s.fault, s.faultsCovered)}</div>
+
+    <div class="jobform">
+      ${sel("jtype", ["install", "service", "repair"])}
+      ${sel("jboiler", s.boilerTypes)}
+      ${sel("jfault", s.repairFaults)}
       <input type="number" id="jh" step="0.5" min="0" value="2" />
-      <span class="pill blue" id="jlog" style="flex:0 0 auto;min-width:56px">Log</span>
+      <span class="pill blue" id="jlog">Log</span>
     </div>
-    <div class="tiny">tap a tile above for a quick +1 · or set the exact hours and Log</div>
+    <div class="tiny">tiles above = quick +1 using the dropdowns · fault only counts on repairs</div>
     <div class="links" style="margin-top:8px"><a id="jundo">undo last</a></div>
     <div style="margin-top:8px">${recent || '<div class="tiny">no write-ups yet</div>'}</div>`;
   return el;
@@ -188,7 +204,13 @@ function settingsPane() {
       <input type="number" id="off_days" value="5" min="1" style="width:56px" />
       <span class="pill" id="off_add" style="flex:0 0 auto">add</span>
     </div>
-    <div class="links" style="margin-top:10px"><a id="s_save">save settings</a></div>
+    <div class="links" style="margin-top:12px;flex-wrap:wrap">
+      <a id="s_save">save settings</a>
+      <a id="s_export">export my data</a>
+      <label style="font-size:11px;color:var(--blue);cursor:pointer">import data<input type="file" id="s_import" accept="application/json" hidden></label>
+      <a id="s_reset">reset everything</a>
+    </div>
+    <div class="tiny" style="margin-top:6px">Export saves a backup file you can re-import on any machine.</div>
     <div class="tiny" style="margin-top:12px;text-align:center">
       Gas Portfolio Tracker v1.0 &middot; made by <b style="color:var(--mut)">Connor Wales</b>
     </div>`;
@@ -217,11 +239,22 @@ function wire(s) {
   }
 
   if (tab === "unassisted") {
+    const jt = document.getElementById("jtype");
+    const jb = document.getElementById("jboiler");
+    const jf = document.getElementById("jfault");
+    const jh = document.getElementById("jh");
+    const syncFault = () => {
+      const on = jt.value === "repair";
+      jf.disabled = !on;
+      jf.style.opacity = on ? "1" : "0.35";
+    };
+    jt.addEventListener("change", syncFault);
+    syncFault();
     document.querySelectorAll(".job").forEach((j) =>
-      j.addEventListener("click", () => addJob(j.dataset.type, 2)));
-    const go = () => addJob(document.getElementById("jtype").value, document.getElementById("jh").value);
+      j.addEventListener("click", () => addJob(j.dataset.type, 2, jb.value, jf.value)));
+    const go = () => addJob(jt.value, jh.value, jb.value, jf.value);
     document.getElementById("jlog").onclick = go;
-    document.getElementById("jh").addEventListener("keydown", (e) => { if (e.key === "Enter") go(); });
+    jh.addEventListener("keydown", (e) => { if (e.key === "Enter") go(); });
     document.getElementById("jundo").onclick = () => undoLast("jobs");
   }
 
@@ -237,6 +270,30 @@ function wire(s) {
       data.blocks = document.getElementById("s_blocks").value.split("\n").map((x) => x.trim()).filter(Boolean);
       data.off = document.getElementById("s_off").value.split("\n").map((x) => x.trim()).filter(Boolean);
       toast("settings saved"); save();
+    };
+    document.getElementById("s_export").onclick = () => {
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "gas-portfolio-data.json";
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      toast("data exported");
+    };
+    document.getElementById("s_import").onchange = async (e) => {
+      const f = e.target.files[0]; if (!f) return;
+      try {
+        const incoming = JSON.parse(await f.text());
+        data = { ...structuredClone(DEFAULT_DATA), ...incoming };
+        for (const k of ["hours", "jobs", "off", "blocks"]) if (!Array.isArray(data[k])) data[k] = [];
+        toast("data imported"); save();
+      } catch (err) { toast("not a valid data file"); }
+    };
+    document.getElementById("s_reset").onclick = () => {
+      if (confirm("Wipe all logged hours, jobs and settings?")) {
+        data = structuredClone(DEFAULT_DATA);
+        toast("reset"); save();
+      }
     };
   }
 }

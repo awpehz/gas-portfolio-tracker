@@ -13,7 +13,9 @@ the tools (college weeks and holidays removed).
 - **Assisted hours** — type the hours, hit Log. Progress toward the pass mark (275)
   and a personal goal (330).
 - **Unassisted write-ups** — installs / services / repairs against their targets
-  (5 / 5 / 4), each carrying its own hours.
+  (5 / 5 / 4), each carrying its own hours, a **boiler type** (traditional / combi /
+  system) and, for repairs, a **fault type** (water / gas / electrical). The tab
+  shows coverage across all three boiler types and all three fault types.
 - **Rate needed** — hours per working day to hit the goal, where a working day is
   Mon–Fri, not at college, not on holiday.
 - **Settings** — every number is editable: starting hours, pass mark, goal,
@@ -23,6 +25,8 @@ the tools (college weeks and holidays removed).
 
 Data is stored locally per person (`gaslog-data.json` in your user data folder —
 `View → Data → Reveal data file`). Nothing leaves your machine.
+**Settings → export my data** writes a backup JSON; **import data** loads one back —
+move your whole tracker between machines, or start from someone else's setup.
 
 ---
 
