@@ -4,7 +4,7 @@ A small desktop tracker for a gas NVQ / SVQ portfolio — assisted hours, unassi
 write-ups, and the deadline maths, worked out against the days you're actually on
 the tools (college weeks and holidays removed).
 
-**Made by Connor Wales.**
+**Made by Connor W.**
 
 ---
 

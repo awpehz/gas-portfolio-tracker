@@ -6,4 +6,5 @@ contextBridge.exposeInMainWorld("api", {
   isPinned: () => ipcRenderer.invoke("is-pinned"),
   win: (cmd) => ipcRenderer.send("win", cmd),
   onDataChanged: (cb) => ipcRenderer.on("data-changed", (_e, d) => cb(d)),
+  exportPdf: (html) => ipcRenderer.invoke("export-pdf", html),
 });

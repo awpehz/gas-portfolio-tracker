@@ -10,7 +10,7 @@
     "dist:mac": "electron-builder --mac",
     "dist:win": "electron-builder --win"
   },
-  "author": "Connor Wales",
+  "author": "Connor W",
   "license": "MIT",
   "devDependencies": {
     "electron": "^32.0.0",
@@ -19,7 +19,7 @@
   "build": {
     "appId": "local.gaslog.tracker",
     "productName": "Gas Portfolio Tracker",
-    "copyright": "Made by Connor Wales",
+    "copyright": "Made by Connor W",
     "directories": { "output": "dist" },
     "files": ["electron/**/*", "src/**/*", "package.json"],
     "mac": {
