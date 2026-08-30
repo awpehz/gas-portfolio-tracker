@@ -63,16 +63,22 @@ Everything is stored on your machine. Nothing is uploaded.
   testing, pipe sizing), each with the formula and a worked example, so you can do it on
   paper in the centre where calculators aren't allowed. Revision aid, not a calculator.
 - **Settings** — every number is editable (starting hours, pass mark, goal, deadline,
-  work-day length, job targets, college block weeks, holidays). Export / import your
-  whole tracker as a file.
+  work-day length, job targets). College block weeks and days off are chips: add a week
+  by its date, add time off as a date range, remove either with one click. Export /
+  import your whole tracker as a file.
 - **Desktop widget** — an optional translucent card that sits on your desktop, behind
   your windows, and stays there even when the app is closed. Total, bar and daily rate,
   updating live. It's driven from a **menu-bar icon**: open the app, log +2 h, move the
   widget between corners, start it at login. Closing the app window just tucks it away;
   the widget and menu-bar icon keep running until you Quit. Toggle with the titlebar
   button, Cmd/Ctrl + Shift + W, or the Settings tick-box.
-- **Update check** — on launch it checks GitHub for a newer release and offers a
-  one-click download if there is one.
+- **In-app updates** — on launch it checks GitHub for a newer release. **Settings ->
+  Check for updates -> Download & install** (or the banner button) downloads the new
+  version and swaps it in on restart. No re-install, no DMG, and your logged hours and
+  settings are never touched. Terminal alternative on macOS:
+  ```bash
+  curl -fsSL https://raw.githubusercontent.com/awpehz/gas-portfolio-tracker/main/scripts/update.sh | bash
+  ```
 
 ## Install
 

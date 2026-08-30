@@ -380,6 +380,31 @@ label.ta { margin-bottom: 10px; }
 .row-links a:hover, .filelink:hover { text-decoration: underline; }
 .row-links .danger { color: var(--danger); }
 
+.upsec {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line);
+}
+.btn.ghost.sm { width: auto; flex: none; height: 28px; padding: 0 12px; font-size: 11.5px; animation: none; }
+.upsec #s_update_msg { flex: 1 1 100%; }
+
+/* college weeks / days off chip editor */
+.chipedit { margin-top: 16px; }
+.ce-h { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--ink-2); margin-bottom: 8px; }
+.ce-list { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 9px; }
+.chip2 {
+  display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px;
+  background: var(--surface-2); border: 1px solid var(--line-2); border-radius: 999px;
+  padding: 3px 4px 3px 11px; color: var(--ink);
+}
+.chip2 button {
+  border: 0; background: none; color: var(--ink-3); cursor: pointer; font-size: 14px;
+  line-height: 1; width: 17px; height: 17px; border-radius: 50%; padding: 0;
+}
+.chip2 button:hover { background: rgba(255, 96, 96, 0.22); color: #fff; }
+.ce-add { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.ce-add input[type="date"] { width: auto; }
+.ce-add .btn { width: auto; flex: none; }
+
 /* ---------- tiles ---------- */
 .tiles { display: flex; gap: 8px; margin: 4px 0 12px; }
 .tile {

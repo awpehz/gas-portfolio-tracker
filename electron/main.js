@@ -3,32 +3,8 @@ const path = require("path");
 const fs = require("fs");
 
 const DATA_FILE = path.join(app.getPath("userData"), "gaslog-data.json");
-const REPO = "awpehz/gas-portfolio-tracker";
 const GasLogic = require(path.join(__dirname, "..", "src", "logic.js"));
-
-function verParts(v) { return String(v).replace(/^v/, "").split(".").map((n) => parseInt(n, 10) || 0); }
-function isNewer(remote, local) {
-  const a = verParts(remote), b = verParts(local);
-  for (let i = 0; i < 3; i++) {
-    if ((a[i] || 0) > (b[i] || 0)) return true;
-    if ((a[i] || 0) < (b[i] || 0)) return false;
-  }
-  return false;
-}
-async function checkForUpdate() {
-  try {
-    const res = await fetch(`https://api.github.com/repos/${REPO}/releases/latest`, {
-      headers: { "User-Agent": "gas-portfolio-tracker", Accept: "application/vnd.github+json" },
-      signal: AbortSignal.timeout(6000),
-    });
-    if (!res.ok) return { newer: false };
-    const j = await res.json();
-    if (j && j.tag_name && isNewer(j.tag_name, app.getVersion())) {
-      return { newer: true, tag: j.tag_name, url: j.html_url };
-    }
-  } catch {}
-  return { newer: false };
-}
+const updater = require(path.join(__dirname, "updater.js"));
 
 function loadData() {
   try {
@@ -318,7 +294,10 @@ ipcMain.handle("is-pinned", () => (win ? win.isAlwaysOnTop() : false));
 ipcMain.on("widget-mode", (_e, on) => showWidget(!!on));
 ipcMain.handle("widget-state", () => !!(widgetWin && !widgetWin.isDestroyed()));
 
-ipcMain.handle("check-update", () => checkForUpdate());
+ipcMain.handle("check-update", () => updater.checkUpdate());
+ipcMain.handle("update-download", (e) =>
+  updater.downloadUpdate((p) => { try { e.sender.send("update-progress", p); } catch {} }));
+ipcMain.handle("update-install", () => updater.installUpdate());
 ipcMain.handle("app-version", () => app.getVersion());
 ipcMain.on("open-url", (_e, url) => {
   if (/^https:\/\/github\.com\/awpehz\/gas-portfolio-tracker/.test(url)) shell.openExternal(url);

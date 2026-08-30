@@ -11,7 +11,7 @@ if (!window.api) {
   document.documentElement.classList.add("web");
 }
 
-const { computeStatus, DEFAULT_DATA, toISO } = window.GasLogic;
+const { computeStatus, DEFAULT_DATA, toISO, parseISO } = window.GasLogic;
 const app = document.getElementById("app");
 
 let data = {};
@@ -23,107 +23,133 @@ function cap1(s) { return String(s || "").charAt(0).toUpperCase() + String(s || 
 
 // A standalone, print-ready HTML report to hand to a lecturer.
 function buildReport(d, s) {
-  const gen = new Date().toLocaleString(undefined, { dateStyle: "long", timeStyle: "short" });
+  const gen = new Date().toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" });
   const name = (d.name || "").trim();
+  let dl = d.deadline;
+  try { dl = new Date(d.deadline + "T00:00:00").toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }); } catch (e) {}
   const row = (cells, th) => `<tr>${cells.map((c) => `<${th ? "th" : "td"}>${c}</${th ? "th" : "td"}>`).join("")}</tr>`;
 
   const jobRows = [...d.jobs].sort((a, b) => (a.date < b.date ? -1 : 1))
-    .map((j) => row([j.date, cap1(j.type), cap1(j.boiler || "&mdash;"), j.type === "repair" ? cap1(j.fault || "&mdash;") : "&mdash;", (j.h ?? "") + "h"])).join("")
-    || row(["&mdash;", "no unassisted write-ups logged", "", "", ""]);
+    .map((j) => row([j.date, cap1(j.type), cap1(j.boiler || "&mdash;"), j.type === "repair" ? cap1(j.fault || "&mdash;") : "&mdash;", (j.h ?? "") + " h"])).join("")
+    || `<tr><td colspan="5" class="empty">No unassisted write-ups logged yet</td></tr>`;
   const hourRows = [...d.hours].sort((a, b) => (a.date < b.date ? -1 : 1))
-    .map((r) => row([r.date, (r.h ?? "") + "h", esc(r.note || "")])).join("")
-    || row(["&mdash;", "no assisted hours logged", ""]);
+    .map((r) => row([r.date, (r.h ?? "") + " h", esc(r.note || "")])).join("")
+    || `<tr><td colspan="3" class="empty">No assisted hours logged yet</td></tr>`;
 
-  const cover = (obj) => Object.entries(obj).map(([k, v]) =>
-    `${cap1(k)}: <b>${v}</b>${v > 0 ? ' <span class="yes">â</span>' : ""}`).join(" &nbsp;&nbsp; ");
+  const covLine = (obj) => Object.entries(obj).map(([k, v]) =>
+    `<span class="chip ${v > 0 ? "on" : ""}">${cap1(k)}${v > 0 ? " &#10003;" : ""}</span>`).join(" ");
+  const jbar = (label, n, t) => {
+    const pct = t > 0 ? Math.min(100, (n / t) * 100) : 0;
+    return `<div class="jrow"><span class="jl">${label}</span>` +
+      `<span class="jbar"><i style="width:${pct}%"></i></span>` +
+      `<span class="jn ${n >= t && t > 0 ? "done" : ""}">${n} / ${t}</span></div>`;
+  };
 
-  const flame = `<svg width="34" height="40" viewBox="0 0 24 24" style="vertical-align:-6px">
-    <defs><linearGradient id="fl" x1="0" y1="1" x2="0" y2="0">
-      <stop offset="0" stop-color="#bfe8ff"/><stop offset="1" stop-color="#ffffff"/></linearGradient></defs>
-    <path fill="url(#fl)" d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67z"/></svg>`;
-  const barPct = Math.max(2, Math.min(100, s.pctGoal));
+  const flame = `<svg width="30" height="35" viewBox="0 0 24 24" style="flex:none">` +
+    `<path fill="#ffffff" d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67z"/></svg>`;
+  const goalPct = Math.max(1.5, Math.min(100, s.pctGoal));
+  const markPct = Math.max(0, Math.min(100, s.requiredMark));
 
   return `<!doctype html><html><head><meta charset="utf-8"><title>Gas Portfolio Progress${name ? " &mdash; " + esc(name) : ""}</title>
   <style>
     @page { size: A4; margin: 0; }
     * { box-sizing: border-box; }
     html, body { background: #14161b; }
-    body { font: 12px/1.5 -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    body { font: 12px/1.55 -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
            color: #eef1f5; margin: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .wrap { padding: 16px 16mm 16mm; }
     .head { background: linear-gradient(135deg, #2f7fd6, #59b8ff); color: #fff;
-            padding: 18px 16mm; display: flex; align-items: center; gap: 12px; }
-    .head .eyebrow { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; opacity: .85; }
-    .head h1 { font-size: 20px; margin: 1px 0 0; font-weight: 800; letter-spacing: -.3px; }
-    .head .gen { margin-left: auto; font-size: 10.5px; opacity: .92; text-align: right; }
-    h2 { font-size: 11px; text-transform: uppercase; letter-spacing: 1.6px; color: #7cb8f6;
-         border-bottom: 1px solid rgba(255,255,255,.14); padding-bottom: 4px; margin: 22px 0 10px; }
-    .kpis { display: flex; flex-wrap: wrap; gap: 9px; }
-    .kpi { background: #1c1f27; border: 1px solid rgba(255,255,255,.09); border-radius: 11px;
-           padding: 9px 13px; min-width: 118px; }
-    .kpi .n { font-size: 18px; font-weight: 800; letter-spacing: -.5px; }
-    .kpi .l { font-size: 9px; color: rgba(255,255,255,.42); text-transform: uppercase; letter-spacing: .6px; margin-top: 1px; }
-    .bar { height: 8px; border-radius: 4px; background: rgba(255,255,255,.12); position: relative; margin: 12px 0 4px; }
-    .bar > i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; background: #63c894; }
-    .bar > b { position: absolute; top: -3px; bottom: -3px; width: 2px; background: #fff; }
-    .barlbl { font-size: 9px; color: rgba(255,255,255,.42); }
-    table { border-collapse: collapse; width: 100%; margin: 4px 0; font-size: 10.5px; }
-    th, td { border: 1px solid rgba(255,255,255,.1); padding: 6px 9px; text-align: left; }
-    th { background: #22262e; color: #9dc4ef; font-weight: 700; text-transform: uppercase;
-         font-size: 9px; letter-spacing: .6px; }
-    td { color: rgba(255,255,255,.8); }
-    .cov { font-size: 10.5px; color: rgba(255,255,255,.68); margin-top: 6px; }
-    .cov b { color: #eef1f5; } .yes { color: #63c894; font-weight: 700; }
-    .note { font-size: 9.5px; color: rgba(255,255,255,.42); margin-top: 6px; }
-    footer { margin-top: 24px; border-top: 1px solid rgba(255,255,255,.1); padding-top: 7px;
-             font-size: 9px; color: rgba(255,255,255,.35); display: flex; align-items: center; gap: 5px; }
-    .fmark { width: 9px; height: 11px; display: inline-block; background: linear-gradient(0deg,#2f7fd6,#59b8ff);
-      -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67z'/%3E%3C/svg%3E") center/contain no-repeat;
-      mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67z'/%3E%3C/svg%3E") center/contain no-repeat; }
+            padding: 22px 18mm; display: flex; align-items: center; gap: 13px; }
+    .head .eyebrow { font-size: 9.5px; letter-spacing: 2.5px; text-transform: uppercase; opacity: .82; }
+    .head h1 { font-size: 19px; margin: 2px 0 0; font-weight: 800; letter-spacing: -.3px; }
+    .head .gen { margin-left: auto; font-size: 10px; opacity: .9; text-align: right; text-transform: uppercase; letter-spacing: .5px; }
+    .wrap { padding: 26px 18mm 18mm; }
+    section { margin-bottom: 26px; }
+    h2 { font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: #79b6f2; margin: 0 0 12px; font-weight: 700; }
+
+    .stat { font-size: 34px; font-weight: 800; letter-spacing: -1px; line-height: 1; }
+    .stat small { font-size: 14px; font-weight: 600; color: rgba(255,255,255,.4); margin-left: 4px; letter-spacing: 0; }
+    .bar { position: relative; height: 9px; border-radius: 5px; background: rgba(255,255,255,.11); margin: 15px 0 6px; }
+    .bar > i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 5px; background: linear-gradient(90deg, #3f8fd8, #6fbcff); }
+    .bar > b { position: absolute; top: -3px; bottom: -3px; width: 2px; background: #fff; border-radius: 1px; }
+    .barlbls { position: relative; height: 13px; font-size: 9px; color: rgba(255,255,255,.45); }
+    .barlbls span { position: absolute; white-space: nowrap; }
+    .barlbls .l0 { left: 0; } .barlbls .lg { right: 0; } .barlbls .lm { transform: translateX(-50%); }
+    .sub { font-size: 11px; color: rgba(255,255,255,.6); margin-top: 8px; }
+    .sub b { color: #eef1f5; }
+
+    .pace { font-size: 22px; font-weight: 800; letter-spacing: -.5px; }
+    .pace.ok { color: #7fdcac; } .pace.warn { color: #ffb199; }
+
+    .jrow { display: flex; align-items: center; gap: 10px; margin: 7px 0; }
+    .jl { width: 66px; font-size: 11px; color: rgba(255,255,255,.7); }
+    .jbar { flex: 1; height: 7px; border-radius: 4px; background: rgba(255,255,255,.11); position: relative; }
+    .jbar > i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; background: linear-gradient(90deg,#3f8fd8,#6fbcff); }
+    .jn { width: 46px; text-align: right; font-size: 11px; font-weight: 700; color: rgba(255,255,255,.55); }
+    .jn.done { color: #7fdcac; }
+    .cov { margin-top: 12px; font-size: 10.5px; color: rgba(255,255,255,.55); }
+    .cov .cl { display: inline-block; width: 66px; color: rgba(255,255,255,.4); text-transform: uppercase; letter-spacing: .5px; font-size: 9px; }
+    .chip { display: inline-block; padding: 2px 7px; margin: 0 2px; border-radius: 999px;
+            background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1); color: rgba(255,255,255,.55); }
+    .chip.on { background: rgba(99,200,148,.14); border-color: rgba(99,200,148,.4); color: #9fe6c0; }
+
+    table { border-collapse: collapse; width: 100%; font-size: 10.5px; }
+    th { text-align: left; padding: 7px 10px; color: #9dc4ef; font-weight: 700; text-transform: uppercase;
+         font-size: 8.5px; letter-spacing: .8px; border-bottom: 1.5px solid rgba(255,255,255,.16); }
+    td { padding: 6px 10px; color: rgba(255,255,255,.82); border-bottom: 1px solid rgba(255,255,255,.07); }
+    tr:nth-child(even) td { background: rgba(255,255,255,.022); }
+    td.empty { color: rgba(255,255,255,.4); font-style: italic; text-align: center; padding: 12px; }
+
+    footer { margin-top: 6px; padding-top: 9px; border-top: 1px solid rgba(255,255,255,.1);
+             font-size: 8.5px; color: rgba(255,255,255,.32); }
   </style></head><body>
     <div class="head">
       ${flame}
       <div><div class="eyebrow">Gas Portfolio Tracker</div><h1>Progress report${name ? " &mdash; " + esc(name) : ""}</h1></div>
-      <div class="gen">Generated<br>${gen}</div>
+      <div class="gen">${gen}</div>
     </div>
     <div class="wrap">
 
-      <h2>Hours</h2>
-      <div class="kpis">
-        <div class="kpi"><div class="n">${s.total} h</div><div class="l">Total logged</div></div>
-        <div class="kpi"><div class="n">${s.past275 ? "reached" : s.toRequired + " h"}</div><div class="l">To pass mark (${d.required})</div></div>
-        <div class="kpi"><div class="n">${s.toGoal} h</div><div class="l">To goal (${d.goal})</div></div>
-        <div class="kpi"><div class="n">${Math.round(s.pctGoal)}%</div><div class="l">Of goal</div></div>
-        <div class="kpi"><div class="n">${s.assistedHours} h</div><div class="l">Assisted</div></div>
-        <div class="kpi"><div class="n">${s.jobHours} h</div><div class="l">In write-ups</div></div>
-      </div>
-      <div class="bar"><i style="width:${barPct}%"></i><b style="left:${s.requiredMark}%"></b></div>
-      <div class="barlbl">0 &nbsp;&middot;&nbsp; the mark is the ${d.required} h pass line &nbsp;&middot;&nbsp; ${d.goal} h</div>
+      <section>
+        <h2>Hours logged</h2>
+        <div class="stat">${s.total}<small>/ ${d.goal} h</small></div>
+        <div class="bar"><i style="width:${goalPct}%"></i><b style="left:${markPct}%"></b></div>
+        <div class="barlbls">
+          <span class="l0">0</span>
+          <span class="lm" style="left:${markPct}%">${d.required} h &mdash; pass mark</span>
+          <span class="lg">${d.goal} h goal</span>
+        </div>
+        <div class="sub">${s.past275
+          ? `<b>Pass mark reached.</b> `
+          : `<b>${s.toRequired} h</b> to the ${d.required} h pass mark &nbsp;&middot;&nbsp; `}<b>${s.toGoal} h</b> to the goal &nbsp;&middot;&nbsp; ${Math.round(s.pctGoal)}% of goal &nbsp;&middot;&nbsp; ${s.assistedHours} h assisted, ${s.jobHours} h in write-ups</div>
+      </section>
 
-      <h2>Deadline &amp; pace</h2>
-      <div class="kpis">
-        <div class="kpi"><div class="n">${d.deadline}</div><div class="l">Deadline</div></div>
-        <div class="kpi"><div class="n">${s.availDays}</div><div class="l">Working days left</div></div>
-        <div class="kpi"><div class="n">${s.perDayGoal} h/day</div><div class="l">Rate needed</div></div>
-      </div>
-      <div class="note">Working day = Mon&ndash;Fri, excluding college block weeks and booked holidays. &mdash; ${esc(s.verdict)}.</div>
+      <section>
+        <h2>Deadline &amp; pace</h2>
+        <div class="pace ${s.verdictOk ? "ok" : "warn"}">${s.perDayGoal} h per working day needed</div>
+        <div class="sub"><b>${s.availDays}</b> working days left &nbsp;&middot;&nbsp; deadline <b>${dl}</b> &nbsp;&middot;&nbsp; ${esc(s.verdict)}</div>
+        <div class="sub" style="color:rgba(255,255,255,.4)">A working day is Mon&ndash;Fri that isn't a college block week or a booked day off.</div>
+      </section>
 
-      <h2>Unassisted write-ups &mdash; ${s.jobsDone} of ${s.jobsTotal}</h2>
-      <table>${row(["Category", "Logged", "Target"], true)}
-        ${row(["Installs", s.install, d.jobTargets.install])}
-        ${row(["Services", s.service, d.jobTargets.service])}
-        ${row(["Repairs", s.repair, d.jobTargets.repair])}
-      </table>
-      <div class="cov">Boiler types &nbsp;&nbsp; ${cover(s.boiler)}</div>
-      <div class="cov">Repair faults &nbsp;&nbsp; ${cover(s.fault)}</div>
+      <section>
+        <h2>Unassisted write-ups &mdash; ${s.jobsDone} of ${s.jobsTotal}</h2>
+        ${jbar("Installs", s.install, d.jobTargets.install)}
+        ${jbar("Services", s.service, d.jobTargets.service)}
+        ${jbar("Repairs", s.repair, d.jobTargets.repair)}
+        <div class="cov"><span class="cl">Boilers</span> ${covLine(s.boiler)}</div>
+        <div class="cov"><span class="cl">Faults</span> ${covLine(s.fault)}</div>
+      </section>
 
-      <h2>Write-up log</h2>
-      <table>${row(["Date", "Category", "Boiler", "Fault", "Hours"], true)}${jobRows}</table>
+      <section>
+        <h2>Write-up log</h2>
+        <table>${row(["Date", "Category", "Boiler", "Fault", "Hours"], true)}${jobRows}</table>
+      </section>
 
-      <h2>Assisted hours log</h2>
-      <table>${row(["Date", "Hours", "Note"], true)}${hourRows}</table>
+      <section>
+        <h2>Assisted hours log</h2>
+        <table>${row(["Date", "Hours", "Note"], true)}${hourRows}</table>
+      </section>
 
-      <footer><span class="fmark"></span> Generated by Gas Portfolio Tracker &nbsp;&middot;&nbsp; ${gen}</footer>
+      <footer>Generated by Gas Portfolio Tracker on ${gen}${name ? " for " + esc(name) : ""}. Figures are self-recorded.</footer>
     </div>
   </body></html>`;
 }
@@ -151,6 +177,33 @@ function toast(msg) {
   t.textContent = msg; t.classList.add("show");
   clearTimeout(toast._t);
   toast._t = setTimeout(() => t.classList.remove("show"), 1600);
+}
+
+// ---------- self-update ----------
+let _onUpdateProgress = null;
+let _updating = false;
+async function runUpdate(u, setText) {
+  if (_updating) return;
+  const say = setText || (() => {});
+  if (!u || !u.newer) { say("You're on the latest version."); return; }
+  if (!u.canSelfUpdate || !window.api.updateDownload) {
+    say(`${esc(u.tag)} is available.`);
+    window.api.openUrl(u.url || "https://github.com/awpehz/gas-portfolio-tracker/releases");
+    return;
+  }
+  _updating = true;
+  say(`Downloading ${esc(u.tag)}…`);
+  _onUpdateProgress = (p) => say(`Downloading ${esc(u.tag)}… ${Math.round(p * 100)}%`);
+  try {
+    const r = await window.api.updateDownload();
+    _onUpdateProgress = null;
+    if (!r || !r.ok) { say((r && r.error) || "Download failed."); _updating = false; return; }
+    say("Restarting to finish…");
+    await window.api.updateInstall();
+  } catch (e) {
+    say("Update failed — try again later.");
+    _updating = false;
+  }
 }
 
 async function save() { await window.api.setData(data); render(); }
@@ -419,10 +472,48 @@ function reportPane(s) {
   return el;
 }
 
+function mondayISO(iso) {
+  const dt = parseISO(iso);
+  if (isNaN(dt)) return null;
+  dt.setDate(dt.getDate() - ((dt.getDay() + 6) % 7));
+  return toISO(dt);
+}
+function fmtDate(iso, opts) {
+  const dt = parseISO(iso);
+  return isNaN(dt) ? iso : dt.toLocaleDateString(undefined, opts || { weekday: "short", day: "numeric", month: "short" });
+}
+function groupRanges(isos) {
+  const sorted = [...new Set(isos)].filter((x) => /^\d{4}-\d{2}-\d{2}$/.test(x)).sort();
+  const out = [];
+  for (const iso of sorted) {
+    const last = out[out.length - 1];
+    if (last) {
+      const nxt = parseISO(last.to); nxt.setDate(nxt.getDate() + 1);
+      while (nxt.getDay() === 0 || nxt.getDay() === 6) nxt.setDate(nxt.getDate() + 1);
+      if (toISO(nxt) === iso) { last.to = iso; last.dates.push(iso); continue; }
+    }
+    out.push({ from: iso, to: iso, dates: [iso] });
+  }
+  return out;
+}
+
 function settingsPane() {
   const el = document.createElement("section");
   el.className = "card";
   const d = { ...DEFAULT_DATA, ...data };
+  const s = computeStatus(data);
+
+  const blockChips = [...(d.blocks || [])].sort().map((iso) =>
+    `<span class="chip2">w/c ${fmtDate(iso)} <button data-x="cb" data-v="${iso}" title="remove">&times;</button></span>`
+  ).join("") || `<span class="dim sm">none set</span>`;
+
+  const offChips = groupRanges(d.off || []).map((r) => {
+    const label = r.from === r.to
+      ? fmtDate(r.from)
+      : `${fmtDate(r.from, { day: "numeric", month: "short" })} &ndash; ${fmtDate(r.to, { day: "numeric", month: "short" })}`;
+    return `<span class="chip2">${label} <button data-x="off" data-v="${r.dates.join(",")}" title="remove">&times;</button></span>`;
+  }).join("") || `<span class="dim sm">none set</span>`;
+
   el.innerHTML = `
     <h3>Settings</h3>
     <div class="sgrid">
@@ -435,23 +526,36 @@ function settingsPane() {
       <label>Services needed<input type="number" id="s_ts" value="${d.jobTargets.service}"></label>
       <label>Repairs needed<input type="number" id="s_tr" value="${d.jobTargets.repair}"></label>
     </div>
-    <label class="ta">College block weeks &mdash; one Monday per line (YYYY-MM-DD)
-      <textarea id="s_blocks">${d.blocks.join("\n")}</textarea></label>
-    <label class="ta">Holidays / days off &mdash; one date per line
-      <textarea id="s_off">${(d.off || []).join("\n")}</textarea></label>
-    <div class="form3" style="align-items:end">
-      <label>Time off from<input type="date" id="off_start" value="${todayISO()}"></label>
-      <label>Days<input type="number" id="off_days" value="5" min="1"></label>
-      <button class="btn ghost" id="off_add">Add</button>
-    </div>
     <button class="btn" id="s_save">Save settings</button>
+
+    <div class="chipedit">
+      <div class="ce-h">College block weeks</div>
+      <div class="ce-list" id="cb_list">${blockChips}</div>
+      <div class="ce-add">
+        <input type="date" id="cb_date">
+        <button class="btn ghost sm" id="cb_go">Add week</button>
+      </div>
+    </div>
+    <div class="chipedit">
+      <div class="ce-h">Days off / holidays</div>
+      <div class="ce-list" id="off_list">${offChips}</div>
+      <div class="ce-add">
+        <input type="date" id="off_from"> <span class="dim sm">to</span> <input type="date" id="off_to">
+        <button class="btn ghost sm" id="off_go">Add</button>
+      </div>
+    </div>
+    <p class="dim sm">${s.blocksBeforeDeadline} college week${s.blocksBeforeDeadline === 1 ? "" : "s"} and ${s.offDays} day${s.offDays === 1 ? "" : "s"} off before the deadline &middot; ${s.availDays} working days left</p>
     <label class="chk" id="s_widget_l"><input type="checkbox" id="s_widget"> Show desktop widget &mdash; a translucent card on your desktop, controlled from the menu bar</label>
     <div class="row-links">
       <a id="s_export">export my data</a>
       <label class="filelink">import data<input type="file" id="s_import" accept="application/json" hidden></label>
       <a id="s_reset" class="danger">reset everything</a>
     </div>
-    <p class="dim sm" style="margin-top:12px;text-align:center">v${window.__ver || "1.0"}</p>`;
+    <div class="upsec">
+      <span class="dim sm">Version ${window.__ver || "1.0"}</span>
+      <button class="btn ghost sm" id="s_update">Check for updates</button>
+      <span class="dim sm" id="s_update_msg"></span>
+    </div>`;
   return el;
 }
 
@@ -672,8 +776,54 @@ function wire(s) {
       if (window.api.widgetState) window.api.widgetState().then((on) => { wchk.checked = !!on; }).catch(() => {});
       wchk.onchange = () => window.api.widget(wchk.checked);
     }
-    document.getElementById("off_add").onclick = () =>
-      addOff(document.getElementById("off_start").value, Number(document.getElementById("off_days").value));
+
+    const ub = document.getElementById("s_update");
+    const um = document.getElementById("s_update_msg");
+    if (ub && window.api.checkUpdate) {
+      ub.onclick = async () => {
+        if (_updating) return;
+        ub.disabled = true; um.textContent = "Checking…";
+        const u = await window.api.checkUpdate().catch(() => null);
+        ub.disabled = false;
+        if (!u || !u.newer) { um.textContent = "You're on the latest version."; return; }
+        ub.textContent = `Download & install ${u.tag}`;
+        ub.onclick = () => { ub.disabled = true; runUpdate(u, (t) => { um.innerHTML = t; }); };
+      };
+    } else if (ub) {
+      ub.style.display = "none";
+    }
+    // college weeks + days off — edit live as chips
+    document.getElementById("cb_go").onclick = () => {
+      const m = mondayISO(document.getElementById("cb_date").value);
+      if (!m) { toast("pick a date"); return; }
+      if (!Array.isArray(data.blocks)) data.blocks = [];
+      if (data.blocks.includes(m)) { toast("already added"); return; }
+      data.blocks.push(m); data.blocks.sort();
+      toast("college week added"); save();
+    };
+    document.getElementById("off_go").onclick = () => {
+      const from = document.getElementById("off_from").value;
+      const to = document.getElementById("off_to").value || from;
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(from)) { toast("pick a start date"); return; }
+      const a = parseISO(from), b = parseISO(to);
+      if (isNaN(b) || b < a) { toast("check the dates"); return; }
+      if (!Array.isArray(data.off)) data.off = [];
+      let n = 0;
+      for (const dt = new Date(a); dt <= b; dt.setDate(dt.getDate() + 1)) {
+        if (dt.getDay() === 0 || dt.getDay() === 6) continue;
+        const iso = toISO(dt);
+        if (!data.off.includes(iso)) { data.off.push(iso); n++; }
+      }
+      data.off.sort();
+      toast(n ? `${n} day${n === 1 ? "" : "s"} off added` : "already added"); save();
+    };
+    document.querySelectorAll("[data-x]").forEach((btn) => btn.addEventListener("click", () => {
+      const v = btn.dataset.v;
+      if (btn.dataset.x === "cb") data.blocks = (data.blocks || []).filter((x) => x !== v);
+      else { const rm = new Set(v.split(",")); data.off = (data.off || []).filter((x) => !rm.has(x)); }
+      toast("removed"); save();
+    }));
+
     document.getElementById("s_save").onclick = () => {
       const num = (id, min, fb) => {
         const v = Number(document.getElementById(id).value);
@@ -690,10 +840,6 @@ function wire(s) {
         service: num("s_ts", 0, DEFAULT_DATA.jobTargets.service),
         repair: num("s_tr", 0, DEFAULT_DATA.jobTargets.repair),
       };
-      const dates = (id) => document.getElementById(id).value.split("\n")
-        .map((x) => x.trim()).filter((x) => /^\d{4}-\d{2}-\d{2}$/.test(x));
-      data.blocks = dates("s_blocks");
-      data.off = dates("s_off");
       toast("settings saved"); save();
     };
     document.getElementById("s_export").onclick = () => {
@@ -751,16 +897,22 @@ function normalise(raw) {
     render();
   }, 1000 * 60 * 15);
 
+  // relay download progress to whatever update flow is running
+  if (window.api.onUpdateProgress) window.api.onUpdateProgress((p) => { if (_onUpdateProgress) _onUpdateProgress(p); });
+
   // check GitHub for a newer release (Electron only; the web build is always latest)
   if (window.api.checkUpdate) {
     window.api.checkUpdate().then((u) => {
       if (!u || !u.newer) return;
       const bar = document.getElementById("update");
       bar.hidden = false;
+      const label = u.canSelfUpdate ? "Update &amp; restart" : "Download";
       bar.innerHTML =
         `<span>Update available &mdash; <b>${esc(u.tag)}</b></span>` +
-        `<a id="u_dl">Download</a><span class="x" id="u_x">&times;</span>`;
-      document.getElementById("u_dl").onclick = () => window.api.openUrl(u.url);
+        `<a id="u_dl">${label}</a><span class="x" id="u_x">&times;</span>`;
+      const msg = bar.querySelector("span");
+      document.getElementById("u_dl").onclick = () =>
+        runUpdate(u, (t) => { msg.innerHTML = t; document.getElementById("u_dl")?.remove(); });
       document.getElementById("u_x").onclick = () => { bar.hidden = true; };
     }).catch(() => {});
   }
