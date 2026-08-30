@@ -561,6 +561,7 @@ function settingsPane() {
     <p class="dim sm">${s.blocksBeforeDeadline} college week${s.blocksBeforeDeadline === 1 ? "" : "s"} and ${s.offDays} day${s.offDays === 1 ? "" : "s"} off before the deadline &middot; ${s.availDays} working days left</p>
     <label class="chk" id="s_widget_l"><input type="checkbox" id="s_widget"> Show desktop widget &mdash; a translucent card on your desktop, controlled from the menu bar</label>
     <label class="chk" id="s_remind_l"><input type="checkbox" id="s_remind"> Daily reminder at 5:30&thinsp;pm (weekdays) to log jobs &mdash; skipped if you've already logged something that day</label>
+    <p class="dim sm" id="s_remind_cal_p" style="margin:-6px 0 0 24px"><a id="s_remind_cal">Add it to your Calendar</a> &mdash; syncs the alert to your phone</p>
     <div class="row-links">
       <a id="s_export">export my data</a>
       <label class="filelink">import data<input type="file" id="s_import" accept="application/json" hidden></label>
@@ -795,9 +796,21 @@ function wire(s) {
     const rchk = document.getElementById("s_remind");
     if (!window.api.setReminder) {
       document.getElementById("s_remind_l").style.display = "none";
+      document.getElementById("s_remind_cal_p").style.display = "none";
     } else {
       if (window.api.reminderState) window.api.reminderState().then((on) => { rchk.checked = !!on; }).catch(() => {});
       rchk.onchange = () => window.api.setReminder(rchk.checked);
+    }
+    const rcal = document.getElementById("s_remind_cal");
+    if (rcal) {
+      if (!window.api.addCalendarReminder) {
+        document.getElementById("s_remind_cal_p").style.display = "none";
+      } else {
+        rcal.onclick = async () => {
+          const r = await window.api.addCalendarReminder().catch(() => null);
+          toast(r && r.ok ? "opening Calendar — pick an iCloud calendar" : "couldn't open Calendar");
+        };
+      }
     }
 
     const ub = document.getElementById("s_update");

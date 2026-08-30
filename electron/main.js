@@ -199,6 +199,43 @@ function createTray() {
 
 // ---------- daily "log your jobs" reminder ----------
 let reminderTimer = null;
+
+// A recurring calendar event (weekdays 17:30, floating local time) with an alarm.
+// Adding it to an iCloud calendar means the alert also fires on the user's phone.
+function reminderICS() {
+  const now = new Date();
+  const start = new Date(now);
+  start.setHours(17, 30, 0, 0);
+  if (start <= now) start.setDate(start.getDate() + 1);
+  while (start.getDay() === 0 || start.getDay() === 6) start.setDate(start.getDate() + 1);
+  const p2 = (n) => String(n).padStart(2, "0");
+  const local = (dt) => `${dt.getFullYear()}${p2(dt.getMonth() + 1)}${p2(dt.getDate())}T${p2(dt.getHours())}${p2(dt.getMinutes())}00`;
+  const stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
+  const uid = `gpt-${Date.now()}-${Math.random().toString(36).slice(2)}@gas-portfolio-tracker`;
+  return [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//Gas Portfolio Tracker//EN",
+    "CALSCALE:GREGORIAN",
+    "BEGIN:VEVENT",
+    `UID:${uid}`,
+    `DTSTAMP:${stamp}`,
+    `DTSTART:${local(start)}`,
+    `DTEND:${local(new Date(start.getTime() + 15 * 60000))}`,
+    "RRULE:FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR",
+    "SUMMARY:Log gas portfolio jobs & hours",
+    "DESCRIPTION:Open Gas Portfolio Tracker and log today's work before you forget.",
+    "BEGIN:VALARM",
+    "ACTION:DISPLAY",
+    "DESCRIPTION:Log gas portfolio jobs & hours",
+    "TRIGGER:PT0S",
+    "END:VALARM",
+    "END:VEVENT",
+    "END:VCALENDAR",
+    "",
+  ].join("\r\n");
+}
+
 function todayISOm() {
   const n = new Date();
   return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}-${String(n.getDate()).padStart(2, "0")}`;
@@ -334,6 +371,16 @@ ipcMain.on("set-reminder", (_e, on) => {
   scheduleReminder();
 });
 ipcMain.handle("reminder-state", () => !!loadState().remind);
+ipcMain.handle("add-calendar-reminder", async () => {
+  try {
+    const file = path.join(app.getPath("temp"), "gas-portfolio-reminder.ics");
+    fs.writeFileSync(file, reminderICS());
+    const err = await shell.openPath(file);
+    return err ? { ok: false, error: err } : { ok: true };
+  } catch (e) {
+    return { ok: false, error: String(e && e.message || e) };
+  }
+});
 ipcMain.handle("check-update", () => updater.checkUpdate());
 ipcMain.handle("update-download", (e) =>
   updater.downloadUpdate((p) => { try { e.sender.send("update-progress", p); } catch {} }));

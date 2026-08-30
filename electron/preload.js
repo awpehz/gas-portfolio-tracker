@@ -9,6 +9,7 @@ contextBridge.exposeInMainWorld("api", {
   exportPdf: (html) => ipcRenderer.invoke("export-pdf", html),
   setReminder: (on) => ipcRenderer.send("set-reminder", on),
   reminderState: () => ipcRenderer.invoke("reminder-state"),
+  addCalendarReminder: () => ipcRenderer.invoke("add-calendar-reminder"),
   checkUpdate: () => ipcRenderer.invoke("check-update"),
   updateDownload: () => ipcRenderer.invoke("update-download"),
   updateInstall: () => ipcRenderer.invoke("update-install"),
