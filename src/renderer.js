@@ -21,6 +21,16 @@ function todayISO() { return toISO(new Date()); }
 function esc(s) { return String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
 function cap1(s) { return String(s || "").charAt(0).toUpperCase() + String(s || "").slice(1); }
 
+// Plain-English "quickest way to done" line, shared by the Home tab and the PDF.
+function fastestFinishText(s) {
+  if (s.toGoal <= 0) return "Goal reached.";
+  if (!s.canFinish) return `at ${s.hoursPerDay} h/day you'd still be about ${s.shortfall} h short by the deadline &mdash; talk to your assessor`;
+  const dt = fmtDate(s.finishDate, { day: "numeric", month: "short", year: "numeric" });
+  const spare = s.finishSpareDays;
+  const tail = spare > 0 ? ` &mdash; ${spare} working day${spare === 1 ? "" : "s"} to spare` : " &mdash; right on the deadline";
+  return `${s.finishDays} full days at ${s.hoursPerDay} h/day &mdash; done by ${dt}${tail}`;
+}
+
 // A standalone, print-ready HTML report to hand to a lecturer.
 function buildReport(d, s) {
   const gen = new Date().toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" });
@@ -68,12 +78,14 @@ function buildReport(d, s) {
 
     .stat { font-size: 34px; font-weight: 800; letter-spacing: -1px; line-height: 1; }
     .stat small { font-size: 14px; font-weight: 600; color: rgba(255,255,255,.4); margin-left: 4px; letter-spacing: 0; }
-    .bar { position: relative; height: 9px; border-radius: 5px; background: rgba(255,255,255,.11); margin: 15px 0 6px; }
+    .barcap { position: relative; height: 12px; font-size: 8.5px; color: rgba(255,255,255,.5); }
+    .barcap span { position: absolute; white-space: nowrap; }
+    .bar { position: relative; height: 9px; border-radius: 5px; background: rgba(255,255,255,.11); margin: 3px 0 6px; }
     .bar > i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 5px; background: linear-gradient(90deg, #3f8fd8, #6fbcff); }
     .bar > b { position: absolute; top: -3px; bottom: -3px; width: 2px; background: #fff; border-radius: 1px; }
     .barlbls { position: relative; height: 13px; font-size: 9px; color: rgba(255,255,255,.45); }
     .barlbls span { position: absolute; white-space: nowrap; }
-    .barlbls .l0 { left: 0; } .barlbls .lg { right: 0; } .barlbls .lm { transform: translateX(-50%); }
+    .barlbls .l0 { left: 0; } .barlbls .lg { right: 0; }
     .sub { font-size: 11px; color: rgba(255,255,255,.6); margin-top: 8px; }
     .sub b { color: #eef1f5; }
 
@@ -112,10 +124,10 @@ function buildReport(d, s) {
       <section>
         <h2>Hours logged</h2>
         <div class="stat">${s.total}<small>/ ${d.goal} h</small></div>
+        <div class="barcap"><span style="left:${markPct}%;transform:${markPct >= 80 ? "translateX(-100%)" : markPct <= 12 ? "translateX(0)" : "translateX(-50%)"}">${d.required} h &mdash; pass mark</span></div>
         <div class="bar"><i style="width:${goalPct}%"></i><b style="left:${markPct}%"></b></div>
         <div class="barlbls">
           <span class="l0">0</span>
-          <span class="lm" style="left:${markPct}%">${d.required} h &mdash; pass mark</span>
           <span class="lg">${d.goal} h goal</span>
         </div>
         <div class="sub">${s.past275
@@ -127,6 +139,7 @@ function buildReport(d, s) {
         <h2>Deadline &amp; pace</h2>
         <div class="pace ${s.verdictOk ? "ok" : "warn"}">${s.perDayGoal} h per working day needed</div>
         <div class="sub"><b>${s.availDays}</b> working days left &nbsp;&middot;&nbsp; deadline <b>${dl}</b> &nbsp;&middot;&nbsp; ${esc(s.verdict)}</div>
+        <div class="sub"><b>Quickest way there:</b> ${fastestFinishText(s)}</div>
         <div class="sub" style="color:rgba(255,255,255,.4)">A working day is Mon&ndash;Fri that isn't a college block week or a booked day off.</div>
       </section>
 
@@ -339,6 +352,7 @@ function homePane(s) {
       <div class="dim sm">${esc(s.verdict)}</div>
       <div class="dim sm">${s.availDays} working days left &middot; deadline ${s.dl || d0(data).deadline}</div>
       <div class="dim sm">this week: <b class="${s.weekLogged >= weekAim && weekAim > 0 ? "ok" : ""}">${s.weekLogged} h</b> logged &middot; aim ~${weekAim} h</div>
+      <div class="dim sm quickest"><b>Quickest way there:</b> ${fastestFinishText(s)}</div>
     </div>
 
     <div class="hsec">
@@ -546,6 +560,7 @@ function settingsPane() {
     </div>
     <p class="dim sm">${s.blocksBeforeDeadline} college week${s.blocksBeforeDeadline === 1 ? "" : "s"} and ${s.offDays} day${s.offDays === 1 ? "" : "s"} off before the deadline &middot; ${s.availDays} working days left</p>
     <label class="chk" id="s_widget_l"><input type="checkbox" id="s_widget"> Show desktop widget &mdash; a translucent card on your desktop, controlled from the menu bar</label>
+    <label class="chk" id="s_remind_l"><input type="checkbox" id="s_remind"> Daily reminder at 5:30&thinsp;pm (weekdays) to log jobs &mdash; skipped if you've already logged something that day</label>
     <div class="row-links">
       <a id="s_export">export my data</a>
       <label class="filelink">import data<input type="file" id="s_import" accept="application/json" hidden></label>
@@ -775,6 +790,14 @@ function wire(s) {
     } else {
       if (window.api.widgetState) window.api.widgetState().then((on) => { wchk.checked = !!on; }).catch(() => {});
       wchk.onchange = () => window.api.widget(wchk.checked);
+    }
+
+    const rchk = document.getElementById("s_remind");
+    if (!window.api.setReminder) {
+      document.getElementById("s_remind_l").style.display = "none";
+    } else {
+      if (window.api.reminderState) window.api.reminderState().then((on) => { rchk.checked = !!on; }).catch(() => {});
+      rchk.onchange = () => window.api.setReminder(rchk.checked);
     }
 
     const ub = document.getElementById("s_update");

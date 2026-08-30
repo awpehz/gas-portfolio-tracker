@@ -79,14 +79,27 @@ function computeStatus(data, now = new Date()) {
   // walk every day to the deadline, classify weekdays.
   // Step by calendar date (not +86400000ms) so the Oct DST change can't drift.
   let workDays = 0, collegeDays = 0, offDays = 0, availDays = 0;
+  let finishDate = null, finishAvail = null;                 // earliest the goal is reachable at full days
+  const need = Math.max(0, d.goal - total);
   for (const dt = new Date(today); dt <= deadline; dt.setDate(dt.getDate() + 1)) {
     if (dt.getDay() === 0 || dt.getDay() === 6) continue;
     workDays++;
     if (collegeWeeks.has(isoWeek(dt))) collegeDays++;
     else if (offSet.has(toISO(dt))) offDays++;
-    else availDays++;
+    else {
+      availDays++;
+      if (finishDate === null && need > 0 && availDays * d.hoursPerDay >= need) {
+        finishDate = toISO(dt); finishAvail = availDays;
+      }
+    }
   }
+  if (need <= 0) { finishDate = toISO(today); finishAvail = 0; }
+  const finishDays = need > 0 ? Math.ceil(need / d.hoursPerDay) : 0;
+  const canFinish = finishDate !== null;
+  const finishSlackDays = canFinish ? Math.round((deadline - parseISO(finishDate)) / DAY) : null;
+  const finishSpareDays = canFinish ? availDays - finishAvail : null;   // spare working days if you go flat out
   const capacity = availDays * d.hoursPerDay;
+  const shortfall = Math.max(0, Math.round((need - capacity) * 10) / 10); // hours you'd still be short at full days
   const perDayGoal = availDays ? Math.round((toGoal / availDays) * 10) / 10 : 999;
   const perDayPass = availDays ? Math.round((toRequired / availDays) * 10) / 10 : 999;
   const slack = Math.round(capacity - toGoal);
@@ -136,6 +149,8 @@ function computeStatus(data, now = new Date()) {
     toRequired: Math.round(toRequired * 10) / 10, toGoal: Math.round(toGoal * 10) / 10,
     pctGoal, requiredMark, past275: total >= d.required,
     daysLeft, workDays, collegeDays, offDays, availDays, capacity,
+    hoursPerDay: d.hoursPerDay,
+    finishDays, finishDate, finishSlackDays, finishSpareDays, canFinish, shortfall,
     perDayGoal, perDayPass, slack, verdict, verdictOk,
     weekLogged, assistedHours: Math.round(assisted * 10) / 10, jobHours: Math.round(jobH * 10) / 10,
     jobsDone, jobsTotal, ...counts, targets: d.jobTargets,

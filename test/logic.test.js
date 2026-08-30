@@ -127,5 +127,26 @@ t("garbage in the block/holiday lists doesn't crash", () => {
   assert.ok(typeof s.perDayGoal === "number");
 });
 
+t("fastest finish: full days needed + a date, before the deadline", () => {
+  // need 40 h at 8 h/day => 5 full days; plenty of runway to the deadline
+  const s = computeStatus({ baseHours: 290, goal: 330, hoursPerDay: 8, deadline: "2026-12-22", blocks: [], off: [] }, new Date(2026, 8, 1));
+  assert.strictEqual(s.finishDays, 5);
+  assert.strictEqual(s.canFinish, true);
+  assert.strictEqual(s.finishDate, "2026-09-07"); // Mon 7 Sep — 5th weekday from Tue 1 Sep
+  assert.ok(s.finishSpareDays > 0);
+});
+
+t("fastest finish: already at goal => zero days, today", () => {
+  const s = computeStatus({ baseHours: 340, goal: 330 }, NOW);
+  assert.strictEqual(s.finishDays, 0);
+  assert.strictEqual(s.finishDate, "2026-08-29");
+});
+
+t("fastest finish: not enough capacity => canFinish false, shortfall reported", () => {
+  const s = computeStatus({ goal: 330, hoursPerDay: 8, deadline: "2026-09-04", blocks: [], off: [] }, new Date(2026, 8, 1));
+  assert.strictEqual(s.canFinish, false);
+  assert.ok(s.shortfall > 0);
+});
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

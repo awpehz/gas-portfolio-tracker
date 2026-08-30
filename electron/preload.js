@@ -7,6 +7,8 @@ contextBridge.exposeInMainWorld("api", {
   win: (cmd) => ipcRenderer.send("win", cmd),
   onDataChanged: (cb) => ipcRenderer.on("data-changed", (_e, d) => cb(d)),
   exportPdf: (html) => ipcRenderer.invoke("export-pdf", html),
+  setReminder: (on) => ipcRenderer.send("set-reminder", on),
+  reminderState: () => ipcRenderer.invoke("reminder-state"),
   checkUpdate: () => ipcRenderer.invoke("check-update"),
   updateDownload: () => ipcRenderer.invoke("update-download"),
   updateInstall: () => ipcRenderer.invoke("update-install"),

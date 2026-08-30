@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Menu, Tray, nativeImage, screen, shell, dialog } = require("electron");
+const { app, BrowserWindow, ipcMain, Menu, Tray, nativeImage, screen, shell, dialog, Notification, powerMonitor } = require("electron");
 const path = require("path");
 const fs = require("fs");
 
@@ -197,6 +197,41 @@ function createTray() {
   refreshTray();
 }
 
+// ---------- daily "log your jobs" reminder ----------
+let reminderTimer = null;
+function todayISOm() {
+  const n = new Date();
+  return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}-${String(n.getDate()).padStart(2, "0")}`;
+}
+function loggedToday() {
+  try {
+    const d = loadData(), t = todayISOm();
+    return (d.hours || []).some((r) => r.date === t) || (d.jobs || []).some((r) => r.date === t);
+  } catch { return false; }
+}
+function scheduleReminder() {
+  clearTimeout(reminderTimer);
+  reminderTimer = null;
+  if (!loadState().remind) return;
+  const now = new Date();
+  const next = new Date(now);
+  next.setHours(17, 30, 0, 0);
+  if (next <= now) next.setDate(next.getDate() + 1);
+  while (next.getDay() === 0 || next.getDay() === 6) next.setDate(next.getDate() + 1); // weekdays only
+  reminderTimer = setTimeout(() => {
+    if (loadState().remind && !loggedToday() && Notification.isSupported()) {
+      const n = new Notification({
+        title: "Gas Portfolio Tracker",
+        body: "Log today's jobs and hours before you knock off.",
+        silent: false,
+      });
+      n.on("click", () => showMainWindow());
+      n.show();
+    }
+    scheduleReminder();
+  }, Math.max(1000, next - now));
+}
+
 let win;
 function createWindow(opts = {}) {
   const b = loadBounds();
@@ -294,6 +329,11 @@ ipcMain.handle("is-pinned", () => (win ? win.isAlwaysOnTop() : false));
 ipcMain.on("widget-mode", (_e, on) => showWidget(!!on));
 ipcMain.handle("widget-state", () => !!(widgetWin && !widgetWin.isDestroyed()));
 
+ipcMain.on("set-reminder", (_e, on) => {
+  saveState({ ...loadState(), remind: !!on });
+  scheduleReminder();
+});
+ipcMain.handle("reminder-state", () => !!loadState().remind);
 ipcMain.handle("check-update", () => updater.checkUpdate());
 ipcMain.handle("update-download", (e) =>
   updater.downloadUpdate((p) => { try { e.sender.send("update-progress", p); } catch {} }));
@@ -330,6 +370,8 @@ app.whenReady().then(() => {
   if (openedHidden && process.platform === "darwin") app.dock.hide();
   if (loadState().widget) showWidget(true);
   setInterval(pushWidget, 30 * 60 * 1000);   // keep the widget + tray current day-to-day
+  scheduleReminder();
+  powerMonitor.on("resume", scheduleReminder); // re-time after the machine sleeps
 });
 // Keep running with just the tray + desktop widget when the window is closed.
 app.on("window-all-closed", () => {});
