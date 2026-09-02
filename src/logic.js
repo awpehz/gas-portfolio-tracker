@@ -43,8 +43,9 @@ const DEFAULT_DATA = {
     "2027-05-03", "2027-05-24", "2027-07-05"
   ],
   hours: [],   // { date: "YYYY-MM-DD", h: number, note?: string }
-  jobs: [],    // { date, type: "install"|"service"|"repair", h: number }
-  off: []      // "YYYY-MM-DD"
+  jobs: [],    // { date, type: "install"|"service"|"repair", h: number, engineer?: string }
+  off: [],     // "YYYY-MM-DD"
+  engineers: []// { name, licence, regNo, company, categories, expiry }
 };
 
 function computeStatus(data, now = new Date()) {
@@ -160,7 +161,54 @@ function computeStatus(data, now = new Date()) {
   };
 }
 
-const GasLogic = { computeStatus, DEFAULT_DATA, toISO, parseISO, isoWeek };
+// ---------- gas rating: gas rate -> heat input ----------
+// Defaults per NICEIC Pocket Guide Gas 3 / standard ACS & BPEC teaching (natural gas).
+const GAS = {
+  cvMetric: 38.76,    // MJ/m3, gross
+  cvImperial: 1040,   // Btu/ft3, gross
+  grossToNet: 1.1,    // natural gas
+  kwBtuH: 3412,       // 1 kW = 3412 Btu/h
+};
+const r1 = (n) => Math.round(n * 10) / 10;
+const r2 = (n) => Math.round(n * 100) / 100;
+const r3 = (n) => Math.round(n * 1000) / 1000;
+
+// metric timed method: volume V (m3) passed in T seconds -> m3/h
+function gasRateMetric(volumeM3, seconds) {
+  const s = Number(seconds);
+  if (!s || s <= 0) return null;
+  return r3((3600 * Number(volumeM3)) / s);
+}
+// imperial timed method: F ft3 per test-dial revolution, T seconds for one rev -> ft3/h
+function gasRateImperial(ft3PerRev, seconds) {
+  const s = Number(seconds);
+  if (!s || s <= 0) return null;
+  return r2((3600 * Number(ft3PerRev)) / s);
+}
+// metric: m3/h -> kW gross and net
+function heatInputMetric(m3h, cv, g2n) {
+  cv = Number(cv) || GAS.cvMetric;
+  g2n = Number(g2n) || GAS.grossToNet;
+  const rate = Number(m3h);
+  if (!(rate > 0)) return null;
+  const gross = (rate * cv) / 3.6;
+  return { m3h: rate, cv, g2n, gross: r1(gross), net: r1(gross / g2n) };
+}
+// imperial: ft3/h -> Btu/h -> kW gross and net
+function heatInputImperial(ft3h, cv, g2n) {
+  cv = Number(cv) || GAS.cvImperial;
+  g2n = Number(g2n) || GAS.grossToNet;
+  const rate = Number(ft3h);
+  if (!(rate > 0)) return null;
+  const btuh = rate * cv;
+  const gross = btuh / GAS.kwBtuH;
+  return { ft3h: rate, cv, g2n, btuh: Math.round(btuh), gross: r1(gross), net: r1(gross / g2n) };
+}
+
+const GasLogic = {
+  computeStatus, DEFAULT_DATA, toISO, parseISO, isoWeek,
+  GAS, gasRateMetric, gasRateImperial, heatInputMetric, heatInputImperial,
+};
 if (typeof module !== "undefined" && module.exports) module.exports = GasLogic;
 if (typeof window !== "undefined") window.GasLogic = GasLogic;
 

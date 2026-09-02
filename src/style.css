@@ -405,6 +405,41 @@ label.ta { margin-bottom: 10px; }
 .ce-add input[type="date"] { width: auto; }
 .ce-add .btn { width: auto; flex: none; }
 
+/* ---------- gas rate / heat input calculator ---------- */
+.calc .seg { display: flex; gap: 4px; padding: 3px; margin: 6px 0 14px; background: rgba(0,0,0,0.25);
+  border: 1px solid var(--line); border-radius: 11px; }
+.calc .seg button { flex: 1; padding: 8px 4px; border: 0; border-radius: 8px; background: transparent;
+  color: var(--ink-2); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.calc .seg button.on { background: rgba(255,255,255,0.10); color: var(--ink); box-shadow: inset 0 0 0 1px var(--line-2); }
+.calcbox { margin-top: 4px; }
+.calcbox .form2 { margin-top: 8px; }
+.calcout {
+  margin-top: 12px; padding: 12px 14px; border-radius: 10px;
+  background: rgba(94, 176, 255, 0.08); border: 1px solid rgba(94, 176, 255, 0.18);
+  font-size: 14px; color: var(--ink); line-height: 1.5; min-height: 20px;
+}
+.calcout b { font-weight: 700; }
+.calcout .cwork { font-size: 12px; color: var(--ink-2); padding-left: 8px; }
+.calcout .cwork b { color: var(--ink); }
+#c_cmp:empty { display: none; }
+#c_cmp .ok { color: #7fdcac; } #c_cmp .warn { color: #ffb199; }
+
+/* ---------- engineer register ---------- */
+.englist { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+.engrow {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 8px;
+  background: var(--surface-2); border: 1px solid var(--line-2); border-radius: 10px; padding: 8px 10px;
+  font-size: 12.5px;
+}
+.engrow .del {
+  border: 0; background: none; color: var(--ink-3); cursor: pointer; font-size: 15px; line-height: 1;
+  width: 18px; height: 18px; border-radius: 50%; flex: none;
+}
+.engrow .del:hover { background: rgba(255, 96, 96, 0.22); color: #fff; }
+.engadd { display: flex; flex-direction: column; gap: 6px; }
+.engadd input { width: 100%; }
+.engadd .btn { align-self: flex-start; width: auto; flex: none; }
+
 /* ---------- tiles ---------- */
 .tiles { display: flex; gap: 8px; margin: 4px 0 12px; }
 .tile {

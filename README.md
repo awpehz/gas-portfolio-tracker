@@ -37,9 +37,9 @@ Everything is stored on your machine. Nothing is uploaded.
 
 ## Screens
 
-| Home | Hours | Write-ups |
+| Home | Jobs | Calc |
 |---|---|---|
-| ![Home](docs/home.png) | ![Hours](docs/hours.png) | ![Write-ups](docs/write-ups.png) |
+| ![Home](docs/home.png) | ![Jobs](docs/jobs.png) | ![Calc](docs/calc.png) |
 
 | Report — PDF for your assessor | Methods — learn the working |
 |---|---|
@@ -55,16 +55,23 @@ Everything is stored on your machine. Nothing is uploaded.
   aim, write-up counts with coverage, your next college block, and quick-log buttons.
 - **Hours** — type the hours, pick the date, log it; or set a whole-week total. Delete
   any single entry with its own **x**.
-- **Write-ups** — log a job with its type, boiler and (for repairs) fault; those hours
-  count toward your total too. Coverage lines light up as you hit each boiler and fault.
+- **Jobs** — log an unassisted write-up with its type, boiler, (for repairs) fault, and
+  which Gas Safe engineer supervised it; those hours count toward your total too.
+  Coverage lines light up as you hit each boiler and fault.
+- **Calc** — gas rate → heat input for real jobs. Enter the gas rate or time the meter
+  (metric or imperial); get kW gross and kW net with the working shown, and an optional
+  ±5% check against the data-plate figure. Editable calorific value.
 - **Report** — one-page PDF for your assessor, in the app's colours, with your name on
-  it: hours, pace, write-up counts, boiler &amp; fault coverage, and the full log.
+  it: hours, pace, write-up counts, boiler &amp; fault coverage, the engineers you've
+  worked under, and the full log.
 - **Methods** — the working behind the common jobs (gas rating, ventilation, tightness
   testing, pipe sizing), each with the formula and a worked example, so you can do it on
   paper in the centre where calculators aren't allowed. Revision aid, not a calculator.
 - **Settings** — every number is editable (starting hours, pass mark, goal, deadline,
   work-day length, job targets). College block weeks and days off are chips: add a week
-  by its date, add time off as a date range, remove either with one click. Export /
+  by its date, add time off as a date range, remove either with one click. Add the
+  **Gas Safe engineers** you've worked under (name, registration, licence, categories,
+  card expiry). Export /
   import your whole tracker as a file.
 - **Desktop widget** — an optional translucent card that sits on your desktop, behind
   your windows, and stays there even when the app is closed. Total, bar and daily rate,

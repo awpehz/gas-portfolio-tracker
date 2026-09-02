@@ -148,5 +148,34 @@ t("fastest finish: not enough capacity => canFinish false, shortfall reported", 
   assert.ok(s.shortfall > 0);
 });
 
+t("heatInputMetric: 2.91 m3/h -> 31.3 kW gross / 28.5 kW net (CV 38.76, /1.1)", () => {
+  const { heatInputMetric } = require("../src/logic.js");
+  const r = heatInputMetric(2.91);
+  assert.strictEqual(r.gross, 31.3);
+  assert.strictEqual(r.net, 28.5);
+});
+
+t("heatInputImperial: 103 ft3/h -> Btu/h then /3412 -> kW", () => {
+  const { heatInputImperial } = require("../src/logic.js");
+  const r = heatInputImperial(103);
+  assert.strictEqual(r.btuh, 107120);
+  assert.strictEqual(r.gross, 31.4);
+  assert.strictEqual(r.net, 28.5);
+});
+
+t("timed methods: (3600 x V) / T", () => {
+  const { gasRateMetric, gasRateImperial } = require("../src/logic.js");
+  assert.strictEqual(gasRateMetric(0.08, 126), 2.286);
+  assert.strictEqual(gasRateImperial(2, 68), 105.88);
+  assert.strictEqual(gasRateMetric(1, 0), null); // guard divide-by-zero
+});
+
+t("custom CV and gross-to-net factor are honoured", () => {
+  const { heatInputMetric } = require("../src/logic.js");
+  const r = heatInputMetric(2.0, 39.5, 1.11);
+  assert.strictEqual(r.gross, Math.round((2 * 39.5 / 3.6) * 10) / 10);
+  assert.strictEqual(r.net, Math.round((2 * 39.5 / 3.6 / 1.11) * 10) / 10);
+});
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

@@ -11,7 +11,7 @@ if (!window.api) {
   document.documentElement.classList.add("web");
 }
 
-const { computeStatus, DEFAULT_DATA, toISO, parseISO } = window.GasLogic;
+const { computeStatus, DEFAULT_DATA, toISO, parseISO, GAS, gasRateMetric, gasRateImperial, heatInputMetric, heatInputImperial } = window.GasLogic;
 const app = document.getElementById("app");
 
 let data = {};
@@ -40,8 +40,18 @@ function buildReport(d, s) {
   const row = (cells, th) => `<tr>${cells.map((c) => `<${th ? "th" : "td"}>${c}</${th ? "th" : "td"}>`).join("")}</tr>`;
 
   const jobRows = [...d.jobs].sort((a, b) => (a.date < b.date ? -1 : 1))
-    .map((j) => row([j.date, cap1(j.type), cap1(j.boiler || "&mdash;"), j.type === "repair" ? cap1(j.fault || "&mdash;") : "&mdash;", (j.h ?? "") + " h"])).join("")
-    || `<tr><td colspan="5" class="empty">No unassisted write-ups logged yet</td></tr>`;
+    .map((j) => row([j.date, cap1(j.type), cap1(j.boiler || "&mdash;"), j.type === "repair" ? cap1(j.fault || "&mdash;") : "&mdash;", (j.h ?? "") + " h", esc(j.engineer || "&mdash;")])).join("")
+    || `<tr><td colspan="6" class="empty">No unassisted write-ups logged yet</td></tr>`;
+
+  const engineers = (d.engineers || []);
+  const engRows = engineers.map((e) => {
+    const jobs = (d.jobs || []).filter((j) => j.engineer === e.name).length;
+    const meta = [e.regNo && `Reg ${esc(e.regNo)}`, e.licence && `Licence ${esc(e.licence)}`,
+      e.company && esc(e.company),
+      e.expiry && `card to ${(() => { try { return new Date(e.expiry + "T00:00:00").toLocaleDateString(undefined, { month: "short", year: "numeric" }); } catch { return e.expiry; } })()}`
+    ].filter(Boolean).join(" &middot; ");
+    return row([esc(e.name), meta || "&mdash;", esc(e.categories || "&mdash;"), jobs]);
+  }).join("");
   const hourRows = [...d.hours].sort((a, b) => (a.date < b.date ? -1 : 1))
     .map((r) => row([r.date, (r.h ?? "") + " h", esc(r.note || "")])).join("")
     || `<tr><td colspan="3" class="empty">No assisted hours logged yet</td></tr>`;
@@ -152,9 +162,14 @@ function buildReport(d, s) {
         <div class="cov"><span class="cl">Faults</span> ${covLine(s.fault)}</div>
       </section>
 
+      ${engineers.length ? `<section>
+        <h2>Gas Safe engineers worked under</h2>
+        <table>${row(["Name", "Registration", "Categories", "Jobs"], true)}${engRows}</table>
+      </section>` : ""}
+
       <section>
         <h2>Write-up log</h2>
-        <table>${row(["Date", "Category", "Boiler", "Fault", "Hours"], true)}${jobRows}</table>
+        <table>${row(["Date", "Category", "Boiler", "Fault", "Hours", "Supervised by"], true)}${jobRows}</table>
       </section>
 
       <section>
@@ -239,10 +254,11 @@ function setWeekTotal(h) {
   data.hours.push({ date: todayISO(), h, note: "week total" });
   toast(`week set to ${h}h`); save();
 }
-function addJob(type, h, boiler, fault) {
+function addJob(type, h, boiler, fault, engineer) {
   h = Number(h) || 2;
   const row = { date: todayISO(), type, h, boiler: boiler || "" };
   if (type === "repair" && fault) row.fault = fault;
+  if (engineer) row.engineer = engineer;
   data.jobs.push(row);
   const bits = [type, boiler, type === "repair" && fault ? fault : null].filter(Boolean).join(" / ");
   toast(`${bits} (+${h}h)`); save();
@@ -292,7 +308,8 @@ function trimNum(n, dp) { return dp ? n.toFixed(dp).replace(/\.0$/, "") : String
 const TABS = [
   ["home", "Home"],
   ["assisted", "Hours"],
-  ["unassisted", "Write-ups"],
+  ["unassisted", "Jobs"],
+  ["calc", "Calc"],
   ["report", "Report"],
   ["methods", "Methods"],
   ["settings", "Settings"],
@@ -306,6 +323,7 @@ function render() {
   if (tab === "home") app.appendChild(homePane(s));
   else if (tab === "assisted") app.appendChild(hoursPane(s));
   else if (tab === "unassisted") app.appendChild(writeupsPane(s));
+  else if (tab === "calc") app.appendChild(calcPane());
   else if (tab === "report") app.appendChild(reportPane(s));
   else if (tab === "methods") app.appendChild(methodsPane());
   else if (tab === "help") app.appendChild(helpPane());
@@ -440,15 +458,17 @@ function writeupsPane(s) {
   const opt = (o) => `<option value="${o}">${cap1(o)}</option>`;
   const recent = data.jobs.map((r, i) => ({ r, i })).slice(-10).reverse().map(({ r, i }) => {
     const bits = [r.type, r.boiler, r.fault].filter(Boolean).map(cap1).join(" / ");
-    return `<li><span class="li-d">${esc(r.date)}</span><span class="li-v">${esc(bits)} &middot; ${r.h} h</span>` +
+    const eng = r.engineer ? ` &middot; ${esc(r.engineer)}` : "";
+    return `<li><span class="li-d">${esc(r.date)}</span><span class="li-v">${esc(bits)} &middot; ${r.h} h${eng}</span>` +
       `<button class="del" data-arr="jobs" data-i="${i}" title="delete">&times;</button></li>`;
   }).join("");
+  const engOpts = (data.engineers || []).map((e) => `<option value="${esc(e.name)}">${esc(e.name)}</option>`).join("");
   el.innerHTML = `
     <h3>Unassisted write-ups <span class="h3-r">${s.jobsDone}/${s.jobsTotal} &middot; ${s.jobHours} h</span></h3>
     <div class="tiles">${tile("Installs", "install", s.install, t.install)}${tile("Services", "service", s.service, t.service)}${tile("Repairs", "repair", s.repair, t.repair)}</div>
     <div class="cover">
-      <div><span class="cl">Boilers</span> ${cover(s.boiler)}${s.boilerCovered ? ' <span class="ok">â</span>' : ""}</div>
-      <div><span class="cl">Faults</span> ${cover(s.fault)}${s.faultsCovered ? ' <span class="ok">â</span>' : ""}</div>
+      <div><span class="cl">Boilers</span> ${cover(s.boiler)}${s.boilerCovered ? ' <span class="ok">✓</span>' : ""}</div>
+      <div><span class="cl">Faults</span> ${cover(s.fault)}${s.faultsCovered ? ' <span class="ok">✓</span>' : ""}</div>
     </div>
     <div class="form3">
       <label>Type<select id="jtype">${["install", "service", "repair"].map(opt).join("")}</select></label>
@@ -456,6 +476,8 @@ function writeupsPane(s) {
       <label>Fault<select id="jfault">${s.repairFaults.map(opt).join("")}</select></label>
       <label>Hours<input type="number" id="jh" step="0.5" min="0" value="2" inputmode="decimal"></label>
     </div>
+    <label class="wide">Supervised by ${engOpts ? "" : `<span class="dim sm">(add engineers in Settings)</span>`}
+      <select id="jeng"><option value="">&mdash;</option>${engOpts}</select></label>
     <button class="btn" id="jlog">Log write-up</button>
     <p class="dim sm">Tapping a tile logs one straight away using the dropdowns. Fault only counts on repairs.</p>
     <div class="listwrap">
@@ -528,6 +550,16 @@ function settingsPane() {
     return `<span class="chip2">${label} <button data-x="off" data-v="${r.dates.join(",")}" title="remove">&times;</button></span>`;
   }).join("") || `<span class="dim sm">none set</span>`;
 
+  const engRows = (d.engineers || []).map((e, i) => {
+    const jobs = (d.jobs || []).filter((j) => j.engineer === e.name).length;
+    const bits = [e.regNo && `reg ${esc(e.regNo)}`, e.company && esc(e.company),
+      e.expiry && `card to ${fmtDate(e.expiry, { month: "short", year: "numeric" })}`,
+      jobs ? `${jobs} job${jobs === 1 ? "" : "s"}` : null].filter(Boolean).join(" &middot; ");
+    return `<div class="engrow"><div><b>${esc(e.name)}</b>${bits ? `<div class="dim sm">${bits}</div>` : ""}` +
+      `${e.categories ? `<div class="dim sm">${esc(e.categories)}</div>` : ""}</div>` +
+      `<button class="del" data-eng="${i}" title="remove">&times;</button></div>`;
+  }).join("") || `<span class="dim sm">none added</span>`;
+
   el.innerHTML = `
     <h3>Settings</h3>
     <div class="sgrid">
@@ -559,6 +591,21 @@ function settingsPane() {
       </div>
     </div>
     <p class="dim sm">${s.blocksBeforeDeadline} college week${s.blocksBeforeDeadline === 1 ? "" : "s"} and ${s.offDays} day${s.offDays === 1 ? "" : "s"} off before the deadline &middot; ${s.availDays} working days left</p>
+
+    <div class="chipedit">
+      <div class="ce-h">Gas Safe engineers &mdash; who you've worked under</div>
+      <div class="englist" id="eng_list">${engRows}</div>
+      <div class="engadd">
+        <input type="text" id="e_name" placeholder="Name" maxlength="60">
+        <input type="text" id="e_reg" placeholder="Gas Safe reg no" maxlength="20">
+        <input type="text" id="e_lic" placeholder="Licence no" maxlength="20">
+        <input type="text" id="e_co" placeholder="Company" maxlength="60">
+        <input type="date" id="e_exp" title="card expiry">
+        <input type="text" id="e_cat" placeholder="Categories (e.g. CENWAT, CKR, HTR)" maxlength="120">
+        <button class="btn ghost sm" id="e_add">Add engineer</button>
+      </div>
+    </div>
+
     <label class="chk" id="s_widget_l"><input type="checkbox" id="s_widget"> Show desktop widget &mdash; a translucent card on your desktop, controlled from the menu bar</label>
     <label class="chk" id="s_remind_l"><input type="checkbox" id="s_remind"> Daily reminder at 5:30&thinsp;pm (weekdays) to log jobs &mdash; skipped if you've already logged something that day</label>
     <p class="dim sm" id="s_remind_cal_p" style="margin:-6px 0 0 24px"><a id="s_remind_cal">Add it to your Calendar</a> &mdash; syncs the alert to your phone</p>
@@ -572,6 +619,57 @@ function settingsPane() {
       <button class="btn ghost sm" id="s_update">Check for updates</button>
       <span class="dim sm" id="s_update_msg"></span>
     </div>`;
+  return el;
+}
+
+function calcPane() {
+  const el = document.createElement("section");
+  el.className = "card calc";
+  const c = data.calc || {};
+  const cvM = c.cvM != null ? c.cvM : GAS.cvMetric;
+  const cvI = c.cvI != null ? c.cvI : GAS.cvImperial;
+  const g2n = c.g2n != null ? c.g2n : GAS.grossToNet;
+  const mode = data.calcMode === "imperial" ? "imperial" : "metric";
+  el.innerHTML = `
+    <h3>Gas rate &rarr; heat input</h3>
+    <p class="dim sm">For real jobs &mdash; enter the gas rate, or time the meter and it works the rate out. Natural gas.</p>
+    <div class="seg" id="cmode">
+      <button data-m="metric" class="${mode === "metric" ? "on" : ""}">Metric (m&sup3;)</button>
+      <button data-m="imperial" class="${mode === "imperial" ? "on" : ""}">Imperial (ft&sup3;)</button>
+    </div>
+
+    <div class="calcbox" id="c_metric" ${mode === "metric" ? "" : "hidden"}>
+      <label class="wide">Gas rate (m&sup3;/h)<input type="number" id="m_rate" step="0.01" inputmode="decimal" placeholder="e.g. 2.91"></label>
+      <p class="dim sm" style="margin:8px 0 2px">or time it:</p>
+      <div class="form2">
+        <label>Volume used (m&sup3;)<input type="number" id="m_vol" step="0.001" inputmode="decimal" placeholder="0.08"></label>
+        <label>Time (seconds)<input type="number" id="m_sec" step="1" inputmode="numeric" placeholder="120"></label>
+      </div>
+      <div class="form2">
+        <label>CV (MJ/m&sup3; gross)<input type="number" id="m_cv" step="0.01" value="${cvM}"></label>
+        <label>&divide; for net<input type="number" id="m_g2n" step="0.01" value="${g2n}"></label>
+      </div>
+      <div class="calcout" id="m_out"></div>
+    </div>
+
+    <div class="calcbox" id="c_imperial" ${mode === "imperial" ? "" : "hidden"}>
+      <label class="wide">Gas rate (ft&sup3;/h)<input type="number" id="i_rate" step="0.1" inputmode="decimal" placeholder="e.g. 103"></label>
+      <p class="dim sm" style="margin:8px 0 2px">or time one revolution of the test dial:</p>
+      <div class="form2">
+        <label>ft&sup3; per revolution<input type="number" id="i_rev" step="1" value="1" inputmode="decimal"></label>
+        <label>Seconds for one rev<input type="number" id="i_sec" step="0.1" inputmode="decimal" placeholder="34"></label>
+      </div>
+      <div class="form2">
+        <label>CV (Btu/ft&sup3; gross)<input type="number" id="i_cv" step="1" value="${cvI}"></label>
+        <label>&divide; for net<input type="number" id="i_g2n" step="0.01" value="${g2n}"></label>
+      </div>
+      <div class="calcout" id="i_out"></div>
+    </div>
+
+    <label class="wide" style="margin-top:14px">Data-plate net input (kW) &mdash; optional, to compare
+      <input type="number" id="c_plate" step="0.1" inputmode="decimal" placeholder="e.g. 30.4"></label>
+    <div class="calcout" id="c_cmp"></div>
+    <p class="dim sm">Method: NICEIC Pocket Guide Gas 3 / ACS &amp; BPEC. Set the CV to your gas bill's declared value for an exact result.</p>`;
   return el;
 }
 
@@ -681,14 +779,21 @@ function helpPane() {
     instead of adding. Each entry in the Recent list has its own <b>&times;</b> to delete just that one.</p>
     <h4>Write-ups tab</h4>
     <p>Your 14 unassisted jobs (5 / 5 / 4, all editable in Settings). Pick the type, the
-    <b>boiler</b> and, for repairs, the <b>fault</b>, set the hours, <b>Log write-up</b>.
-    Those hours count toward your total too. Tapping a tile logs one instantly. The
-    coverage lines confirm you've hit every boiler type and every fault type.</p>
+    <b>boiler</b> and, for repairs, the <b>fault</b>, set the hours, and who
+    <b>supervised</b> it (from the engineers you've added in Settings), then <b>Log write-up</b>.
+    Those hours count toward your total too. Tapping a tile logs one instantly.</p>
+    <h4>Calc tab</h4>
+    <p><b>Gas rate &rarr; heat input</b> for real jobs. Enter the gas rate, or time the
+    meter (metric or imperial) and it works the rate out, then gives you <b>kW gross</b>
+    and <b>kW net</b> with the working shown. Optionally enter the data-plate net input to
+    check it's within &plusmn;5%. Change the CV to your gas bill's figure for an exact
+    result.</p>
     <h4>Report tab</h4>
     <p><b>Export PDF</b> &mdash; a one-page progress sheet for your lecturer. Add your name on the Report tab before exporting.</p>
     <h4>Settings</h4>
-    <p>Every number is adjustable. <b>export / import data</b> moves your whole tracker
-    between machines.</p>
+    <p>Every number is adjustable. Add the <b>Gas Safe engineers</b> you've worked under
+    (name, registration, licence, categories, card expiry) &mdash; write-ups link to them and
+    they appear on the PDF. <b>export / import data</b> moves your whole tracker between machines.</p>
     <h4>Desktop widget</h4>
     <p>Turn it on with the <span class="k">&#9713;</span> button, <span class="k">Cmd/Ctrl + Shift + W</span>, or the tick-box in Settings. It sits on your desktop behind your windows &mdash; total, bar and daily rate, updating live &mdash; and stays there even when the app is closed. Control it from the <b>menu-bar flame</b> at the top of the screen: open the app, log +2 h, move the widget to another corner, or set it to start at login. Closing the app window just tucks it away; the widget and menu-bar icon keep going until you pick <b>Quit</b>. The <span class="k">pin</span> button just keeps the app window itself on top.</p>
 
@@ -768,14 +873,80 @@ function wire(s) {
     };
     jt.addEventListener("change", syncFault);
     syncFault();
+    const je = document.getElementById("jeng");
     document.querySelectorAll(".tile").forEach((el) =>
       el.addEventListener("click", () => {
         const type = el.dataset.type;
-        addJob(type, Number(jh.value) || 2, jb.value, type === "repair" ? jf.value : undefined);
+        addJob(type, Number(jh.value) || 2, jb.value, type === "repair" ? jf.value : undefined, je && je.value);
       }));
-    const go = () => addJob(jt.value, jh.value, jb.value, jt.value === "repair" ? jf.value : undefined);
+    const go = () => addJob(jt.value, jh.value, jb.value, jt.value === "repair" ? jf.value : undefined, je && je.value);
     document.getElementById("jlog").onclick = go;
     jh.addEventListener("keydown", (e) => { if (e.key === "Enter") go(); });
+  }
+
+  if (tab === "calc") {
+    const num = (id) => { const e = document.getElementById(id); return e ? parseFloat(e.value) : NaN; };
+    const trim = (n) => Number.isInteger(n) ? String(n) : String(n);
+    let lastNet = null;
+
+    const saveCalc = () => {
+      data.calc = {
+        cvM: num("m_cv") || GAS.cvMetric,
+        cvI: num("i_cv") || GAS.cvImperial,
+        g2n: num("m_g2n") || num("i_g2n") || GAS.grossToNet,
+      };
+      window.api.setData(data); // persist, no re-render
+    };
+    const compare = () => {
+      const el = document.getElementById("c_cmp");
+      const plate = num("c_plate");
+      if (!(plate > 0) || lastNet == null) { el.textContent = ""; return; }
+      const diff = Math.round((lastNet - plate) * 10) / 10;
+      const pct = Math.round((diff / plate) * 1000) / 10;
+      const ok = Math.abs(pct) <= 5;
+      el.innerHTML = `measured <b>${lastNet}</b> vs plate <b>${plate}</b> kW net &mdash; ` +
+        `<span class="${ok ? "ok" : "warn"}">${diff >= 0 ? "+" : ""}${diff} kW (${pct >= 0 ? "+" : ""}${pct}%)` +
+        `${ok ? " &mdash; within &plusmn;5%" : " &mdash; outside &plusmn;5%, check the MI"}</span>`;
+    };
+    const recalcM = () => {
+      const cv = num("m_cv") || GAS.cvMetric, g2n = num("m_g2n") || GAS.grossToNet;
+      let rate = num("m_rate");
+      const vol = num("m_vol"), sec = num("m_sec");
+      if (!(rate > 0) && vol > 0 && sec > 0) rate = gasRateMetric(vol, sec);
+      const hi = rate > 0 ? heatInputMetric(rate, cv, g2n) : null;
+      document.getElementById("m_out").innerHTML = hi
+        ? `<b>${trim(hi.m3h)} m&sup3;/h</b>` +
+          `<div class="cwork">&times; ${cv} &divide; 3.6 = <b>${hi.gross} kW gross</b></div>` +
+          `<div class="cwork">&divide; ${g2n} = <b>${hi.net} kW net</b></div>`
+        : `<span class="dim">enter a gas rate, or a volume + time</span>`;
+      lastNet = hi ? hi.net : null;
+      compare();
+    };
+    const recalcI = () => {
+      const cv = num("i_cv") || GAS.cvImperial, g2n = num("i_g2n") || GAS.grossToNet;
+      let rate = num("i_rate");
+      const rev = num("i_rev"), sec = num("i_sec");
+      if (!(rate > 0) && rev > 0 && sec > 0) rate = gasRateImperial(rev, sec);
+      const hi = rate > 0 ? heatInputImperial(rate, cv, g2n) : null;
+      document.getElementById("i_out").innerHTML = hi
+        ? `<b>${trim(hi.ft3h)} ft&sup3;/h</b>` +
+          `<div class="cwork">&times; ${cv} = <b>${hi.btuh.toLocaleString()} Btu/h</b></div>` +
+          `<div class="cwork">&divide; 3412 = <b>${hi.gross} kW gross</b></div>` +
+          `<div class="cwork">&divide; ${g2n} = <b>${hi.net} kW net</b></div>`
+        : `<span class="dim">enter a gas rate, or ft&sup3;/rev + seconds</span>`;
+      lastNet = hi ? hi.net : null;
+      compare();
+    };
+    const active = () => (data.calcMode === "imperial" ? recalcI : recalcM);
+
+    document.querySelectorAll("#cmode button").forEach((b) =>
+      b.addEventListener("click", () => { data.calcMode = b.dataset.m; save(); }));
+    ["m_rate", "m_vol", "m_sec", "m_cv", "m_g2n"].forEach((id) =>
+      document.getElementById(id)?.addEventListener("input", () => { recalcM(); saveCalc(); }));
+    ["i_rate", "i_rev", "i_sec", "i_cv", "i_g2n"].forEach((id) =>
+      document.getElementById(id)?.addEventListener("input", () => { recalcI(); saveCalc(); }));
+    document.getElementById("c_plate")?.addEventListener("input", () => { active()(); });
+    active()();
   }
 
   if (tab === "report") {
@@ -860,6 +1031,23 @@ function wire(s) {
       toast("removed"); save();
     }));
 
+    // engineers
+    const gv = (id) => document.getElementById(id).value.trim();
+    document.getElementById("e_add").onclick = () => {
+      const name = gv("e_name");
+      if (!name) { toast("enter a name"); return; }
+      if (!Array.isArray(data.engineers)) data.engineers = [];
+      data.engineers.push({
+        name, regNo: gv("e_reg"), licence: gv("e_lic"),
+        company: gv("e_co"), expiry: gv("e_exp"), categories: gv("e_cat"),
+      });
+      toast("engineer added"); save();
+    };
+    document.querySelectorAll("[data-eng]").forEach((btn) => btn.addEventListener("click", () => {
+      data.engineers.splice(parseInt(btn.dataset.eng, 10), 1);
+      toast("removed"); save();
+    }));
+
     document.getElementById("s_save").onclick = () => {
       const num = (id, min, fb) => {
         const v = Number(document.getElementById(id).value);
@@ -905,8 +1093,8 @@ function wire(s) {
 // ---------- boot ----------
 function normalise(raw) {
   const d = { ...structuredClone(DEFAULT_DATA), ...(raw || {}) };
-  for (const k of ["hours", "jobs", "off", "blocks"])
-    if (!Array.isArray(d[k])) d[k] = structuredClone(DEFAULT_DATA[k]);
+  for (const k of ["hours", "jobs", "off", "blocks", "engineers"])
+    if (!Array.isArray(d[k])) d[k] = structuredClone(DEFAULT_DATA[k] || []);
   if (!d.jobTargets || typeof d.jobTargets !== "object") d.jobTargets = structuredClone(DEFAULT_DATA.jobTargets);
   if (!Array.isArray(d.boilerTypes) || !d.boilerTypes.length) d.boilerTypes = [...DEFAULT_DATA.boilerTypes];
   if (!Array.isArray(d.repairFaults) || !d.repairFaults.length) d.repairFaults = [...DEFAULT_DATA.repairFaults];
