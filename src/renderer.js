@@ -276,11 +276,12 @@ function setWeekTotal(h) {
 // when set, the next write-up logged replaces this hours[] entry instead of adding fresh hours
 let pendingConvert = null;
 
-function addJob(type, h, boiler, fault, engineer) {
+function addJob(type, h, boiler, fault, engineer, notes) {
   h = Number(h) || 2;
   const row = { date: (pendingConvert && pendingConvert.date) || todayISO(), type, h, boiler: boiler || "" };
   if (type === "repair" && fault) row.fault = fault;
   if (engineer) row.engineer = engineer;
+  if (notes && notes.trim()) row.notes = notes.trim();
   data.jobs.push(row);
   if (pendingConvert) {
     if (Array.isArray(data.hours) && data.hours[pendingConvert.i]) data.hours.splice(pendingConvert.i, 1);
@@ -537,6 +538,8 @@ function hoursPane(s) {
     </div>
     <input type="date" id="ad" value="${today}" max="${today}" hidden>
 
+    <label class="wide ta">What was the job? <span class="dim sm">&mdash; boiler, install / service / repair, what you did</span>
+      <textarea id="ahnote" rows="2" placeholder="e.g. Worcester 4000 combi service &mdash; FGA, cleaned condensate trap, checked working pressure"></textarea></label>
     <label class="chk"><input type="checkbox" id="awk"> this is my whole-week total (replaces the week)</label>
     <button class="btn big" id="ahlog">Log hours</button>
 
@@ -561,8 +564,9 @@ function writeupsPane(s) {
   const recent = data.jobs.map((r, i) => ({ r, i })).slice(-10).reverse().map(({ r, i }) => {
     const bits = [r.type, r.boiler, r.fault].filter(Boolean).map(cap1).join(" / ");
     const eng = r.engineer ? ` &middot; ${esc(r.engineer)}` : "";
-    return `<li><span class="li-d">${esc(r.date)}</span><span class="li-v">${esc(bits)} &middot; ${r.h} h${eng}</span>` +
-      `<button class="del" data-arr="jobs" data-i="${i}" title="delete">&times;</button></li>`;
+    const note = r.notes ? `<span class="li-note">${esc(r.notes)}</span>` : "";
+    return `<li class="li-wrap"><span class="li-d">${esc(r.date)}</span><span class="li-v">${esc(bits)} &middot; ${r.h} h${eng}</span>` +
+      `<button class="del" data-arr="jobs" data-i="${i}" title="delete">&times;</button>${note}</li>`;
   }).join("");
   const engOpts = (data.engineers || []).map((e) => `<option value="${esc(e.name)}">${esc(e.name)}</option>`).join("");
   const pc = pendingConvert;
@@ -582,8 +586,10 @@ function writeupsPane(s) {
     </div>
     <label class="wide">Supervised by ${engOpts ? "" : `<span class="dim sm">(add engineers in Settings)</span>`}
       <select id="jeng"><option value="">&mdash;</option>${engOpts}</select></label>
+    <label class="wide ta">Job notes <span class="dim sm">&mdash; boiler make/model, what you did, any readings</span>
+      <textarea id="jnotes" rows="3" placeholder="e.g. Worcester 4000, full combi swap. Gas rate 2.9 m3/h. Working pressure 20 mbar. Tightness test passed."></textarea></label>
     <button class="btn" id="jlog">Log write-up</button>
-    <p class="dim sm">Tapping a tile logs one straight away using the dropdowns. Fault only counts on repairs.</p>
+    <p class="dim sm">Tapping a tile logs one straight away using the dropdowns. Fault only counts on repairs. Notes go on your PDF.</p>
     <div class="listwrap">
       <div class="list-h">Recent</div>
       <ul class="list">${recent || '<li class="empty">nothing logged yet</li>'}</ul>
@@ -826,9 +832,10 @@ function wire(s) {
         ? (v > 0 ? `Set week to ${r1(v)} h` : "Set week total")
         : (v > 0 ? `Log ${r1(v)} h` : "Log hours");
     };
+    const noteEl = document.getElementById("ahnote");
     const go = () => {
       if (wk.checked) setWeekTotal(h.value);
-      else addHours(h.value, dateEl.value);
+      else addHours(h.value, dateEl.value, noteEl && noteEl.value);
     };
     app.querySelectorAll("[data-add]").forEach((b) => b.addEventListener("click", () => {
       if (b.dataset.add === "clear") h.value = "";
@@ -876,12 +883,13 @@ function wire(s) {
     jt.addEventListener("change", syncFault);
     syncFault();
     const je = document.getElementById("jeng");
+    const jn = document.getElementById("jnotes");
     document.querySelectorAll(".tile").forEach((el) =>
       el.addEventListener("click", () => {
         const type = el.dataset.type;
-        addJob(type, Number(jh.value) || 2, jb.value, type === "repair" ? jf.value : undefined, je && je.value);
+        addJob(type, Number(jh.value) || 2, jb.value, type === "repair" ? jf.value : undefined, je && je.value, jn && jn.value);
       }));
-    const go = () => addJob(jt.value, jh.value, jb.value, jt.value === "repair" ? jf.value : undefined, je && je.value);
+    const go = () => addJob(jt.value, jh.value, jb.value, jt.value === "repair" ? jf.value : undefined, je && je.value, jn && jn.value);
     document.getElementById("jlog").onclick = go;
     jh.addEventListener("keydown", (e) => { if (e.key === "Enter") go(); });
   }

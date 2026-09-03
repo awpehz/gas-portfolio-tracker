@@ -24,7 +24,7 @@ function loadBounds() {
     const b = JSON.parse(fs.readFileSync(BOUNDS_FILE, "utf8"));
     if (b && b.width > 300 && b.height > 380) return b;
   } catch {}
-  return { width: 520, height: 880 };
+  return { width: 1120, height: 860 };
 }
 
 const STATE_FILE = path.join(app.getPath("userData"), "ui-state.json");
@@ -289,8 +289,8 @@ function createWindow(opts = {}) {
     height: b.height,
     x: b.x,
     y: b.y,
-    minWidth: 400,
-    minHeight: 560,
+    minWidth: 680,
+    minHeight: 600,
     resizable: true,
     show: opts.show !== false,
     frame: false,

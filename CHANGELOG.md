@@ -1,5 +1,16 @@
 # Changelog
 
+## 3.0.0 — full-size window, job notes, an apprentice's app
+
+- **Opens as a real desktop window** (1120x860, min 680x600, resizable). On a
+  wide window Home becomes a two-column dashboard; the other pages stay a
+  comfortable centred width.
+- **Job notes on every entry.** Assisted hours get a "What was the job?" field
+  (boiler, install/service/repair, what you did); write-ups get a notes box for
+  the boiler make/model, what you did and any readings. Notes show in the Recent
+  list and go on your PDF.
+- Tagline: **made by an apprentice, for apprentices.**
+
 ## 2.5.0 — the other tabs, brought up to Home's finish
 
 Hours, Jobs, Report, Settings and Help now share the Home page's language:
