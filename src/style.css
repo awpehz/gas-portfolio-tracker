@@ -758,3 +758,61 @@ main > .card:nth-of-type(2) { animation-delay: 0.05s; }
 /* flame licks a touch livelier */
 .flame { animation-duration: 3.4s; }
 .home .flame.md { filter: drop-shadow(0 0 14px rgba(78,168,255,0.45)); }
+
+/* ---------- hours logger (v2 — the deliberate version) ---------- */
+.bighours {
+  position: relative;
+  display: flex; align-items: baseline; justify-content: center; gap: 8px;
+  margin: 14px 0 10px;
+  padding: 14px 16px 12px;
+  border-radius: 14px;
+  background:
+    radial-gradient(120% 140% at 50% 0%, rgba(78,168,255,0.10), transparent 70%),
+    var(--surface-2);
+  border: 1px solid var(--line-2);
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.25);
+}
+.bighours input {
+  -webkit-appearance: none; appearance: none;
+  width: 3.2em; min-width: 0;
+  height: auto; padding: 0; border: 0; background: transparent; box-shadow: none;
+  font-size: 46px; font-weight: 800; letter-spacing: -1.5px; text-align: right;
+  color: var(--ink);
+}
+.bighours input:focus { box-shadow: none; }
+.bighours input::placeholder { color: var(--ink-3); font-weight: 800; }
+.bighours .u { font-size: 20px; font-weight: 700; color: var(--ink-3); }
+
+.hstep { display: flex; gap: 6px; margin-bottom: 16px; }
+.hstep button {
+  flex: 1; height: 32px; padding: 0; border-radius: 9px;
+  border: 1px solid var(--line-2); background: var(--surface-2); color: var(--ink);
+  font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, transform 0.06s, box-shadow 0.14s;
+}
+.hstep button:hover { border-color: var(--accent); background: rgba(78,168,255,0.10); }
+.hstep button:active { transform: translateY(1px) scale(0.97); }
+.hstep button.ghost { flex: 0 0 auto; padding: 0 12px; color: var(--ink-3); }
+.hstep button.ghost:hover { color: var(--ink); background: rgba(255,255,255,0.06); border-color: var(--line-2); }
+
+.whenrow { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.whenrow .wl {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase;
+  color: var(--ink-3); flex: none;
+}
+.seg2 {
+  flex: 1; display: flex; gap: 3px; padding: 3px;
+  background: rgba(0,0,0,0.25); border: 1px solid var(--line); border-radius: 10px;
+}
+.seg2 button {
+  flex: 1; height: 28px; border: 0; border-radius: 7px; background: transparent;
+  color: var(--ink-2); font: inherit; font-size: 11.5px; font-weight: 600; cursor: pointer;
+  transition: background 0.14s, color 0.14s;
+}
+.seg2 button:hover { color: var(--ink); }
+.seg2 button.on { background: rgba(255,255,255,0.10); color: var(--ink); box-shadow: inset 0 0 0 1px var(--line-2); }
+
+#ad[hidden] { display: none !important; }
+#ad { margin-bottom: 12px; }
+
+.btn.big { height: 44px; font-size: 14px; font-weight: 700; border-radius: 12px; }

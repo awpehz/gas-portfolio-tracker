@@ -85,7 +85,7 @@ function buildReport(d, s) {
   };
 
   const flame = `<svg width="30" height="35" viewBox="0 0 24 24" style="flex:none">` +
-    `<path fill="#ffffff" d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67z"/></svg>`;
+    `<path fill="#ffffff" d="M12.3 1.7C15.9 6 18.7 9.1 18.7 13.1 18.7 18.1 15.5 21.8 12 22.3 8.5 21.8 5.3 18.4 5.3 13 5.3 8.6 8.7 4.7 12.3 1.7Z"/></svg>`;
   const goalPct = Math.max(1.5, Math.min(100, s.pctGoal));
   const markPct = Math.max(0, Math.min(100, s.requiredMark));
 
@@ -392,7 +392,7 @@ function homePane(s) {
     `<span class="${v > 0 ? "ok" : "dim"}" data-cov="${kind}:${k}">${cap1(k)}</span>`).join('<span class="dim"> &middot; </span>');
   el.innerHTML = `
     <div class="hsec hero">
-      <svg class="flame md" viewBox="0 0 24 24"><path d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67z" fill="url(#flameGrad)"/></svg>
+      <svg class="flame md" viewBox="0 0 24 24"><path d="M12.3 1.7C15.9 6 18.7 9.1 18.7 13.1 18.7 18.1 15.5 21.8 12 22.3 8.5 21.8 5.3 18.4 5.3 13 5.3 8.6 8.7 4.7 12.3 1.7Z" fill="url(#flameGrad)"/><path d="M12 9C13.7 11.8 14.6 13.8 14.6 16 14.6 19 13.2 20.9 12 21.1 10.6 20.9 9.4 19 9.4 16.3 9.4 13.9 10.6 11.7 12 9Z" fill="url(#flameCone)" opacity="0.92"/></svg>
       <div class="hcap">Progress</div>
       <div class="stat"><span class="v" data-to="${s.total}">0</span><small> / ${s.goal} h</small></div>
       <div class="bar"><i style="--w:${Math.max(3, s.pctGoal)}%"></i><b style="left:${s.requiredMark}%"></b></div>
@@ -475,15 +475,36 @@ function hoursPane(s) {
   const recent = data.hours.map((r, i) => ({ r, i })).slice(-10).reverse().map(({ r, i }) =>
     `<li><span class="li-d">${esc(r.date)}</span><span class="li-v">${r.h} h${r.note ? " &middot; " + esc(r.note) : ""}</span>` +
     `<button class="del" data-arr="hours" data-i="${i}" title="delete">&times;</button></li>`).join("");
+  const today = todayISO();
+  const todayLabel = new Date().toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" });
   el.innerHTML = `
     <h3>Assisted hours <span class="h3-r">this week ${s.weekLogged} h</span></h3>
     <p class="dim">Hours worked alongside a Gas&nbsp;Safe engineer.</p>
-    <div class="form2">
-      <label>Hours<input type="number" id="ah" step="0.5" min="0" inputmode="decimal" placeholder="e.g. 6.5"></label>
-      <label>Date<input type="date" id="ad" value="${todayISO()}"></label>
+
+    <div class="bighours">
+      <input type="number" id="ah" step="0.5" min="0" inputmode="decimal" placeholder="0" aria-label="Hours">
+      <span class="u">h</span>
     </div>
+    <div class="hstep">
+      <button type="button" data-add="0.5">+0.5</button>
+      <button type="button" data-add="1">+1</button>
+      <button type="button" data-add="2">+2</button>
+      <button type="button" data-add="4">+4</button>
+      <button type="button" data-add="clear" class="ghost">clear</button>
+    </div>
+
+    <div class="whenrow">
+      <span class="wl">When</span>
+      <div class="seg2" id="when">
+        <button type="button" data-when="today" class="on">Today &middot; ${todayLabel}</button>
+        <button type="button" data-when="pick">Pick a date</button>
+      </div>
+    </div>
+    <input type="date" id="ad" value="${today}" max="${today}" hidden>
+
     <label class="chk"><input type="checkbox" id="awk"> this is my whole-week total (replaces the week)</label>
-    <button class="btn" id="ahlog">Log hours</button>
+    <button class="btn big" id="ahlog">Log hours</button>
+
     <div class="listwrap">
       <div class="list-h">Recent</div>
       <ul class="list">${recent || '<li class="empty">nothing logged yet</li>'}</ul>
@@ -757,12 +778,38 @@ function wire(s) {
     b.addEventListener("click", () => removeEntry(b.dataset.arr, parseInt(b.dataset.i, 10))));
   if (tab === "assisted") {
     const h = document.getElementById("ah");
-    const go = () => {
-      if (document.getElementById("awk").checked) setWeekTotal(h.value);
-      else addHours(h.value, document.getElementById("ad").value);
+    const btn = document.getElementById("ahlog");
+    const wk = document.getElementById("awk");
+    const dateEl = document.getElementById("ad");
+    const r1 = (n) => Math.round(n * 10) / 10;
+    const val = () => { const n = Number(h.value); return isNaN(n) ? 0 : n; };
+    const syncBtn = () => {
+      const v = val();
+      btn.textContent = wk.checked
+        ? (v > 0 ? `Set week to ${r1(v)} h` : "Set week total")
+        : (v > 0 ? `Log ${r1(v)} h` : "Log hours");
     };
-    document.getElementById("ahlog").onclick = go;
+    const go = () => {
+      if (wk.checked) setWeekTotal(h.value);
+      else addHours(h.value, dateEl.value);
+    };
+    app.querySelectorAll("[data-add]").forEach((b) => b.addEventListener("click", () => {
+      if (b.dataset.add === "clear") h.value = "";
+      else h.value = r1(Math.max(0, val() + Number(b.dataset.add)));
+      syncBtn(); h.focus({ preventScroll: true });
+    }));
+    app.querySelectorAll("#when button").forEach((b) => b.addEventListener("click", () => {
+      app.querySelectorAll("#when button").forEach((x) => x.classList.toggle("on", x === b));
+      const pick = b.dataset.when === "pick";
+      dateEl.hidden = !pick;
+      if (!pick) dateEl.value = todayISO();
+      if (pick) dateEl.showPicker ? dateEl.showPicker() : dateEl.focus();
+    }));
+    h.addEventListener("input", syncBtn);
+    wk.addEventListener("change", syncBtn);
+    btn.onclick = go;
     h.addEventListener("keydown", (e) => { if (e.key === "Enter") go(); });
+    syncBtn();
     h.focus({ preventScroll: true });
   }
 
