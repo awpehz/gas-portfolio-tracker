@@ -1,5 +1,21 @@
 # Changelog
 
+## 3.2.0 — new PDF, and the big window sticks
+
+- **The progress PDF has been rebuilt.** Same dark brand look as the app &mdash;
+  flame logo, the app blues and greens &mdash; with a cleaner layout: an
+  hours headline with a pass-mark bar, a four-tile summary (rate needed, working
+  days left, write-ups, earliest finish), a pace call-out, write-up coverage,
+  and tidy log tables.
+- **Job notes are in the PDF now.** The write-up log carries a Notes column and
+  the assisted-hours log carries "What was the job?", so the detail you type in
+  goes into the report.
+- Fixed a bug where the pass-mark label could sit on top of the goal label on
+  the PDF's progress bar.
+- **The full-size window now applies after an update.** A window size saved by
+  an older, narrower build is ignored, so everyone lands on the 1120x860
+  default and can resize from there.
+
 ## 3.1.0 — accountability
 
 A strip on Home that keeps you honest about logging:

@@ -59,8 +59,8 @@ function buildReport(d, s) {
   const row = (cells, th) => `<tr>${cells.map((c) => `<${th ? "th" : "td"}>${c}</${th ? "th" : "td"}>`).join("")}</tr>`;
 
   const jobRows = [...d.jobs].sort((a, b) => (a.date < b.date ? -1 : 1))
-    .map((j) => row([j.date, cap1(j.type), cap1(j.boiler || "&mdash;"), j.type === "repair" ? cap1(j.fault || "&mdash;") : "&mdash;", (j.h ?? "") + " h", esc(j.engineer || "&mdash;")])).join("")
-    || `<tr><td colspan="6" class="empty">No unassisted write-ups logged yet</td></tr>`;
+    .map((j) => `<tr><td>${j.date}</td><td>${cap1(j.type)}</td><td>${cap1(j.boiler || "&mdash;")}</td><td>${j.type === "repair" ? cap1(j.fault || "&mdash;") : "&mdash;"}</td><td>${(j.h ?? "") + " h"}</td><td>${esc(j.engineer || "&mdash;")}</td><td class="note">${j.notes ? esc(j.notes) : "&mdash;"}</td></tr>`).join("")
+    || `<tr><td colspan="7" class="empty">No unassisted write-ups logged yet</td></tr>`;
 
   const engineers = (d.engineers || []);
   const engRows = engineers.map((e) => {
@@ -72,7 +72,7 @@ function buildReport(d, s) {
     return row([esc(e.name), meta || "&mdash;", esc(e.categories || "&mdash;"), jobs]);
   }).join("");
   const hourRows = [...d.hours].sort((a, b) => (a.date < b.date ? -1 : 1))
-    .map((r) => row([r.date, (r.h ?? "") + " h", esc(r.note || "")])).join("")
+    .map((r) => `<tr><td>${r.date}</td><td>${(r.h ?? "") + " h"}</td><td class="note">${r.note ? esc(r.note) : "&mdash;"}</td></tr>`).join("")
     || `<tr><td colspan="3" class="empty">No assisted hours logged yet</td></tr>`;
 
   const covLine = (obj) => Object.entries(obj).map(([k, v]) =>
@@ -84,92 +84,124 @@ function buildReport(d, s) {
       `<span class="jn ${n >= t && t > 0 ? "done" : ""}">${n} / ${t}</span></div>`;
   };
 
-  const flame = `<svg width="30" height="35" viewBox="0 0 24 24" style="flex:none">` +
-    `<path fill="#ffffff" d="M12.3 1.7C15.9 6 18.7 9.1 18.7 13.1 18.7 18.1 15.5 21.8 12 22.3 8.5 21.8 5.3 18.4 5.3 13 5.3 8.6 8.7 4.7 12.3 1.7Z"/></svg>`;
+  const flame = `<svg width="29" height="34" viewBox="0 0 24 24" style="flex:none">
+    <defs><linearGradient id="pf" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#2338a8"/><stop offset=".55" stop-color="#3f8fe8"/><stop offset="1" stop-color="#7cc4ff"/>
+    </linearGradient></defs>
+    <path fill="url(#pf)" d="M12.3 1.7C15.9 6 18.7 9.1 18.7 13.1 18.7 18.1 15.5 21.8 12 22.3 8.5 21.8 5.3 18.4 5.3 13 5.3 8.6 8.7 4.7 12.3 1.7Z"/>
+    <path fill="#cfe6ff" d="M12 9C13.7 11.8 14.6 13.8 14.6 16 14.6 19 13.2 20.9 12 21.1 10.6 20.9 9.4 19 9.4 16.3 9.4 13.9 10.6 11.7 12 9Z"/></svg>`;
   const goalPct = Math.max(1.5, Math.min(100, s.pctGoal));
   const markPct = Math.max(0, Math.min(100, s.requiredMark));
+  const kv = (k, v, sub) => `<div class="kv"><div class="kv-k">${k}</div><div class="kv-v">${v}</div>${sub ? `<div class="kv-s">${sub}</div>` : ""}</div>`;
+  const portDate = s.portfolioCanFinish
+    ? new Date(s.portfolioFinishDate + "T00:00:00").toLocaleDateString(undefined, { day: "numeric", month: "short" })
+    : "&mdash;";
 
   return `<!doctype html><html><head><meta charset="utf-8"><title>Gas Portfolio Progress${name ? " &mdash; " + esc(name) : ""}</title>
   <style>
     @page { size: A4; margin: 0; }
     * { box-sizing: border-box; }
-    html, body { background: #14161b; }
-    body { font: 12px/1.55 -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    html, body { background: #0f1116; }
+    body { font: 11px/1.5 "Inter", -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
            color: #eef1f5; margin: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .head { background: linear-gradient(135deg, #2f7fd6, #59b8ff); color: #fff;
-            padding: 22px 18mm; display: flex; align-items: center; gap: 13px; }
-    .head .eyebrow { font-size: 9.5px; letter-spacing: 2.5px; text-transform: uppercase; opacity: .82; }
-    .head h1 { font-size: 19px; margin: 2px 0 0; font-weight: 800; letter-spacing: -.3px; }
-    .head .gen { margin-left: auto; font-size: 10px; opacity: .9; text-align: right; text-transform: uppercase; letter-spacing: .5px; }
-    .wrap { padding: 26px 18mm 18mm; }
-    section { margin-bottom: 26px; }
-    h2 { font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: #79b6f2; margin: 0 0 12px; font-weight: 700; }
+    .sheet { padding: 15mm 14mm; background: linear-gradient(180deg, #171a20, #0f1116); }
 
-    .stat { font-size: 34px; font-weight: 800; letter-spacing: -1px; line-height: 1; }
-    .stat small { font-size: 14px; font-weight: 600; color: rgba(255,255,255,.4); margin-left: 4px; letter-spacing: 0; }
-    .barcap { position: relative; height: 12px; font-size: 8.5px; color: rgba(255,255,255,.5); }
-    .barcap span { position: absolute; white-space: nowrap; }
-    .bar { position: relative; height: 9px; border-radius: 5px; background: rgba(255,255,255,.11); margin: 3px 0 6px; }
-    .bar > i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 5px; background: linear-gradient(90deg, #3f8fd8, #6fbcff); }
-    .bar > b { position: absolute; top: -3px; bottom: -3px; width: 2px; background: #fff; border-radius: 1px; }
-    .barlbls { position: relative; height: 13px; font-size: 9px; color: rgba(255,255,255,.45); }
-    .barlbls span { position: absolute; white-space: nowrap; }
-    .barlbls .l0 { left: 0; } .barlbls .lg { right: 0; }
-    .sub { font-size: 11px; color: rgba(255,255,255,.6); margin-top: 8px; }
+    .head { display: flex; align-items: center; gap: 12px; padding-bottom: 13px; border-bottom: 2px solid #4ea8ff; }
+    .head .name { font-size: 15px; font-weight: 800; letter-spacing: -.3px; color: #f4f6fa; }
+    .head .name span { color: rgba(255,255,255,.5); font-weight: 600; }
+    .head .eyebrow { font-size: 8px; letter-spacing: 2.2px; text-transform: uppercase; color: #6bb0ff; margin-bottom: 2px; }
+    .head .gen { margin-left: auto; font-size: 9px; text-transform: uppercase; letter-spacing: .6px; color: rgba(255,255,255,.4); text-align: right; }
+
+    section { margin-top: 22px; }
+    h2 { font-size: 8.5px; text-transform: uppercase; letter-spacing: 1.8px; color: #6bb0ff; margin: 0 0 10px; font-weight: 800; }
+
+    .hero { display: grid; grid-template-columns: 1.15fr 1fr; gap: 22px; align-items: start; }
+    .stat { font-size: 32px; font-weight: 800; letter-spacing: -1px; line-height: 1; color: #f4f6fa; }
+    .stat small { font-size: 13px; font-weight: 700; color: rgba(255,255,255,.42); margin-left: 4px; }
+    .barcap { font-size: 8px; color: #eb8f8f; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; margin: 11px 0 4px; }
+    .bar { position: relative; height: 9px; border-radius: 5px; background: rgba(255,255,255,.09); }
+    .bar > i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 5px; background: linear-gradient(90deg,#2c78f2,#7cc4ff); }
+    .bar > b { position: absolute; top: -3px; bottom: -3px; width: 2px; background: #e77a7a; border-radius: 1px; }
+    .barlbls { position: relative; height: 12px; font-size: 8px; color: rgba(255,255,255,.4); margin-top: 3px; }
+    .barlbls .l0 { position: absolute; left: 0; } .barlbls .lg { position: absolute; right: 0; }
+    .sub { font-size: 10px; color: rgba(255,255,255,.6); margin-top: 9px; }
     .sub b { color: #eef1f5; }
 
-    .pace { font-size: 22px; font-weight: 800; letter-spacing: -.5px; }
-    .pace.ok { color: #7fdcac; } .pace.warn { color: #ffb199; }
+    .kvgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .kv { border: 1px solid rgba(255,255,255,.12); border-radius: 10px; padding: 9px 11px; background: rgba(255,255,255,.03); }
+    .kv-k { font-size: 7.5px; font-weight: 800; letter-spacing: .8px; text-transform: uppercase; color: rgba(255,255,255,.45); }
+    .kv-v { font-size: 16px; font-weight: 800; letter-spacing: -.4px; margin: 2px 0 1px; color: #f4f6fa; }
+    .kv-s { font-size: 8.5px; color: rgba(255,255,255,.55); }
 
-    .jrow { display: flex; align-items: center; gap: 10px; margin: 7px 0; }
-    .jl { width: 66px; font-size: 11px; color: rgba(255,255,255,.7); }
-    .jbar { flex: 1; height: 7px; border-radius: 4px; background: rgba(255,255,255,.11); position: relative; }
-    .jbar > i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; background: linear-gradient(90deg,#3f8fd8,#6fbcff); }
-    .jn { width: 46px; text-align: right; font-size: 11px; font-weight: 700; color: rgba(255,255,255,.55); }
-    .jn.done { color: #7fdcac; }
-    .cov { margin-top: 12px; font-size: 10.5px; color: rgba(255,255,255,.55); }
-    .cov .cl { display: inline-block; width: 66px; color: rgba(255,255,255,.4); text-transform: uppercase; letter-spacing: .5px; font-size: 9px; }
-    .chip { display: inline-block; padding: 2px 7px; margin: 0 2px; border-radius: 999px;
-            background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1); color: rgba(255,255,255,.55); }
-    .chip.on { background: rgba(99,200,148,.14); border-color: rgba(99,200,148,.4); color: #9fe6c0; }
+    .callout { border: 1px solid rgba(78,168,255,.32); background: rgba(78,168,255,.08); border-radius: 12px; padding: 13px 15px; }
+    .callout .big { font-size: 15px; font-weight: 800; letter-spacing: -.3px; }
+    .callout.warn { border-color: rgba(230,178,92,.35); background: rgba(230,178,92,.09); }
+    .callout .big.ok { color: #63c894; } .callout .big.warn { color: #e6b25c; }
 
-    table { border-collapse: collapse; width: 100%; font-size: 10.5px; }
-    th { text-align: left; padding: 7px 10px; color: #9dc4ef; font-weight: 700; text-transform: uppercase;
-         font-size: 8.5px; letter-spacing: .8px; border-bottom: 1.5px solid rgba(255,255,255,.16); }
-    td { padding: 6px 10px; color: rgba(255,255,255,.82); border-bottom: 1px solid rgba(255,255,255,.07); }
-    tr:nth-child(even) td { background: rgba(255,255,255,.022); }
-    td.empty { color: rgba(255,255,255,.4); font-style: italic; text-align: center; padding: 12px; }
+    .jrow { display: flex; align-items: center; gap: 10px; margin: 6px 0; }
+    .jl { width: 60px; font-size: 10px; color: rgba(255,255,255,.62); }
+    .jbar { flex: 1; height: 7px; border-radius: 4px; background: rgba(255,255,255,.09); position: relative; }
+    .jbar > i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; background: linear-gradient(90deg,#2c78f2,#7cc4ff); }
+    .jn { width: 44px; text-align: right; font-size: 10px; font-weight: 700; color: rgba(255,255,255,.42); }
+    .jn.done { color: #63c894; }
+    .cov { margin-top: 11px; font-size: 9.5px; }
+    .cov .cl { display: inline-block; width: 52px; color: rgba(255,255,255,.42); text-transform: uppercase; letter-spacing: .5px; font-size: 8px; }
+    .chip { display: inline-block; padding: 2px 8px; margin: 0 2px; border-radius: 999px;
+            background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12); color: rgba(255,255,255,.5); font-weight: 600; }
+    .chip.on { background: rgba(99,200,148,.16); border-color: rgba(99,200,148,.42); color: #8fe0b3; }
 
-    footer { margin-top: 6px; padding-top: 9px; border-top: 1px solid rgba(255,255,255,.1);
-             font-size: 8.5px; color: rgba(255,255,255,.32); }
+    table { border-collapse: collapse; width: 100%; font-size: 9.5px; margin-top: 4px; }
+    th { text-align: left; padding: 6px 9px; color: rgba(255,255,255,.5); font-weight: 800; text-transform: uppercase;
+         font-size: 7.5px; letter-spacing: .7px; border-bottom: 1.5px solid rgba(255,255,255,.16); white-space: nowrap; }
+    td { padding: 6px 9px; color: rgba(255,255,255,.82); border-bottom: 1px solid rgba(255,255,255,.07); vertical-align: top; }
+    td:first-child { white-space: nowrap; }
+    tr:nth-child(even) td { background: rgba(255,255,255,.025); }
+    td.empty { color: rgba(255,255,255,.4); font-style: italic; text-align: center; padding: 11px; }
+    td.note { color: rgba(255,255,255,.6); }
+
+    footer { margin-top: 24px; padding-top: 9px; border-top: 1px solid rgba(255,255,255,.1); font-size: 8px; color: rgba(255,255,255,.35); }
   </style></head><body>
-    <div class="head">
-      ${flame}
-      <div><div class="eyebrow">Gas Portfolio Tracker</div><h1>Progress report${name ? " &mdash; " + esc(name) : ""}</h1></div>
-      <div class="gen">${gen}</div>
-    </div>
-    <div class="wrap">
+    <div class="sheet">
+      <div class="head">
+        ${flame}
+        <div>
+          <div class="eyebrow">Gas Portfolio Tracker</div>
+          <div class="name">Portfolio progress${name ? ` <span>&mdash; ${esc(name)}</span>` : ""}</div>
+        </div>
+        <div class="gen">${gen}</div>
+      </div>
 
       <section>
-        <h2>Hours logged</h2>
-        <div class="stat">${s.total}<small>/ ${d.goal} h</small></div>
-        <div class="barcap"><span style="left:${markPct}%;transform:${markPct >= 80 ? "translateX(-100%)" : markPct <= 12 ? "translateX(0)" : "translateX(-50%)"}">${d.required} h &mdash; pass mark</span></div>
-        <div class="bar"><i style="width:${goalPct}%"></i><b style="left:${markPct}%"></b></div>
-        <div class="barlbls">
-          <span class="l0">0</span>
-          <span class="lg">${d.goal} h goal</span>
+        <h2>Hours</h2>
+        <div class="hero">
+          <div>
+            <div class="stat">${s.total}<small>/ ${d.goal} h</small></div>
+            <div class="barcap">${d.required} h &mdash; pass mark</div>
+            <div class="bar"><i style="width:${goalPct}%"></i><b style="left:${markPct}%"></b></div>
+            <div class="barlbls">
+              <span class="l0">0</span>
+              <span class="lg">${d.goal} h goal</span>
+            </div>
+            <div class="sub">${s.past275
+              ? `<b>Pass mark reached.</b> `
+              : `<b>${s.toRequired} h</b> to the ${d.required} h pass mark &nbsp;&middot;&nbsp; `}<b>${s.toGoal} h</b> to goal &nbsp;&middot;&nbsp; ${Math.round(s.pctGoal)}% &nbsp;&middot;&nbsp; ${s.assistedHours} h assisted, ${s.jobHours} h in write-ups</div>
+          </div>
+          <div class="kvgrid">
+            ${kv("Rate needed", `${s.perDayGoal} <span style="font-size:9px;color:#9aa3b2">h/day</span>`, esc(s.verdict))}
+            ${kv("Working days left", s.availDays, `deadline ${dl}`)}
+            ${kv("Write-ups", `${s.jobsDone} / ${s.jobsTotal}`, `${s.jobsNeeded} to go`)}
+            ${kv("Earliest finish", portDate, s.portfolioGate === "write-ups" ? "write-ups are the hold-up" : "hours are the hold-up")}
+          </div>
         </div>
-        <div class="sub">${s.past275
-          ? `<b>Pass mark reached.</b> `
-          : `<b>${s.toRequired} h</b> to the ${d.required} h pass mark &nbsp;&middot;&nbsp; `}<b>${s.toGoal} h</b> to the goal &nbsp;&middot;&nbsp; ${Math.round(s.pctGoal)}% of goal &nbsp;&middot;&nbsp; ${s.assistedHours} h assisted, ${s.jobHours} h in write-ups</div>
       </section>
 
       <section>
         <h2>Deadline &amp; pace</h2>
-        <div class="pace ${s.verdictOk ? "ok" : "warn"}">${s.perDayGoal} h per working day needed</div>
-        <div class="sub"><b>${s.availDays}</b> working days left &nbsp;&middot;&nbsp; deadline <b>${dl}</b> &nbsp;&middot;&nbsp; ${esc(s.verdict)}</div>
-        <div class="sub"><b>Quickest way there:</b> ${fastestFinishText(s)}</div>
-        <div class="sub" style="color:rgba(255,255,255,.4)">A working day is Mon&ndash;Fri that isn't a college block week or a booked day off.</div>
+        <div class="callout ${s.verdictOk ? "" : "warn"}">
+          <div class="big ${s.verdictOk ? "ok" : "warn"}">${s.perDayGoal} h per working day needed</div>
+          <div class="sub"><b>Quickest way there:</b> ${fastestFinishText(s)}</div>
+          <div class="sub" style="color:#9aa3b2">A working day is Mon&ndash;Fri that isn't a college block week or a booked day off.</div>
+        </div>
       </section>
 
       <section>
@@ -188,15 +220,15 @@ function buildReport(d, s) {
 
       <section>
         <h2>Write-up log</h2>
-        <table>${row(["Date", "Category", "Boiler", "Fault", "Hours", "Supervised by"], true)}${jobRows}</table>
+        <table>${row(["Date", "Category", "Boiler", "Fault", "Hours", "Supervised by", "Notes"], true)}${jobRows}</table>
       </section>
 
       <section>
         <h2>Assisted hours log</h2>
-        <table>${row(["Date", "Hours", "Note"], true)}${hourRows}</table>
+        <table>${row(["Date", "Hours", "What was the job?"], true)}${hourRows}</table>
       </section>
 
-      <footer>Generated by Gas Portfolio Tracker on ${gen}${name ? " for " + esc(name) : ""}. Figures are self-recorded.</footer>
+      <footer>Generated by Gas Portfolio Tracker on ${gen}${name ? " for " + esc(name) : ""}. Figures are self-recorded &mdash; made by an apprentice, for apprentices.</footer>
     </div>
   </body></html>`;
 }

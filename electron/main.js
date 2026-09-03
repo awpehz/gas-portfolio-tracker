@@ -22,7 +22,8 @@ const BOUNDS_FILE = path.join(app.getPath("userData"), "window-bounds.json");
 function loadBounds() {
   try {
     const b = JSON.parse(fs.readFileSync(BOUNDS_FILE, "utf8"));
-    if (b && b.width > 300 && b.height > 380) return b;
+    // ignore bounds saved by an older, narrower build so everyone lands on the full-size window
+    if (b && b.width >= 680 && b.height >= 600) return b;
   } catch {}
   return { width: 1120, height: 860 };
 }
