@@ -5,3 +5,5 @@ dist/
 personal/
 
 .demo-frames/
+.brand-frames/
+.brand-frames-bg/

@@ -1,8 +1,6 @@
 <p align="center">
-  <img src="docs/logo.png" width="96" alt="Gas Portfolio Tracker" />
+  <img src="docs/brand-lockup.png" width="620" alt="Gas Portfolio Tracker" />
 </p>
-
-<h1 align="center">Gas Portfolio Tracker</h1>
 
 <p align="center">
   A small desktop app for tracking a gas SVQ / NVQ portfolio —<br>
@@ -11,6 +9,12 @@
 
 <p align="center">
   <a href="https://github.com/awpehz/gas-portfolio-tracker/releases/latest"><b>Download for macOS &amp; Windows</b></a>
+  &nbsp;·&nbsp;
+  <a href="https://awpehz.github.io/gas-portfolio-tracker/">Showcase</a>
+</p>
+
+<p align="center">
+  <img src="docs/app-demo.gif" width="380" alt="The app in motion" />
 </p>
 
 <p align="center"><i>Made by Connor W.</i></p>
