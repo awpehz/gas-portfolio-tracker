@@ -419,8 +419,8 @@ function homePane(s) {
   const finishV = s.toGoal <= 0 ? "Done"
     : s.canFinish ? fmtDate(s.finishDate, { day: "numeric", month: "short" }) : "Off pace";
   const finishS = s.toGoal <= 0 ? "goal reached"
-    : s.canFinish ? `${s.finishSpareDays} day${s.finishSpareDays === 1 ? "" : "s"} spare`
-    : `${s.shortfall} h short`;
+    : s.canFinish ? `at ${s.hoursPerDay} h/day &middot; ${s.finishSpareDays} spare working day${s.finishSpareDays === 1 ? "" : "s"}`
+    : `${s.shortfall} h short at ${s.hoursPerDay} h/day`;
   const portDate = s.portfolioCanFinish ? fmtDate(s.portfolioFinishDate, { day: "numeric", month: "short", year: "numeric" }) : "&mdash;";
   const portSlack = s.portfolioSlackDays == null ? ""
     : s.portfolioSlackDays >= 0 ? `${s.portfolioSlackDays} days before the deadline`
@@ -444,7 +444,7 @@ function homePane(s) {
     <div class="hgrid">
       ${tile("Rate needed", `${trimNum(s.perDayGoal, 1)}<em> h/day</em>`, esc(s.verdict), rateCls)}
       ${tile("This week", `${trimNum(s.weekLogged, 1)}<em> h</em>`, `aim ~${weekAim} h`, s.weekLogged >= weekAim && weekAim > 0 ? "good" : "")}
-      ${tile("Hours done by", finishV, finishS)}
+      ${tile("Flat out, hours done", finishV, finishS)}
       ${tile("Deadline", `${s.daysLeft}<em> days</em>`, s.dl || d0(data).deadline)}
     </div>
 

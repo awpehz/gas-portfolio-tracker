@@ -36,9 +36,12 @@ function saveState(s) { try { fs.writeFileSync(STATE_FILE, JSON.stringify(s)); }
 // every Space, never taking focus or a click. All interaction is via the menu-bar
 // (tray) icon. The main process keeps it fed with computed status over IPC.
 let widgetWin = null;
-const WIDGET_W = 300;
-const WIDGET_H = 300;
 const WIDGET_MARGIN = 22;
+const WIDGET_SIZES = { small: 240, medium: 300, large: 372 };
+function widgetSize() {
+  const k = loadState().widgetSize;
+  return WIDGET_SIZES[k] || WIDGET_SIZES.medium;
+}
 
 function widgetStatus() {
   try { return GasLogic.computeStatus(loadData()); } catch { return null; }
@@ -56,23 +59,26 @@ function widgetXY(corner) {
   const c = corner || "tr";
   const left = c[1] === "l";
   const top = c[0] === "t";
+  const sz = widgetSize();
   return {
-    x: Math.round(left ? wa.x + WIDGET_MARGIN : wa.x + wa.width - WIDGET_W - WIDGET_MARGIN),
-    y: Math.round(top ? wa.y + WIDGET_MARGIN : wa.y + wa.height - WIDGET_H - WIDGET_MARGIN),
+    x: Math.round(left ? wa.x + WIDGET_MARGIN : wa.x + wa.width - sz - WIDGET_MARGIN),
+    y: Math.round(top ? wa.y + WIDGET_MARGIN : wa.y + wa.height - sz - WIDGET_MARGIN),
   };
 }
 function positionWidget() {
   if (!widgetWin || widgetWin.isDestroyed()) return;
   const { x, y } = widgetXY(loadState().widgetCorner);
-  widgetWin.setBounds({ x, y, width: WIDGET_W, height: WIDGET_H });
+  const sz = widgetSize();
+  widgetWin.setBounds({ x, y, width: sz, height: sz });
 }
 
 function createWidgetWindow() {
   const mac = process.platform === "darwin";
   const { x, y } = widgetXY(loadState().widgetCorner);
+  const sz = widgetSize();
   widgetWin = new BrowserWindow({
-    width: WIDGET_W,
-    height: WIDGET_H,
+    width: sz,
+    height: sz,
     x, y,
     frame: false,
     transparent: true,
@@ -163,6 +169,11 @@ function refreshTray() {
     label, type: "radio", checked: corner === id,
     click: () => { saveState({ ...loadState(), widgetCorner: id }); positionWidget(); refreshTray(); },
   });
+  const curSize = loadState().widgetSize || "medium";
+  const sItem = (id, label) => ({
+    label, type: "radio", checked: curSize === id,
+    click: () => { saveState({ ...loadState(), widgetSize: id }); positionWidget(); refreshTray(); },
+  });
   const tpl = [
     ...(s ? [
       { label: `${fmtH(s.total)} of ${s.goal} h logged`, enabled: false },
@@ -175,6 +186,7 @@ function refreshTray() {
     { type: "separator" },
     { label: "Show desktop widget", type: "checkbox", checked: widgetOn, click: (it) => showWidget(it.checked) },
     { label: "Widget position", submenu: [cItem("tl", "Top left"), cItem("tr", "Top right"), cItem("bl", "Bottom left"), cItem("br", "Bottom right")] },
+    { label: "Widget size", submenu: [sItem("small", "Small"), sItem("medium", "Medium"), sItem("large", "Large")] },
     { label: "Refresh now", click: () => pushWidget() },
     { type: "separator" },
     {

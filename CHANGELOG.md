@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.3.2 — widget size + a clearer finish tile
+
+- **Widget size** — menu-bar → Widget size → Small / Medium / Large. The gauge
+  and text scale to fit.
+- The Home "hours done by" tile was showing the flat-out (8 h/day) date next to
+  the realistic pace with no label, and "spare days" mixed working days with the
+  strip's calendar days. Now reads "Flat out, hours done · Nov 20 · at 8 h/day ·
+  12 spare working days" — same numbers, no ambiguity.
+
 ## 2.3.1 — gauge polish
 
 - The line under the gauge is now blue with a soft glow and given room to breathe

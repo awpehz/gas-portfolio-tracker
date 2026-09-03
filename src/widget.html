@@ -121,9 +121,14 @@
     .line .chip.ok { background: rgba(99,200,148,0.16); border-color: rgba(99,200,148,0.4); color: #9fe6c0; }
 
     /* the shared gauge, sized for the widget */
-    .gaugewrap { max-width: 240px; margin: 2px auto 0; }
-    .gaugereadout .stat { font-size: 27px; }
-    .gaugereadout .stat small { font-size: 9px; }
+    /* the gauge fills whatever size the widget window is (Small / Medium / Large).
+       the widget page's viewport width == the window width, so vw scales cleanly. */
+    .gaugewrap { max-width: min(100%, 80vw); margin: 2px auto 0; }
+    .gaugereadout .stat { font-size: 10vw; }
+    .gaugereadout .stat small { font-size: 3.3vw; }
+    .brand { font-size: 3.6vw; }
+    .line { font-size: 3.9vw; }
+    .line .chip { font-size: 3.1vw; }
 
     @media (prefers-reduced-motion: reduce) {
       .glass, .flame, .glass::before { animation: none; }
