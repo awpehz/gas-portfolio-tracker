@@ -35,6 +35,7 @@ const DEFAULT_DATA = {
   hoursPerDay: 8,
   deadline: "2026-12-22",
   jobTargets: { install: 5, service: 5, repair: 4 },
+  jobsPerWeek: 1,     // write-ups you reckon you can log in a week — used for the portfolio finish estimate
   boilerTypes: ["traditional", "combi", "system"],
   repairFaults: ["water", "gas", "electrical"],
   blocks: [
@@ -125,6 +126,40 @@ function computeStatus(data, now = new Date()) {
   const boilerCovered = Object.values(boiler).every((v) => v > 0);
   const faultsCovered = Object.values(fault).every((v) => v > 0);
 
+  // ---- whole-portfolio finish estimate (hours gate + write-ups gate) ----
+  const jobsNeeded =
+    Math.max(0, d.jobTargets.install - counts.install) +
+    Math.max(0, d.jobTargets.service - counts.service) +
+    Math.max(0, d.jobTargets.repair - counts.repair);
+  const boilerGaps = d.boilerTypes.filter((k) => boiler[k] === 0);
+  const faultGaps = d.repairFaults.filter((k) => fault[k] === 0);
+
+  // your actual write-up pace so far — jobs per week since the first thing you logged
+  const logDates = [...d.hours, ...d.jobs].map((r) => r.date).filter(Boolean).sort();
+  const firstLog = logDates.length ? parseISO(logDates[0]) : today;
+  const weeksElapsed = Math.max(1, (today - firstLog) / (7 * DAY));
+  const jobsPerWeekActual = d.jobs.length ? Math.round((d.jobs.length / weeksElapsed) * 10) / 10 : 0;
+
+  const planRate = Number(d.jobsPerWeek) > 0 ? Number(d.jobsPerWeek) : 1;
+  const weeksToJobs = jobsNeeded > 0 ? Math.ceil(jobsNeeded / planRate) : 0;
+  const jobsFinishDate = toISO(
+    new Date(today.getFullYear(), today.getMonth(), today.getDate() + weeksToJobs * 7)
+  );
+
+  // portfolio is done at the LATER of the two gates
+  let portfolioFinishDate = null;
+  const portfolioCanFinish = canFinish;
+  let portfolioGate = "hours";
+  if (canFinish) {
+    if (parseISO(jobsFinishDate) > parseISO(finishDate)) {
+      portfolioFinishDate = jobsFinishDate; portfolioGate = "write-ups";
+    } else {
+      portfolioFinishDate = finishDate; portfolioGate = "hours";
+    }
+  }
+  const portfolioSlackDays = portfolioFinishDate
+    ? Math.round((deadline - parseISO(portfolioFinishDate)) / DAY) : null;
+
   // college schedule
   const atCollegeNow = today.getDay() >= 1 && today.getDay() <= 5 && collegeWeeks.has(twKey);
   let nextBlock = "none left", nextBlockDays = null;
@@ -156,6 +191,9 @@ function computeStatus(data, now = new Date()) {
     weekLogged, assistedHours: Math.round(assisted * 10) / 10, jobHours: Math.round(jobH * 10) / 10,
     jobsDone, jobsTotal, ...counts, targets: d.jobTargets,
     boiler, fault, boilerCovered, faultsCovered,
+    jobsNeeded, boilerGaps, faultGaps,
+    jobsPerWeek: planRate, jobsPerWeekActual, weeksToJobs, jobsFinishDate,
+    portfolioFinishDate, portfolioCanFinish, portfolioSlackDays, portfolioGate,
     boilerTypes: d.boilerTypes, repairFaults: d.repairFaults,
     atCollegeNow, backOnTools, nextBlock, nextBlockDays, blocksBeforeDeadline,
   };

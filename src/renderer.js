@@ -11,7 +11,7 @@ if (!window.api) {
   document.documentElement.classList.add("web");
 }
 
-const { computeStatus, DEFAULT_DATA, toISO, parseISO, GAS, gasRateMetric, gasRateImperial, heatInputMetric, heatInputImperial } = window.GasLogic;
+const { computeStatus, DEFAULT_DATA, toISO, parseISO } = window.GasLogic;
 const app = document.getElementById("app");
 
 let data = {};
@@ -29,6 +29,25 @@ function fastestFinishText(s) {
   const spare = s.finishSpareDays;
   const tail = spare > 0 ? ` &mdash; ${spare} working day${spare === 1 ? "" : "s"} to spare` : " &mdash; right on the deadline";
   return `${s.finishDays} full days at ${s.hoursPerDay} h/day &mdash; done by ${dt}${tail}`;
+}
+
+// "How fast can the WHOLE portfolio be done" — the later of the hours gate and the write-ups gate.
+function portfolioFinishText(s) {
+  const hoursDone = s.toGoal <= 0;
+  const jobsDone = s.jobsNeeded <= 0;
+  if (hoursDone && jobsDone) return "Portfolio complete &mdash; hours and all write-ups done.";
+  if (!s.portfolioCanFinish) {
+    return `hours can't be finished in time at ${s.hoursPerDay} h/day (about ${s.shortfall} h short) &mdash; talk to your assessor`;
+  }
+  const dt = fmtDate(s.portfolioFinishDate, { day: "numeric", month: "short", year: "numeric" });
+  const slack = s.portfolioSlackDays;
+  const tail = slack > 0 ? `${slack} day${slack === 1 ? "" : "s"} before the deadline`
+            : slack === 0 ? "right on the deadline"
+            : `${-slack} day${slack === -1 ? "" : "s"} past the deadline`;
+  const gate = s.portfolioGate === "write-ups"
+    ? `write-ups are the hold-up (${s.jobsNeeded} to go at ${s.jobsPerWeek}/week)`
+    : `hours are the hold-up (${s.finishDays} full days of work left)`;
+  return `earliest realistic finish <b>${dt}</b> &mdash; ${tail}. ${cap1(gate)}.`;
 }
 
 // A standalone, print-ready HTML report to hand to a lecturer.
@@ -309,13 +328,12 @@ const TABS = [
   ["home", "Home"],
   ["assisted", "Hours"],
   ["unassisted", "Jobs"],
-  ["calc", "Calc"],
   ["report", "Report"],
-  ["methods", "Methods"],
   ["settings", "Settings"],
   ["help", "Help"],
 ];
 
+let prevStatus = null;
 function render() {
   const s = computeStatus(data);
   app.innerHTML = "";
@@ -323,13 +341,30 @@ function render() {
   if (tab === "home") app.appendChild(homePane(s));
   else if (tab === "assisted") app.appendChild(hoursPane(s));
   else if (tab === "unassisted") app.appendChild(writeupsPane(s));
-  else if (tab === "calc") app.appendChild(calcPane());
   else if (tab === "report") app.appendChild(reportPane(s));
-  else if (tab === "methods") app.appendChild(methodsPane());
   else if (tab === "help") app.appendChild(helpPane());
   else app.appendChild(settingsPane());
   countUp(app);
+  flourish(prevStatus, s);
+  prevStatus = s;
   wire(s);
+}
+
+// one-shot glow when a real milestone is hit
+function flourish(prev, s) {
+  if (RM || !prev || tab !== "home") return;
+  const flash = (sel) => {
+    const el = app.querySelector(sel);
+    if (!el) return;
+    el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+  };
+  if (!prev.past275 && s.past275) flash(".hero .stat .v");
+  if (prev.jobsNeeded > 0 && s.jobsNeeded === 0) flash('[data-flag="jobsdone"]');
+  if (prev.toGoal > 0 && s.toGoal <= 0) flash(".hero .stat .v");
+  for (const k of s.boilerTypes || [])
+    if ((prev.boiler[k] || 0) === 0 && s.boiler[k] > 0) flash(`[data-cov="b:${k}"]`);
+  for (const k of s.repairFaults || [])
+    if ((prev.fault[k] || 0) === 0 && s.fault[k] > 0) flash(`[data-cov="f:${k}"]`);
 }
 
 function tabBar() {
@@ -353,8 +388,8 @@ function homePane(s) {
   const college = s.atCollegeNow
     ? `At college now — back on the tools ${s.backOnTools}`
     : `Next college block ${s.nextBlock}${s.nextBlockDays != null ? ` · in ${s.nextBlockDays} days` : ""}`;
-  const cov = (obj) => Object.entries(obj).map(([k, v]) =>
-    `<span class="${v > 0 ? "ok" : "dim"}">${cap1(k)}</span>`).join('<span class="dim"> &middot; </span>');
+  const cov = (obj, kind) => Object.entries(obj).map(([k, v]) =>
+    `<span class="${v > 0 ? "ok" : "dim"}" data-cov="${kind}:${k}">${cap1(k)}</span>`).join('<span class="dim"> &middot; </span>');
   el.innerHTML = `
     <div class="hsec hero">
       <svg class="flame md" viewBox="0 0 24 24"><path d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67z" fill="url(#flameGrad)"/></svg>
@@ -374,9 +409,20 @@ function homePane(s) {
     </div>
 
     <div class="hsec">
-      <div class="hcap">Write-ups &nbsp;<span class="dim">${s.jobsDone} / ${s.jobsTotal}</span></div>
+      <div class="hcap">Write-ups &nbsp;<span class="dim" data-flag="jobsdone">${s.jobsDone} / ${s.jobsTotal}</span></div>
       <div class="dim sm">Installs ${s.install}/${s.targets.install} &middot; Services ${s.service}/${s.targets.service} &middot; Repairs ${s.repair}/${s.targets.repair}</div>
-      <div class="dim sm">Boilers ${cov(s.boiler)} &nbsp;&middot;&nbsp; Faults ${cov(s.fault)}</div>
+      <div class="dim sm">Boilers ${cov(s.boiler, "b")} &nbsp;&middot;&nbsp; Faults ${cov(s.fault, "f")}</div>
+    </div>
+
+    <div class="hsec">
+      <div class="hcap">Whole portfolio</div>
+      <div class="dim sm portfolio">${portfolioFinishText(s)}</div>
+      <div class="dim sm">Hours gate: ${s.toGoal <= 0 ? "done" : (s.canFinish ? fmtDate(s.finishDate, { day: "numeric", month: "short" }) : "not in time")}
+        &nbsp;&middot;&nbsp; Write-ups gate: ${s.jobsNeeded <= 0 ? "done" : fmtDate(s.jobsFinishDate, { day: "numeric", month: "short" }) + ` (${s.jobsNeeded} left)`}</div>
+      ${(s.boilerGaps.length || s.faultGaps.length)
+        ? `<div class="dim sm">Still need: ${[...s.boilerGaps.map(cap1), ...s.faultGaps.map((f) => cap1(f) + " fault")].join(" &middot; ")}</div>`
+        : ""}
+      ${s.jobsPerWeekActual > 0 ? `<div class="dim sm">you're averaging ${s.jobsPerWeekActual} write-ups/week so far</div>` : ""}
     </div>
 
     <div class="hsec">
@@ -571,6 +617,7 @@ function settingsPane() {
       <label>Installs needed<input type="number" id="s_ti" value="${d.jobTargets.install}"></label>
       <label>Services needed<input type="number" id="s_ts" value="${d.jobTargets.service}"></label>
       <label>Repairs needed<input type="number" id="s_tr" value="${d.jobTargets.repair}"></label>
+      <label>Write-ups per week (estimate)<input type="number" id="s_jpw" step="0.5" min="0.5" value="${d.jobsPerWeek ?? DEFAULT_DATA.jobsPerWeek}"></label>
     </div>
     <button class="btn" id="s_save">Save settings</button>
 
@@ -622,145 +669,6 @@ function settingsPane() {
   return el;
 }
 
-function calcPane() {
-  const el = document.createElement("section");
-  el.className = "card calc";
-  const c = data.calc || {};
-  const cvM = c.cvM != null ? c.cvM : GAS.cvMetric;
-  const cvI = c.cvI != null ? c.cvI : GAS.cvImperial;
-  const g2n = c.g2n != null ? c.g2n : GAS.grossToNet;
-  const mode = data.calcMode === "imperial" ? "imperial" : "metric";
-  el.innerHTML = `
-    <h3>Gas rate &rarr; heat input</h3>
-    <p class="dim sm">For real jobs &mdash; enter the gas rate, or time the meter and it works the rate out. Natural gas.</p>
-    <div class="seg" id="cmode">
-      <button data-m="metric" class="${mode === "metric" ? "on" : ""}">Metric (m&sup3;)</button>
-      <button data-m="imperial" class="${mode === "imperial" ? "on" : ""}">Imperial (ft&sup3;)</button>
-    </div>
-
-    <div class="calcbox" id="c_metric" ${mode === "metric" ? "" : "hidden"}>
-      <label class="wide">Gas rate (m&sup3;/h)<input type="number" id="m_rate" step="0.01" inputmode="decimal" placeholder="e.g. 2.91"></label>
-      <p class="dim sm" style="margin:8px 0 2px">or time it:</p>
-      <div class="form2">
-        <label>Volume used (m&sup3;)<input type="number" id="m_vol" step="0.001" inputmode="decimal" placeholder="0.08"></label>
-        <label>Time (seconds)<input type="number" id="m_sec" step="1" inputmode="numeric" placeholder="120"></label>
-      </div>
-      <div class="form2">
-        <label>CV (MJ/m&sup3; gross)<input type="number" id="m_cv" step="0.01" value="${cvM}"></label>
-        <label>&divide; for net<input type="number" id="m_g2n" step="0.01" value="${g2n}"></label>
-      </div>
-      <div class="calcout" id="m_out"></div>
-    </div>
-
-    <div class="calcbox" id="c_imperial" ${mode === "imperial" ? "" : "hidden"}>
-      <label class="wide">Gas rate (ft&sup3;/h)<input type="number" id="i_rate" step="0.1" inputmode="decimal" placeholder="e.g. 103"></label>
-      <p class="dim sm" style="margin:8px 0 2px">or time one revolution of the test dial:</p>
-      <div class="form2">
-        <label>ft&sup3; per revolution<input type="number" id="i_rev" step="1" value="1" inputmode="decimal"></label>
-        <label>Seconds for one rev<input type="number" id="i_sec" step="0.1" inputmode="decimal" placeholder="34"></label>
-      </div>
-      <div class="form2">
-        <label>CV (Btu/ft&sup3; gross)<input type="number" id="i_cv" step="1" value="${cvI}"></label>
-        <label>&divide; for net<input type="number" id="i_g2n" step="0.01" value="${g2n}"></label>
-      </div>
-      <div class="calcout" id="i_out"></div>
-    </div>
-
-    <label class="wide" style="margin-top:14px">Data-plate net input (kW) &mdash; optional, to compare
-      <input type="number" id="c_plate" step="0.1" inputmode="decimal" placeholder="e.g. 30.4"></label>
-    <div class="calcout" id="c_cmp"></div>
-    <p class="dim sm">Method: NICEIC Pocket Guide Gas 3 / ACS &amp; BPEC. Set the CV to your gas bill's declared value for an exact result.</p>`;
-  return el;
-}
-
-function methodsPane() {
-  const el = document.createElement("section");
-  el.className = "card help methods";
-  const m = (title, open, body) =>
-    `<details${open ? " open" : ""}><summary>${title}</summary><div class="m">${body}</div></details>`;
-  el.innerHTML = `
-    <h3>Methods &mdash; how-to and working</h3>
-    <p class="lead">The common jobs, step by step, so you can do the working on paper &mdash; where calculators and apps aren't allowed.</p>
-
-    ${m("Gas rating &mdash; checking the heat input", true, `
-      <p class="when">Measure the volume of gas the appliance burns over a timed period, convert it to a heat input in kW, and compare against the appliance data badge.</p>
-      <p class="when"><b>Before you start</b></p>
-      <ol>
-        <li>Isolate every other gas appliance on the installation.</li>
-        <li>Set the appliance under test to maximum rate and let it stabilise for about <b>10 minutes</b> before timing.</li>
-      </ol>
-      <p class="when"><b>Metric meter (m&sup3;)</b></p>
-      <ol>
-        <li>Record the meter index.</li>
-        <li>Time the test &mdash; <b>2 minutes</b>, or <b>1 minute</b> (permitted by Gas Safe TB 162 for domestic metric meters). Add any extra seconds for the test dial to reach the next whole unit.</li>
-        <li>Record the index again. Second reading &minus; first reading = <b>volume used</b> (m&sup3;).</li>
-        <li>Gas rate: <code>volume used &times; 3600 &divide; test time (s) = m&sup3;/h</code></li>
-        <li>Gross heat input: <code>m&sup3;/h &times; 38.76 &divide; 3.6 = kW gross</code></li>
-        <li>The data badge normally states a <b>net</b> input &mdash; divide by <b>1.1</b> to compare like for like.</li>
-      </ol>
-      <div class="eg"><b>Example:</b> 0.08 m&sup3; used in 2 min 6 s (126 s). &nbsp; 0.08 &times; 3600 &divide; 126 = <b>2.29 m&sup3;/h</b> &rarr; 2.29 &times; 38.76 &divide; 3.6 = <b>24.6 kW gross</b> &rarr; &divide; 1.1 = <b>22.4 kW net</b>.</div>
-      <p class="when"><b>Imperial meter (ft&sup3;)</b></p>
-      <ol>
-        <li>Note the test dial size &mdash; <b>1, 2, 5 or 10 ft&sup3;</b> per revolution (marked on the dial). Time <b>one complete revolution</b>.</li>
-        <li>Gas rate: <code>ft&sup3; per rev &times; 3600 &divide; time for one rev (s) = ft&sup3;/h</code></li>
-        <li>Heat input: <code>ft&sup3;/h &times; 1040 = Btu/h</code>, then <code>&divide; 3412 = kW gross</code>, then <code>&divide; 1.1 = kW net</code></li>
-      </ol>
-      <div class="eg"><b>Example:</b> 2 ft&sup3; dial, one revolution in 68 s. &nbsp; 2 &times; 3600 &divide; 68 = <b>105.9 ft&sup3;/h</b> &rarr; &times; 1040 = 110,118 Btu/h &rarr; &divide; 3412 = <b>32.3 kW gross</b> &rarr; &divide; 1.1 = <b>29.3 kW net</b>.</div>
-      <p class="chk">The net figure should be within about <b>5%</b> of the appliance data badge &mdash; the manufacturer's instructions take precedence. Figures per NICEIC Pocket Guide Gas 3 / ACS &amp; BPEC teaching.</p>
-    `)}
-
-    ${m("Air supply &mdash; is purpose-provided ventilation needed?", false, `
-      <p class="when">Applies to <b>open-flued</b> appliances (combustion air drawn from the room). A <b>room-sealed</b> / balanced-flue appliance takes its air from outside and normally needs no vent.</p>
-      <ol>
-        <li>Get the appliance's <b>net</b> heat input in kW (data badge, or from the gas rate above).</li>
-        <li><b>7 kW or below:</b> no purpose-provided ventilation required &mdash; adventitious ventilation (natural infiltration through the building fabric) is taken to cover it.</li>
-        <li><b>Above 7 kW:</b> <code>(net kW &minus; 7) &times; 5 = free area required (cm&sup2;)</code></li>
-        <li>That figure is the <b>free area</b> &mdash; the actual unobstructed opening. Size the grille from its stated free area, not its overall dimensions.</li>
-      </ol>
-      <div class="eg"><b>Example:</b> 18 kW net. &nbsp; (18 &minus; 7) &times; 5 = <b>55 cm&sup2;</b> of permanent free area.</div>
-      <p class="when">Air may be taken direct from outside, or from an adjacent room that itself has an equivalent vent to outside. Appliances in a compartment use a separate, larger set of figures with high- and low-level vents.</p>
-      <p class="chk">BS 5440-2:2023 (superseded the 2009 edition on 31 Dec 2023).</p>
-    `)}
-
-    ${m("Tightness test &mdash; proving soundness", false, `
-      <p class="when">Carried out after any work on the installation pipework, before gas is admitted for use. Domestic natural gas, IGEM/UP/1B.</p>
-      <ol>
-        <li>Connect a manometer to a test point, raise the installation to <b>20&ndash;21 mbar</b>, then close the ECV.</li>
-        <li><b>Let-by test:</b> the pressure must not <em>rise</em>. A rise shows the ECV is letting by &mdash; investigate before continuing.</li>
-        <li>Allow <b>1 minute</b> for temperature stabilisation.</li>
-        <li>Time the test for <b>2 minutes</b> and record the pressure drop.</li>
-        <li>Compare the drop against the permitted figure.</li>
-      </ol>
-      <p class="when"><b>Permitted drop &mdash; current (IGEM/UP/1B Edition 3), by meter</b></p>
-      <div class="figs">Diaphragm meter &le; 6 m&sup3;/h (U6 / G4): <b>4 mbar</b> for pipework &le; 28 mm, <b>2.5 mbar</b> for pipework &gt; 28 mm.</div>
-      <p class="when"><b>Permitted drop &mdash; from 1 Oct 2026 (IGEM/UP/1B Edition 4), by installation volume (IV)</b></p>
-      <div class="figs">
-        IV &le; 0.005 m&sup3; &rarr; <b>8 mbar</b> &nbsp;&middot;&nbsp;
-        &gt; 0.005&ndash;0.010 m&sup3; &rarr; <b>4 mbar</b><br>
-        &gt; 0.010&ndash;0.015 m&sup3; &rarr; <b>2.5 mbar</b> &nbsp;&middot;&nbsp;
-        &gt; 0.015&ndash;0.035 m&sup3; &rarr; <b>1 mbar</b> (typical dwelling)
-      </div>
-      <div class="eg">New pipework, nothing connected &mdash; <b>no perceptible drop permitted</b>. Any drop beyond the permitted figure, any let-by, or any smell of gas is a <b>fail</b>; do not admit gas.</div>
-      <p class="chk">IGEM/UP/1B Edition 4 replaces Edition 3 on <b>1 Oct 2026</b> (Edition 3 withdrawn 30 Sep 2026) &mdash; the basis moves from meter size to installation volume. Work to the edition your centre assesses on.</p>
-    `)}
-
-    ${m("Pipe sizing &mdash; the 1 mbar method", false, `
-      <p class="when">A new run must be sized so the total pressure loss from the meter outlet to any appliance does not exceed <b>1 mbar</b>.</p>
-      <ol>
-        <li>Determine the gas rate carried by each section in m&sup3;/h &mdash; sum the connected appliances. Convert each: <code>kW gross &divide; 10.8 = m&sup3;/h</code> (or use the manufacturer's figure).</li>
-        <li>Measure each section's actual length, then add the <b>equivalent length</b> for every fitting (elbow, tee, etc.) from the BS 6891 table.</li>
-        <li>For each section, read the pressure loss from the BS 6891 discharge table for that material and diameter at its gas rate and effective length (tabulated for a 1.0 mbar drop, relative density 0.6).</li>
-        <li>Sum the losses along the <b>index run</b> (the longest / most onerous route). If the total exceeds 1 mbar, increase the pipe size and repeat.</li>
-      </ol>
-      <div class="eg"><b>Example:</b> a 22 mm copper section &mdash; 6 m actual + fittings &asymp; <b>7.6 m effective length</b> &mdash; carrying 1.8 m&sup3;/h. The BS 6891 table gives well under <b>1 mbar</b> for that section; confirm the whole index run still totals under 1 mbar.</div>
-      <p class="chk">BS 6891:2015 (+A1:2019), Annex A. Use the discharge and equivalent-length tables for the pipe material being installed.</p>
-    `)}
-
-    <p class="disc">Revision notes to support your training &mdash; not a substitute for it, the current standards, or the appliance instructions. On site, the calorific value and gross-to-net factor come from the gas supplier's declared values. Not endorsed by Gas Safe, BPEC or IGEM.<br><br>
-    Checked Aug 2026 against: NICEIC Pocket Guide Gas 3; Gas Safe TB 162 (1-minute gas rate, Sep 2023); BS 5440-2:2023; IGEM/UP/1B Edition 3 and Edition 4 (in force 1 Oct 2026); BS 6891:2015+A1:2019. Always work to the current edition and the one your centre assesses on.</p>
-  `;
-  return el;
-}
 
 function helpPane() {
   const el = document.createElement("section");
@@ -782,12 +690,6 @@ function helpPane() {
     <b>boiler</b> and, for repairs, the <b>fault</b>, set the hours, and who
     <b>supervised</b> it (from the engineers you've added in Settings), then <b>Log write-up</b>.
     Those hours count toward your total too. Tapping a tile logs one instantly.</p>
-    <h4>Calc tab</h4>
-    <p><b>Gas rate &rarr; heat input</b> for real jobs. Enter the gas rate, or time the
-    meter (metric or imperial) and it works the rate out, then gives you <b>kW gross</b>
-    and <b>kW net</b> with the working shown. Optionally enter the data-plate net input to
-    check it's within &plusmn;5%. Change the CV to your gas bill's figure for an exact
-    result.</p>
     <h4>Report tab</h4>
     <p><b>Export PDF</b> &mdash; a one-page progress sheet for your lecturer. Add your name on the Report tab before exporting.</p>
     <h4>Settings</h4>
@@ -844,7 +746,10 @@ function wireTitlebar() {
 function wire(s) {
   if (tab === "home") {
     app.querySelectorAll("[data-q]").forEach((b) =>
-      b.addEventListener("click", () => addHours(b.dataset.q, todayISO())));
+      b.addEventListener("click", () => {
+        b.classList.remove("pop"); void b.offsetWidth; b.classList.add("pop");
+        addHours(b.dataset.q, todayISO());
+      }));
     app.querySelectorAll("[data-goto]").forEach((b) =>
       b.addEventListener("click", () => { tab = b.dataset.goto; render(); }));
   }
@@ -884,70 +789,6 @@ function wire(s) {
     jh.addEventListener("keydown", (e) => { if (e.key === "Enter") go(); });
   }
 
-  if (tab === "calc") {
-    const num = (id) => { const e = document.getElementById(id); return e ? parseFloat(e.value) : NaN; };
-    const trim = (n) => Number.isInteger(n) ? String(n) : String(n);
-    let lastNet = null;
-
-    const saveCalc = () => {
-      data.calc = {
-        cvM: num("m_cv") || GAS.cvMetric,
-        cvI: num("i_cv") || GAS.cvImperial,
-        g2n: num("m_g2n") || num("i_g2n") || GAS.grossToNet,
-      };
-      window.api.setData(data); // persist, no re-render
-    };
-    const compare = () => {
-      const el = document.getElementById("c_cmp");
-      const plate = num("c_plate");
-      if (!(plate > 0) || lastNet == null) { el.textContent = ""; return; }
-      const diff = Math.round((lastNet - plate) * 10) / 10;
-      const pct = Math.round((diff / plate) * 1000) / 10;
-      const ok = Math.abs(pct) <= 5;
-      el.innerHTML = `measured <b>${lastNet}</b> vs plate <b>${plate}</b> kW net &mdash; ` +
-        `<span class="${ok ? "ok" : "warn"}">${diff >= 0 ? "+" : ""}${diff} kW (${pct >= 0 ? "+" : ""}${pct}%)` +
-        `${ok ? " &mdash; within &plusmn;5%" : " &mdash; outside &plusmn;5%, check the MI"}</span>`;
-    };
-    const recalcM = () => {
-      const cv = num("m_cv") || GAS.cvMetric, g2n = num("m_g2n") || GAS.grossToNet;
-      let rate = num("m_rate");
-      const vol = num("m_vol"), sec = num("m_sec");
-      if (!(rate > 0) && vol > 0 && sec > 0) rate = gasRateMetric(vol, sec);
-      const hi = rate > 0 ? heatInputMetric(rate, cv, g2n) : null;
-      document.getElementById("m_out").innerHTML = hi
-        ? `<b>${trim(hi.m3h)} m&sup3;/h</b>` +
-          `<div class="cwork">&times; ${cv} &divide; 3.6 = <b>${hi.gross} kW gross</b></div>` +
-          `<div class="cwork">&divide; ${g2n} = <b>${hi.net} kW net</b></div>`
-        : `<span class="dim">enter a gas rate, or a volume + time</span>`;
-      lastNet = hi ? hi.net : null;
-      compare();
-    };
-    const recalcI = () => {
-      const cv = num("i_cv") || GAS.cvImperial, g2n = num("i_g2n") || GAS.grossToNet;
-      let rate = num("i_rate");
-      const rev = num("i_rev"), sec = num("i_sec");
-      if (!(rate > 0) && rev > 0 && sec > 0) rate = gasRateImperial(rev, sec);
-      const hi = rate > 0 ? heatInputImperial(rate, cv, g2n) : null;
-      document.getElementById("i_out").innerHTML = hi
-        ? `<b>${trim(hi.ft3h)} ft&sup3;/h</b>` +
-          `<div class="cwork">&times; ${cv} = <b>${hi.btuh.toLocaleString()} Btu/h</b></div>` +
-          `<div class="cwork">&divide; 3412 = <b>${hi.gross} kW gross</b></div>` +
-          `<div class="cwork">&divide; ${g2n} = <b>${hi.net} kW net</b></div>`
-        : `<span class="dim">enter a gas rate, or ft&sup3;/rev + seconds</span>`;
-      lastNet = hi ? hi.net : null;
-      compare();
-    };
-    const active = () => (data.calcMode === "imperial" ? recalcI : recalcM);
-
-    document.querySelectorAll("#cmode button").forEach((b) =>
-      b.addEventListener("click", () => { data.calcMode = b.dataset.m; save(); }));
-    ["m_rate", "m_vol", "m_sec", "m_cv", "m_g2n"].forEach((id) =>
-      document.getElementById(id)?.addEventListener("input", () => { recalcM(); saveCalc(); }));
-    ["i_rate", "i_rev", "i_sec", "i_cv", "i_g2n"].forEach((id) =>
-      document.getElementById(id)?.addEventListener("input", () => { recalcI(); saveCalc(); }));
-    document.getElementById("c_plate")?.addEventListener("input", () => { active()(); });
-    active()();
-  }
 
   if (tab === "report") {
     const nm = document.getElementById("r_name");
@@ -1064,6 +905,7 @@ function wire(s) {
         service: num("s_ts", 0, DEFAULT_DATA.jobTargets.service),
         repair: num("s_tr", 0, DEFAULT_DATA.jobTargets.repair),
       };
+      data.jobsPerWeek = num("s_jpw", 0.5, DEFAULT_DATA.jobsPerWeek);
       toast("settings saved"); save();
     };
     document.getElementById("s_export").onclick = () => {
@@ -1096,6 +938,7 @@ function normalise(raw) {
   for (const k of ["hours", "jobs", "off", "blocks", "engineers"])
     if (!Array.isArray(d[k])) d[k] = structuredClone(DEFAULT_DATA[k] || []);
   if (!d.jobTargets || typeof d.jobTargets !== "object") d.jobTargets = structuredClone(DEFAULT_DATA.jobTargets);
+  if (!(Number(d.jobsPerWeek) > 0)) d.jobsPerWeek = DEFAULT_DATA.jobsPerWeek;
   if (!Array.isArray(d.boilerTypes) || !d.boilerTypes.length) d.boilerTypes = [...DEFAULT_DATA.boilerTypes];
   if (!Array.isArray(d.repairFaults) || !d.repairFaults.length) d.repairFaults = [...DEFAULT_DATA.repairFaults];
   if (typeof d.deadline !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(d.deadline)) d.deadline = DEFAULT_DATA.deadline;

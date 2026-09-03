@@ -1,3 +1,18 @@
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("fonts/InterVariable.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Inter";
+  font-style: italic;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("fonts/InterVariable-Italic.woff2") format("woff2");
+}
+
 :root {
   --bg1: #171a20;
   --bg2: #0f1116;
@@ -8,9 +23,15 @@
   --ink: #eef1f5;
   --ink-2: rgba(255, 255, 255, 0.64);
   --ink-3: rgba(255, 255, 255, 0.4);
-  --accent: #5aa2f0;
-  --accent-2: #7cb8f6;
-  --accent-ink: #0a1420;
+  --accent: #4ea8ff;
+  --accent-2: #7cc4ff;
+  --accent-ink: #071018;
+  --flame-0: #2338a8;
+  --flame-1: #2c78f2;
+  --flame-2: #5cb4ff;
+  --flame-3: #eaf5ff;
+  --violet: #6d3ff2;
+  --focus-ring: rgba(78, 168, 255, 0.28);
   --ok: #63c894;
   --warn: #e6b25c;
   --danger: #e77a7a;
@@ -23,9 +44,11 @@
 
 html, body { height: 100%; }
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  font-feature-settings: "tnum" 1;
+  font-family: "Inter", "SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI", Roboto, system-ui, sans-serif;
+  font-feature-settings: "tnum" 1, "cv11" 1;
+  font-synthesis: none;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
   font-size: 13.5px;
   line-height: 1.5;
   color: var(--ink);
@@ -242,6 +265,8 @@ main > .card:nth-of-type(2) { animation-delay: 0.08s; }
 }
 .home .stat { font-size: 32px; }
 .home .pace { margin-top: 0; margin-bottom: 3px; }
+.home .portfolio { color: var(--ink); margin-bottom: 3px; }
+.home .portfolio b { color: var(--accent, #5eb0ff); }
 .home .qrow { display: flex; gap: 7px; flex-wrap: wrap; }
 .home .qrow .pill { flex: 0 0 auto; min-width: 58px; padding: 8px 14px; font-size: 12px; }
 .home .qrow .pill.go { flex: 1; min-width: 0; }
@@ -277,34 +302,56 @@ label {
   color: var(--ink-3);
 }
 input, select, textarea {
+  -webkit-appearance: none;
+  appearance: none;
   font: inherit;
   font-size: 13.5px;
-  font-weight: 400;
+  font-weight: 500;
   color: var(--ink);
-  background: var(--surface-2);
+  background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(0,0,0,0.06)), var(--surface-2);
   border: 1px solid var(--line-2);
-  border-radius: 9px;
-  padding: 0 10px;
-  height: 34px;
+  border-radius: 10px;
+  padding: 0 12px;
+  height: 36px;
   width: 100%;
   outline: none;
-  transition: border-color 0.12s, box-shadow 0.12s;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.22);
+  transition: border-color 0.14s ease, box-shadow 0.18s ease, background 0.14s ease;
 }
-textarea { height: 74px; padding: 8px 10px; resize: vertical; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 11.5px; line-height: 1.5; }
-input:focus, select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(90, 162, 240, 0.22); }
+input::placeholder, textarea::placeholder { color: var(--ink-3); font-weight: 400; }
+textarea { height: 74px; padding: 8px 12px; resize: vertical; font-family: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace; font-size: 11.5px; line-height: 1.5; }
+input:hover, select:hover, textarea:hover { border-color: rgba(255,255,255,0.22); }
+input:focus, select:focus, textarea:focus {
+  border-color: var(--accent);
+  background: var(--surface-2);
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.10), 0 0 0 3px var(--focus-ring);
+}
+/* kill native number spinners — identical on mac + windows */
+input[type="number"] { -moz-appearance: textfield; }
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+/* date field — consistent both platforms */
 input[type="date"] { text-transform: none; }
-select { -webkit-appearance: none; appearance: none;
-  background-image: linear-gradient(45deg, transparent 50%, var(--ink-3) 50%), linear-gradient(135deg, var(--ink-3) 50%, transparent 50%);
-  background-position: right 12px center, right 7px center;
-  background-size: 5px 5px, 5px 5px;
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) opacity(0.5); cursor: pointer; transition: opacity 0.12s;
+}
+input[type="date"]::-webkit-calendar-picker-indicator:hover { filter: invert(1) opacity(0.9); }
+select {
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--ink-2) 50%),
+    linear-gradient(135deg, var(--ink-2) 50%, transparent 50%),
+    linear-gradient(180deg, rgba(255,255,255,0.03), rgba(0,0,0,0.06));
+  background-position: right 13px center, right 8px center, 0 0;
+  background-size: 5px 5px, 5px 5px, 100% 100%;
   background-repeat: no-repeat;
-  padding-right: 24px;
+  padding-right: 28px;
+  cursor: pointer;
 }
 
 .chk {
   flex-direction: row;
   align-items: center;
-  gap: 7px;
+  gap: 9px;
   font-size: 11.5px;
   font-weight: 500;
   text-transform: none;
@@ -313,7 +360,28 @@ select { -webkit-appearance: none; appearance: none;
   cursor: pointer;
   margin-bottom: 12px;
 }
-.chk input { width: 15px; height: 15px; accent-color: var(--accent); }
+/* drawn checkbox — pixel-identical mac + windows */
+.chk input {
+  -webkit-appearance: none; appearance: none;
+  flex: none; width: 18px; height: 18px; padding: 0;
+  border: 1px solid var(--line-2); border-radius: 6px;
+  background: var(--surface-2); box-shadow: inset 0 1px 2px rgba(0,0,0,0.2);
+  display: grid; place-content: center;
+  transition: background 0.14s ease, border-color 0.14s ease, box-shadow 0.14s ease;
+}
+.chk input::before {
+  content: ""; width: 10px; height: 10px; transform: scale(0);
+  transform-origin: center; transition: transform 0.16s cubic-bezier(.3,1.5,.5,1);
+  background: var(--accent-ink);
+  clip-path: polygon(41% 67%, 12% 40%, 3% 50%, 41% 87%, 97% 22%, 87% 13%);
+}
+.chk input:checked {
+  background: linear-gradient(180deg, var(--accent-2), var(--accent));
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+.chk input:checked::before { transform: scale(1); }
+.chk input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 label.ta { margin-bottom: 10px; }
 
@@ -404,25 +472,6 @@ label.ta { margin-bottom: 10px; }
 .ce-add { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .ce-add input[type="date"] { width: auto; }
 .ce-add .btn { width: auto; flex: none; }
-
-/* ---------- gas rate / heat input calculator ---------- */
-.calc .seg { display: flex; gap: 4px; padding: 3px; margin: 6px 0 14px; background: rgba(0,0,0,0.25);
-  border: 1px solid var(--line); border-radius: 11px; }
-.calc .seg button { flex: 1; padding: 8px 4px; border: 0; border-radius: 8px; background: transparent;
-  color: var(--ink-2); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
-.calc .seg button.on { background: rgba(255,255,255,0.10); color: var(--ink); box-shadow: inset 0 0 0 1px var(--line-2); }
-.calcbox { margin-top: 4px; }
-.calcbox .form2 { margin-top: 8px; }
-.calcout {
-  margin-top: 12px; padding: 12px 14px; border-radius: 10px;
-  background: rgba(94, 176, 255, 0.08); border: 1px solid rgba(94, 176, 255, 0.18);
-  font-size: 14px; color: var(--ink); line-height: 1.5; min-height: 20px;
-}
-.calcout b { font-weight: 700; }
-.calcout .cwork { font-size: 12px; color: var(--ink-2); padding-left: 8px; }
-.calcout .cwork b { color: var(--ink); }
-#c_cmp:empty { display: none; }
-#c_cmp .ok { color: #7fdcac; } #c_cmp .warn { color: #ffb199; }
 
 /* ---------- engineer register ---------- */
 .englist { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
@@ -634,30 +683,78 @@ html.widget .dash > .dim.sm { display: none; }
 
 .credit { flex: none; text-align: center; font-size: 9.5px; color: var(--ink-3); padding: 6px 0 9px; }
 
-/* ---------- methods (learn the working) ---------- */
-.methods > p.lead { font-size: 12px; color: var(--ink-2); margin: 0 0 10px; }
-.methods .m { padding-left: 15px; }
-.methods .m p { padding-left: 0; }
-.methods .m .when { font-size: 12px; color: var(--ink-2); margin: 5px 0 7px; }
-.methods .m .figs {
-  font-size: 11px; color: var(--ink); background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--line-2); border-radius: 8px; padding: 6px 9px; margin: 0 0 8px;
+
+/* ============================================================
+   v2 polish — sleeker + flashier, and identical on mac / windows
+   ============================================================ */
+
+/* consistent thin scrollbars everywhere (webkit = both platforms in Electron) */
+* { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.16) transparent; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.14); border-radius: 6px;
+  border: 2px solid transparent; background-clip: padding-box;
 }
-.methods .m ol { margin: 0 0 8px; padding-left: 18px; }
-.methods .m ol li { font-size: 12px; color: var(--ink-2); margin: 3px 0; }
-.methods .m ol li b, .methods .m .figs b { color: var(--ink); font-weight: 600; }
-.methods .m code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px;
-  background: rgba(94, 176, 255, 0.10); border: 1px solid rgba(94, 176, 255, 0.18);
-  border-radius: 5px; padding: 1px 5px; color: #cfe6ff;
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.26); background-clip: padding-box; }
+::-webkit-scrollbar-corner { background: transparent; }
+
+/* tab content: a snappier slide + settle, with a whisper of blur */
+main > .card { animation: paneIn 0.34s cubic-bezier(.16,.84,.36,1) both; }
+@keyframes paneIn {
+  from { opacity: 0; transform: translateY(10px) scale(0.985); filter: blur(3px); }
+  to   { opacity: 1; transform: none; filter: blur(0); }
 }
-.methods .m .eg {
-  font-size: 11.5px; color: var(--ink-2); border-left: 2px solid var(--accent-2);
-  padding: 4px 0 4px 10px; margin: 0 0 8px;
+main > .card:nth-of-type(2) { animation-delay: 0.05s; }
+
+/* the big number — smooth any programmatic change */
+.stat .v, .home .pace .v { transition: color 0.2s ease; }
+
+/* progress bar: longer, eased fill + a brighter one-shot sheen */
+.bar > i {
+  transition: width 0.9s cubic-bezier(.16,.84,.36,1);
+  background: linear-gradient(90deg, var(--flame-0), var(--flame-1) 55%, var(--flame-2));
 }
-.methods .m .eg b { color: var(--ink); }
-.methods .m .chk { font-size: 10.5px; color: var(--ink-3); margin: 0; }
-.methods .disc {
-  font-size: 10.5px; color: var(--ink-3); border-top: 1px solid var(--line);
-  margin-top: 14px; padding-top: 9px;
+.bar > i::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.55), transparent);
+  transform: translateX(-100%); animation: sheen 1.4s ease 0.5s 1 both;
 }
+
+/* buttons — press + ripple */
+.btn, .pill, .tile, .tabs button, .tb-btns button { transition: background 0.14s ease, color 0.14s ease, border-color 0.14s ease, transform 0.08s ease, box-shadow 0.14s ease; }
+.btn:active, .pill:active, .tile:active { transform: translateY(1px) scale(0.985); }
+.btn { box-shadow: 0 1px 0 rgba(255,255,255,0.12) inset, 0 6px 18px -6px rgba(78,168,255,0.5); }
+.btn:hover { box-shadow: 0 1px 0 rgba(255,255,255,0.16) inset, 0 8px 22px -6px rgba(78,168,255,0.65); }
+
+/* quick-log pills get a satisfying pop when tapped (JS toggles .pop) */
+.pill.pop { animation: pillPop 0.42s cubic-bezier(.2,1.6,.4,1); }
+@keyframes pillPop {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 var(--focus-ring); }
+  40% { transform: scale(1.12); box-shadow: 0 0 0 8px rgba(78,168,255,0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(78,168,255,0); }
+}
+
+/* milestone flourish — JS adds .flash when a value crosses the pass mark / a coverage type completes */
+.flash { animation: flash 0.9s ease; }
+@keyframes flash {
+  0% { text-shadow: 0 0 0 rgba(124,196,255,0); }
+  25% { text-shadow: 0 0 18px rgba(124,196,255,0.9); transform: scale(1.06); }
+  100% { text-shadow: 0 0 0 rgba(124,196,255,0); transform: none; }
+}
+
+/* coverage words ease to green instead of snapping */
+.home .hsec .ok, .home .hsec .dim { transition: color 0.4s ease; }
+
+/* tab underline glides between tabs */
+.tabs { position: relative; }
+.tabs button.on { position: relative; }
+.tabs button.on::after {
+  content: ""; position: absolute; left: 12px; right: 12px; bottom: -1px; height: 2px;
+  border-radius: 2px; background: linear-gradient(90deg, var(--accent), var(--violet));
+  animation: paneIn 0.3s ease both;
+}
+
+/* flame licks a touch livelier */
+.flame { animation-duration: 3.4s; }
+.home .flame.md { filter: drop-shadow(0 0 14px rgba(78,168,255,0.45)); }

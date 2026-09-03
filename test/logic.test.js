@@ -177,5 +177,43 @@ t("custom CV and gross-to-net factor are honoured", () => {
   assert.strictEqual(r.net, Math.round((2 * 39.5 / 3.6 / 1.11) * 10) / 10);
 });
 
+t("portfolio: no jobs done => write-ups gate is 14 at the plan rate", () => {
+  const s = computeStatus(
+    { goal: 330, hoursPerDay: 8, deadline: "2027-06-01", blocks: [], off: [], jobsPerWeek: 1 },
+    new Date(2026, 8, 1)
+  );
+  assert.strictEqual(s.jobsNeeded, 14);
+  assert.strictEqual(s.weeksToJobs, 14);
+  assert.strictEqual(s.jobsFinishDate, "2026-12-08");   // 14 weeks (98 days) on from 1 Sep
+  assert.strictEqual(s.portfolioGate, "write-ups");
+  assert.strictEqual(s.portfolioFinishDate, s.jobsFinishDate);
+});
+
+t("portfolio: a faster write-up rate pulls the finish in", () => {
+  const base = { goal: 330, hoursPerDay: 8, deadline: "2027-06-01", blocks: [], off: [] };
+  const slow = computeStatus({ ...base, jobsPerWeek: 1 }, new Date(2026, 8, 1));
+  const fast = computeStatus({ ...base, jobsPerWeek: 2 }, new Date(2026, 8, 1));
+  assert.ok(fast.weeksToJobs < slow.weeksToJobs);
+});
+
+t("portfolio: all targets met => jobsNeeded 0 and hours become the gate", () => {
+  const jobs = [
+    ...Array(5).fill(0).map(() => ({ type: "install", boiler: "combi", h: 2, date: "2026-08-10" })),
+    ...Array(5).fill(0).map(() => ({ type: "service", boiler: "system", h: 2, date: "2026-08-11" })),
+    { type: "repair", boiler: "traditional", fault: "water", h: 2, date: "2026-08-12" },
+    { type: "repair", boiler: "combi", fault: "gas", h: 2, date: "2026-08-12" },
+    { type: "repair", boiler: "system", fault: "electrical", h: 2, date: "2026-08-12" },
+    { type: "repair", boiler: "combi", fault: "water", h: 2, date: "2026-08-12" },
+  ];
+  const s = computeStatus(
+    { goal: 330, hoursPerDay: 8, deadline: "2027-06-01", blocks: [], off: [], jobs },
+    new Date(2026, 8, 1)
+  );
+  assert.strictEqual(s.jobsNeeded, 0);
+  assert.strictEqual(s.weeksToJobs, 0);
+  assert.strictEqual(s.portfolioGate, "hours");
+  assert.strictEqual(s.portfolioFinishDate, s.finishDate);
+});
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

@@ -37,17 +37,13 @@ Everything is stored on your machine. Nothing is uploaded.
 
 ## Screens
 
-| Home | Jobs | Calc |
+| Home | Hours | Jobs |
 |---|---|---|
-| ![Home](docs/home.png) | ![Jobs](docs/jobs.png) | ![Calc](docs/calc.png) |
+| ![Home](docs/home.png) | ![Hours](docs/hours.png) | ![Jobs](docs/jobs.png) |
 
-| Report — PDF for your assessor | Methods — learn the working |
+| Report — PDF for your assessor | Desktop widget |
 |---|---|
-| ![Report](docs/report.png) | ![Methods](docs/methods.png) |
-
-| Desktop widget |
-|---|
-| ![Widget](docs/widget.png) |
+| ![Report](docs/report.png) | ![Widget](docs/widget.png) |
 
 ## Features
 
@@ -58,15 +54,9 @@ Everything is stored on your machine. Nothing is uploaded.
 - **Jobs** — log an unassisted write-up with its type, boiler, (for repairs) fault, and
   which Gas Safe engineer supervised it; those hours count toward your total too.
   Coverage lines light up as you hit each boiler and fault.
-- **Calc** — gas rate → heat input for real jobs. Enter the gas rate or time the meter
-  (metric or imperial); get kW gross and kW net with the working shown, and an optional
-  ±5% check against the data-plate figure. Editable calorific value.
 - **Report** — one-page PDF for your assessor, in the app's colours, with your name on
   it: hours, pace, write-up counts, boiler &amp; fault coverage, the engineers you've
   worked under, and the full log.
-- **Methods** — the working behind the common jobs (gas rating, ventilation, tightness
-  testing, pipe sizing), each with the formula and a worked example, so you can do it on
-  paper in the centre where calculators aren't allowed. Revision aid, not a calculator.
 - **Settings** — every number is editable (starting hours, pass mark, goal, deadline,
   work-day length, job targets). College block weeks and days off are chips: add a week
   by its date, add time off as a date range, remove either with one click. Add the

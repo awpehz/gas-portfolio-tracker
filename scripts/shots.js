@@ -47,15 +47,9 @@ app.whenReady().then(async () => {
   await js(win, `document.getElementById('splash') && document.getElementById('splash').remove()`);
   await sleep(500);
 
-  for (const tab of ["Home", "Hours", "Jobs", "Calc", "Report", "Methods"]) {
+  for (const tab of ["Home", "Hours", "Jobs", "Report"]) {
     await js(win, `[...document.querySelectorAll('.tabs button')].find(b=>b.textContent===${JSON.stringify(tab)}).click(); document.querySelector('main').scrollTop=0; true`);
     await sleep(650);
-    if (tab === "Calc") {
-      await js(win, `
-        const r=document.getElementById('m_rate'); r.value='2.91'; r.dispatchEvent(new Event('input'));
-        const p=document.getElementById('c_plate'); p.value='30.4'; p.dispatchEvent(new Event('input')); true`);
-      await sleep(300);
-    }
     await shot(win, tab.toLowerCase().replace(/[^a-z]+/g, "-"));
   }
 
