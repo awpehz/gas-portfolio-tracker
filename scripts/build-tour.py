@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
-import base64, pathlib
+# Builds the standalone product-tour page. Run from anywhere; writes docs/index.html
+# (served by GitHub Pages) and docs/tour.html. Screenshots + font are embedded so
+# the page is a single self-contained file. Version is read from package.json.
+import base64, json, pathlib
 
-ROOT = pathlib.Path("/Users/user/Developer/gas-portfolio-tracker")
+ROOT = pathlib.Path(__file__).resolve().parent.parent
 DOCS = ROOT / "docs"
+VERSION = json.loads((ROOT / "package.json").read_text())["version"]
 
 def b64(p, mime):
     return f"data:{mime};base64," + base64.b64encode(p.read_bytes()).decode()
@@ -141,7 +145,7 @@ HTML = f"""<!doctype html>
 <div class="bgfx"></div>
 
 <header class="hero wrap">
-  <span class="badge">{FLAME} Gas Portfolio Tracker &nbsp;&middot;&nbsp; v2.2.0</span>
+  <span class="badge">{FLAME} Gas Portfolio Tracker &nbsp;&middot;&nbsp; v{VERSION}</span>
   <h1>Know if you&rsquo;ll actually<br>hit the deadline.</h1>
   <p class="sub">A desktop tracker for a gas SVQ / NVQ portfolio &mdash; assisted hours, unassisted write&#8209;ups, boiler and fault coverage, and the one date that says whether you&rsquo;re on track.</p>
   <div class="shot"><div class="frame"><img src="{img['home']}" alt="Home dashboard"></div></div>
@@ -163,7 +167,7 @@ HTML = f"""<!doctype html>
 <footer>
   {FLAME}
   <div class="big">Gas Portfolio Tracker</div>
-  <div>Made by Connor W &nbsp;&middot;&nbsp; v2.2.0 &nbsp;&middot;&nbsp; <a href="https://github.com/awpehz/gas-portfolio-tracker">github.com/awpehz/gas-portfolio-tracker</a></div>
+  <div>Made by Connor W &nbsp;&middot;&nbsp; v{VERSION} &nbsp;&middot;&nbsp; <a href="https://github.com/awpehz/gas-portfolio-tracker">github.com/awpehz/gas-portfolio-tracker</a></div>
 </footer>
 
 <script>
@@ -176,6 +180,6 @@ HTML = f"""<!doctype html>
 </html>
 """
 
-out = DOCS / "tour.html"
-out.write_text(HTML)
-print("wrote", out, f"({len(HTML)/1024/1024:.1f} MB)")
+for name in ("index.html", "tour.html"):
+    (DOCS / name).write_text(HTML)
+print(f"wrote docs/index.html + docs/tour.html  v{VERSION}  ({len(HTML)/1024/1024:.1f} MB)")
