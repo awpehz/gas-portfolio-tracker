@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.3.1 — gauge polish
+
+- The line under the gauge is now blue with a soft glow and given room to breathe
+  (no more clipping into the dial).
+
 ## 2.3.0 — the widget gets the gauge
 
 - The desktop widget now shows the **same animated pressure gauge as the app** —

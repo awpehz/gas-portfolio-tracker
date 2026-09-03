@@ -47,7 +47,7 @@
     const [tx, ty] = polar(valAng, 80);
 
     return `
-      <svg class="gauge ${overGoal ? "full" : ""}" viewBox="0 0 240 214">
+      <svg class="gauge ${overGoal ? "full" : ""}" viewBox="0 0 240 222">
         <circle class="g-bezel-o" cx="120" cy="116" r="102"/>
         <circle class="g-bezel-i" cx="120" cy="116" r="95"/>
         <circle class="g-face" cx="120" cy="116" r="92"/>

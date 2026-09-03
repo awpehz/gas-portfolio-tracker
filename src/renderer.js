@@ -438,7 +438,7 @@ function homePane(s) {
           <div class="stat"><span class="v" data-to="${s.total}">0</span><small> / ${s.goal} h</small></div>
         </div>
       </div>
-      <div class="dim sm gaugesub">${s.past275 ? '<span class="pastmark">&#10003; past the 275 pass mark</span>' : `<span class="v" data-to="${s.toRequired}">0</span> h to the pass mark`} &middot; ${s.toGoal} h to goal</div>
+      <div class="gaugesub">${s.past275 ? '<span class="pastmark">&#10003;&nbsp; past the 275&nbsp;h pass mark</span>' : `<span class="v" data-to="${s.toRequired}">0</span> h to the pass mark`}<span class="sep">&bull;</span>${s.toGoal} h to goal</div>
     </div>
 
     <div class="hgrid">

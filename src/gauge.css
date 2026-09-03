@@ -2,7 +2,7 @@
    Imported by style.css; linked directly by widget.html. */
 
 /* ---------- pressure gauge (Home hero) ---------- */
-.gaugewrap { position: relative; margin: 2px auto 0; max-width: 190px; }
+.gaugewrap { position: relative; margin: 2px auto 6px; max-width: 190px; }
 .gauge { display: block; width: 100%; height: auto; overflow: visible; }
 
 /* machined bezel + recessed face */
@@ -97,8 +97,21 @@
 }
 .gaugereadout .stat { font-size: 29px; letter-spacing: -1.5px; line-height: 1; text-shadow: 0 2px 8px rgba(0,0,0,0.65); }
 .gaugereadout .stat small { display: block; font-size: 9.5px; font-weight: 700; color: var(--ink-3, rgba(255,255,255,.4)); letter-spacing: 0.3px; margin-top: 2px; }
-.gaugesub { text-align: center; margin-top: 0; }
-.gaugesub .pastmark { color: var(--ok, #63c894); font-weight: 600; }
+.gaugesub {
+  text-align: center;
+  margin-top: 14px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: var(--accent-2, #7cc4ff);
+  text-shadow: 0 0 10px rgba(78, 168, 255, 0.55);
+}
+.gaugesub .v { color: #eaf5ff; font-weight: 700; }
+.gaugesub .sep { display: inline-block; padding: 0 7px; opacity: 0.45; }
+.gaugesub .pastmark {
+  color: var(--ok, #63c894); font-weight: 700;
+  text-shadow: 0 0 10px rgba(99, 200, 148, 0.55);
+}
 
 @media (prefers-reduced-motion: reduce) {
   .g-val { stroke-dashoffset: 0 !important; }
