@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.4.0 — one mark everywhere
+
+- **App icon redrawn** to the brand flame — the same clean flame + cone as the
+  splash, titlebar and showcase, in a dark rounded square with a blue bloom. No
+  more mismatch between the Dock icon and the rest of the app. Regenerated the
+  .icns, .png, menu-bar glyph and README mark.
+- **Bigger logo in the title bar** — the flame and wordmark got a size bump.
+- **Splash polished** — flame ignites with a spring, a ring pulses out, the
+  wordmark resolves from blur with a light sweep, the lockup settles.
+- **Updates refresh the icon straight away** — after a self-update on macOS the
+  swap script now re-registers the bundle, clears the icon cache and bounces the
+  Dock, so a changed icon shows without a logout.
+
 ## 2.3.4 — splash is the brand lockup
 
 - The launch splash now mirrors the brand mark: flame ignites, "Gas Portfolio

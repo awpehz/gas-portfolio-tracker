@@ -122,6 +122,13 @@ function installUpdate() {
       'rm -rf "$DEST"',
       'mv "$STAGE" "$DEST" || cp -R "$NEW" "$DEST"',
       'xattr -dr com.apple.quarantine "$DEST" 2>/dev/null || true',
+      // refresh the Dock / LaunchServices icon so a changed app icon shows up
+      // straight away instead of after a logout.
+      'touch "$DEST"',
+      'LSREG=/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister',
+      '[ -x "$LSREG" ] && "$LSREG" -f "$DEST" 2>/dev/null || true',
+      'rm -rf "$HOME/Library/Caches/com.apple.iconservices.store" 2>/dev/null || true',
+      'killall Dock 2>/dev/null || true',
       'open "$DEST"',
       `rm -rf ${q(staged.dir)}`,
       "",

@@ -95,12 +95,12 @@ body::after {
   justify-content: space-between;
   padding: 10px 10px 8px 15px;
 }
-.tb-title { display: flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 700; letter-spacing: 0.2px; }
+.tb-title { display: flex; align-items: center; gap: 9px; font-size: 13.5px; font-weight: 800; letter-spacing: -0.2px; }
 /* ---------- the living flame mark ----------
    the <svg class="flame"> has three parts that animate independently:
    .f-outer (body sway), .f-cone (breathing), .f-core (hot-spot flicker).   */
 .flame {
-  width: 17px; height: 20px; display: inline-block; flex: none;
+  width: 21px; height: 25px; display: inline-block; flex: none;
   overflow: visible;
   animation: flameGlow 3.4s ease-in-out infinite;
 }
@@ -685,19 +685,31 @@ button:focus-visible, a:focus-visible, .tile:focus-visible, summary:focus-visibl
   align-items: center;
   justify-content: center;
   gap: 18px;
-  animation: splashOut 0.55s ease 3.6s forwards;
+  animation: splashOut 0.6s ease 3.9s forwards;
 }
 #splash .splash-lockup {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 20px;
+  animation: splashSettle 1.6s cubic-bezier(.16, .84, .36, 1) 0.5s both;
+}
+#splash .splash-lockup::before {
+  content: "";
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 120px; height: 120px; margin: -60px 0 0 -160px;
+  border-radius: 50%;
+  border: 2px solid rgba(124, 196, 255, 0.6);
+  transform: scale(0.2); opacity: 0;
+  animation: splashRing 900ms cubic-bezier(.16, .84, .36, 1) 120ms both;
 }
 #splash .flame.xl {
   position: relative;
-  width: 58px; height: 70px;
-  animation: flameIn 620ms cubic-bezier(.2, 1, .3, 1) both, flameGlow 3.4s ease-in-out 700ms infinite;
+  width: 60px; height: 72px;
+  animation: flameIn 560ms cubic-bezier(.2, 1.4, .3, 1) both, flameGlow 3.4s ease-in-out 640ms infinite;
 }
-#splash .splash-words { position: relative; overflow: hidden; }
+#splash .splash-words { position: relative; overflow: hidden; padding: 4px 4px 4px 0; margin: -4px -4px -4px 0; }
 #splash .splash-name {
   font-size: 34px;
   font-weight: 800;
@@ -706,7 +718,8 @@ button:focus-visible, a:focus-visible, .tile:focus-visible, summary:focus-visibl
   background: linear-gradient(180deg, #ffffff, #a9c6e6);
   -webkit-background-clip: text; background-clip: text; color: transparent;
   clip-path: inset(0 100% 0 0);
-  animation: splashWipe 620ms cubic-bezier(.2, 1, .3, 1) 480ms both;
+  filter: blur(6px);
+  animation: splashWipe 560ms cubic-bezier(.2, 1, .3, 1) 440ms both;
 }
 #splash .splash-tag {
   position: relative;
@@ -734,9 +747,20 @@ button:focus-visible, a:focus-visible, .tile:focus-visible, summary:focus-visibl
   opacity: 0;
   animation: fadeUp 0.7s ease 1350ms both;
 }
-@keyframes flameIn { from { transform: translateY(50px) scale(0.2); opacity: 0; filter: blur(12px); } }
-@keyframes splashWipe { to { clip-path: inset(0 0 0 0); } }
+@keyframes flameIn {
+  0%   { transform: translateY(54px) scale(0.15); opacity: 0; filter: blur(14px); }
+  60%  { opacity: 1; filter: blur(0); }
+  78%  { transform: translateY(0) scale(1.14); }
+  100% { transform: translateY(0) scale(1); }
+}
+@keyframes splashWipe {
+  0%   { clip-path: inset(0 100% 0 0); filter: blur(6px); }
+  70%  { filter: blur(0); }
+  100% { clip-path: inset(0 0 0 0); filter: blur(0); }
+}
 @keyframes splashShine { 0% { left: -40%; opacity: 0; } 25% { opacity: 1; } 100% { left: 130%; opacity: 0; } }
+@keyframes splashRing { to { transform: scale(2.4); opacity: 0; } }
+@keyframes splashSettle { from { transform: scale(1.035); } to { transform: scale(1); } }
 @keyframes fadeUp { from { opacity: 0; transform: translateY(9px); } to { opacity: 1; transform: none; } }
 @keyframes splashOut { to { opacity: 0; visibility: hidden; } }
 @media (prefers-reduced-motion: reduce) {

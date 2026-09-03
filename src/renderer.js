@@ -1043,7 +1043,7 @@ function normalise(raw) {
 }
 
 (async function () {
-  setTimeout(() => document.getElementById("splash")?.remove(), 4300);
+  setTimeout(() => document.getElementById("splash")?.remove(), 4600);
   try {
     if (window.api.appVersion) window.__ver = await window.api.appVersion();
     data = normalise(await window.api.getData());
