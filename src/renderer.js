@@ -323,6 +323,43 @@ function countUp(scope) {
 }
 function trimNum(n, dp) { return dp ? n.toFixed(dp).replace(/\.0$/, "") : String(Math.round(n)); }
 
+// ---------- the pressure gauge (Home hero) ----------
+const GAUGE = { cx: 120, cy: 120, r: 92, start: -125, end: 125 };
+function gPolar(deg, r) {
+  const a = (deg * Math.PI) / 180;
+  return [GAUGE.cx + r * Math.sin(a), GAUGE.cy - r * Math.cos(a)];
+}
+function gArc(r, d0, d1) {
+  const [x0, y0] = gPolar(d0, r);
+  const [x1, y1] = gPolar(d1, r);
+  const large = Math.abs(d1 - d0) > 180 ? 1 : 0;
+  return `M ${x0.toFixed(2)} ${y0.toFixed(2)} A ${r} ${r} 0 ${large} 1 ${x1.toFixed(2)} ${y1.toFixed(2)}`;
+}
+// A manometer-style dial: track, flame-filled value arc, red pass-mark line, sweeping needle.
+function gaugeSVG(s) {
+  const span = GAUGE.end - GAUGE.start;
+  const fGoal = Math.max(0, Math.min(1, s.goal ? s.total / s.goal : 0));
+  const fPass = Math.max(0, Math.min(1, s.goal ? s.required / s.goal : 0));
+  const valAng = GAUGE.start + fGoal * span;
+  const passAng = GAUGE.start + fPass * span;
+  const [rx0, ry0] = gPolar(passAng, GAUGE.r - 14);
+  const [rx1, ry1] = gPolar(passAng, GAUGE.r + 14);
+  const overGoal = s.total >= s.goal;
+  return `
+    <svg class="gauge ${overGoal ? "full" : ""}" viewBox="0 0 240 188" data-needle="${valAng.toFixed(2)}">
+      <path class="g-track" d="${gArc(GAUGE.r, GAUGE.start, GAUGE.end)}"/>
+      <path class="g-val" pathLength="100" d="${gArc(GAUGE.r, GAUGE.start, valAng)}"/>
+      <line class="g-red" x1="${rx0.toFixed(2)}" y1="${ry0.toFixed(2)}" x2="${rx1.toFixed(2)}" y2="${ry1.toFixed(2)}"/>
+      <g class="g-needle" style="--to:${valAng.toFixed(2)}deg">
+        <path d="M120 120 L117 58 L120 48 L123 58 Z"/>
+      </g>
+      <circle class="g-hub" cx="120" cy="120" r="9"/>
+      <circle class="g-hub-dot" cx="120" cy="120" r="3.5"/>
+      <text class="g-end" x="30" y="182">0</text>
+      <text class="g-end" x="210" y="182" text-anchor="end">${s.goal}</text>
+    </svg>`;
+}
+
 // ---------- render ----------
 const TABS = [
   ["home", "Home"],
@@ -394,9 +431,13 @@ function homePane(s) {
     <div class="hsec hero">
       <svg class="flame md" viewBox="0 0 24 24"><path class="f-outer" d="M12.3 1.7C15.9 6 18.7 9.1 18.7 13.1 18.7 18.1 15.5 21.8 12 22.3 8.5 21.8 5.3 18.4 5.3 13 5.3 8.6 8.7 4.7 12.3 1.7Z" fill="url(#flameGrad)"/><path class="f-cone" d="M12 9C13.7 11.8 14.6 13.8 14.6 16 14.6 19 13.2 20.9 12 21.1 10.6 20.9 9.4 19 9.4 16.3 9.4 13.9 10.6 11.7 12 9Z" fill="url(#flameCone)"/><ellipse class="f-core" cx="12" cy="17.3" rx="1.8" ry="3" fill="#fff"/></svg>
       <div class="hcap">Progress</div>
-      <div class="stat"><span class="v" data-to="${s.total}">0</span><small> / ${s.goal} h</small></div>
-      <div class="bar"><i style="--w:${Math.max(3, s.pctGoal)}%"></i><b style="left:${s.requiredMark}%"></b></div>
-      <div class="dim sm">${s.past275 ? "past the 275 pass mark" : `<span class="v" data-to="${s.toRequired}">0</span> h to pass`} &middot; ${s.toGoal} h to goal</div>
+      <div class="gaugewrap">
+        ${gaugeSVG(s)}
+        <div class="gaugereadout">
+          <div class="stat"><span class="v" data-to="${s.total}">0</span><small> / ${s.goal} h</small></div>
+        </div>
+      </div>
+      <div class="dim sm gaugesub">${s.past275 ? '<span class="pastmark">past the 275 pass mark</span>' : `<span class="v" data-to="${s.toRequired}">0</span> h to pass`} &middot; ${s.toGoal} h to goal</div>
     </div>
 
     <div class="hsec">

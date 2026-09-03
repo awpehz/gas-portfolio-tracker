@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.1.0 — the gauge
+
+- **Home progress is now a pressure gauge.** The thin bar is replaced by a
+  manometer-style dial: a flame-blue value arc, a red line at the 275 pass mark,
+  and a needle that sweeps to your current total on load. Total sits in the
+  centre; 0 and your goal mark the ends.
+- Fixed a dead window-icon path that pointed inside the packaged app bundle.
+
 ## 2.0.0 — full rework
 
 A ground-up polish pass. The app is now purely a **portfolio tracker** — the

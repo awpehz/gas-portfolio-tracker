@@ -601,7 +601,54 @@ button:focus-visible, a:focus-visible, .tile:focus-visible, summary:focus-visibl
 }
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
+  .g-val { stroke-dashoffset: 0 !important; }
+  .g-needle { transform: rotate(var(--to)) !important; }
 }
+
+/* ---------- pressure gauge (Home hero) ---------- */
+.gaugewrap { position: relative; margin: 6px auto 2px; max-width: 236px; }
+.gauge { display: block; width: 100%; height: auto; overflow: visible; }
+.gauge .g-track {
+  fill: none; stroke: rgba(255, 255, 255, 0.10);
+  stroke-width: 13; stroke-linecap: round;
+}
+.gauge .g-val {
+  fill: none; stroke: url(#gaugeGrad);
+  stroke-width: 13; stroke-linecap: round;
+  stroke-dasharray: 100; stroke-dashoffset: 100;
+  animation: gaugeDraw 1.2s cubic-bezier(.16, .84, .36, 1) .1s both;
+  filter: drop-shadow(0 0 6px rgba(78, 168, 255, 0.45));
+}
+.gauge.full .g-val { filter: drop-shadow(0 0 9px rgba(120, 220, 170, 0.6)); stroke: var(--ok); }
+@keyframes gaugeDraw { to { stroke-dashoffset: 0; } }
+.gauge .g-red {
+  stroke: #ff5b5b; stroke-width: 4; stroke-linecap: round;
+  filter: drop-shadow(0 0 4px rgba(255, 91, 91, 0.7));
+}
+.gauge .g-needle {
+  transform-box: view-box; transform-origin: 120px 120px;
+  fill: #f4f8ff;
+  animation: needleSweep 1.25s cubic-bezier(.2, .9, .25, 1) both;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.4));
+}
+@keyframes needleSweep {
+  0%   { transform: rotate(-125deg); }
+  70%  { transform: rotate(calc(var(--to) + 6deg)); }
+  100% { transform: rotate(var(--to)); }
+}
+.gauge .g-hub { fill: #10131a; stroke: rgba(255, 255, 255, 0.22); stroke-width: 2; }
+.gauge .g-hub-dot { fill: var(--accent); }
+.gauge .g-end { fill: var(--ink-3); font-size: 13px; font-weight: 700; }
+
+.gaugereadout {
+  position: absolute; left: 0; right: 0; top: 47%;
+  transform: translateY(-50%);
+  text-align: center; pointer-events: none;
+}
+.gaugereadout .stat { font-size: 36px; letter-spacing: -1.5px; line-height: 1; }
+.gaugereadout .stat small { font-size: 12px; }
+.gaugesub { text-align: center; margin-top: -6px; }
+.gaugesub .pastmark { color: var(--ok); font-weight: 600; }
 
 /* ---------- splash ---------- */
 #splash {
