@@ -419,7 +419,7 @@ function homePane(s) {
   const finishV = s.toGoal <= 0 ? "Done"
     : s.canFinish ? fmtDate(s.finishDate, { day: "numeric", month: "short" }) : "Off pace";
   const finishS = s.toGoal <= 0 ? "goal reached"
-    : s.canFinish ? `at ${s.hoursPerDay} h/day &middot; ${s.finishSpareDays} spare working day${s.finishSpareDays === 1 ? "" : "s"}`
+    : s.canFinish ? `at ${s.hoursPerDay} h/day &middot; ${s.finishSpareDays} working day${s.finishSpareDays === 1 ? "" : "s"} spare`
     : `${s.shortfall} h short at ${s.hoursPerDay} h/day`;
   const portDate = s.portfolioCanFinish ? fmtDate(s.portfolioFinishDate, { day: "numeric", month: "short", year: "numeric" }) : "&mdash;";
   const portSlack = s.portfolioSlackDays == null ? ""

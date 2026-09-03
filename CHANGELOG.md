@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.3.3 — consistent blue detail text on Home
+
+- Every line under a header on Home is now blue with a soft glow, matching the
+  gauge caption — the stat tiles, the "earliest realistic finish" strip, the
+  college line.
+- "N working days spare" wording on the flat-out tile.
+
 ## 2.3.2 — widget size + a clearer finish tile
 
 - **Widget size** — menu-bar → Widget size → Small / Medium / Large. The gauge
