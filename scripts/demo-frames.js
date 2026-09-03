@@ -16,15 +16,16 @@ const SAMPLE = {
   blocks: ["2026-09-14", "2026-10-05", "2026-11-02", "2026-11-23", "2026-12-14"],
   off: ["2026-11-09", "2026-11-10"],
   hours: [
-    { date: "2026-09-01", h: 7, note: "combi swap assist" },
-    { date: "2026-09-08", h: 6.5, note: "" },
-    { date: "2026-09-15", h: 7, note: "landlord checks" },
-    { date: "2026-09-22", h: 6, note: "" },
+    { date: "2026-08-25", h: 7, note: "combi swap assist" },
+    { date: "2026-08-27", h: 6.5, note: "" },
+    { date: "2026-09-01", h: 7, note: "landlord checks — 3 flats" },
+    { date: "2026-09-02", h: 6, note: "combi install, second fix" },
+    { date: "2026-09-03", h: 6, note: "fault find, diverter valve" },
   ],
   jobs: [
-    { date: "2026-09-03", type: "install", h: 3, boiler: "combi" },
-    { date: "2026-09-10", type: "repair", h: 2, boiler: "system", fault: "water" },
-    { date: "2026-09-17", type: "service", h: 1.5, boiler: "traditional" },
+    { date: "2026-08-20", type: "install", h: 3, boiler: "combi", notes: "Worcester 4000, full combi swap. Gas rate 2.9 m3/h, tightness test passed." },
+    { date: "2026-08-26", type: "repair", h: 2, boiler: "system", fault: "water", notes: "No heating — seized 3-port valve, swapped the motorhead." },
+    { date: "2026-09-02", type: "service", h: 1.5, boiler: "traditional", notes: "Annual service, open-flue. Flue flow test OK." },
   ],
 };
 
