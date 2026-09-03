@@ -392,7 +392,7 @@ function homePane(s) {
     `<span class="${v > 0 ? "ok" : "dim"}" data-cov="${kind}:${k}">${cap1(k)}</span>`).join('<span class="dim"> &middot; </span>');
   el.innerHTML = `
     <div class="hsec hero">
-      <svg class="flame md" viewBox="0 0 24 24"><path d="M12.3 1.7C15.9 6 18.7 9.1 18.7 13.1 18.7 18.1 15.5 21.8 12 22.3 8.5 21.8 5.3 18.4 5.3 13 5.3 8.6 8.7 4.7 12.3 1.7Z" fill="url(#flameGrad)"/><path d="M12 9C13.7 11.8 14.6 13.8 14.6 16 14.6 19 13.2 20.9 12 21.1 10.6 20.9 9.4 19 9.4 16.3 9.4 13.9 10.6 11.7 12 9Z" fill="url(#flameCone)" opacity="0.92"/></svg>
+      <svg class="flame md" viewBox="0 0 24 24"><path class="f-outer" d="M12.3 1.7C15.9 6 18.7 9.1 18.7 13.1 18.7 18.1 15.5 21.8 12 22.3 8.5 21.8 5.3 18.4 5.3 13 5.3 8.6 8.7 4.7 12.3 1.7Z" fill="url(#flameGrad)"/><path class="f-cone" d="M12 9C13.7 11.8 14.6 13.8 14.6 16 14.6 19 13.2 20.9 12 21.1 10.6 20.9 9.4 19 9.4 16.3 9.4 13.9 10.6 11.7 12 9Z" fill="url(#flameCone)"/><ellipse class="f-core" cx="12" cy="17.3" rx="1.8" ry="3" fill="#fff"/></svg>
       <div class="hcap">Progress</div>
       <div class="stat"><span class="v" data-to="${s.total}">0</span><small> / ${s.goal} h</small></div>
       <div class="bar"><i style="--w:${Math.max(3, s.pctGoal)}%"></i><b style="left:${s.requiredMark}%"></b></div>

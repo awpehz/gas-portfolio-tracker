@@ -117,4 +117,6 @@ npm run dist:win     # -> dist/*.exe   (on Windows)
 | `src/widget.html` / `widget.js` | the standalone desktop widget |
 | `scripts/shots.js` | regenerates the screenshots in `docs/` |
 
-MIT licensed.
+MIT licensed. Bundles the **Inter** typeface under the SIL Open Font License 1.1
+(`src/fonts/OFL.txt`) — the OFL expressly permits embedding and redistribution in
+software.

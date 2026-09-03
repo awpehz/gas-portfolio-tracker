@@ -43,13 +43,34 @@
       font-weight: 700; color: rgba(220, 235, 255, 0.6);
     }
     .flame {
-      width: 13px; height: 15px; transform-origin: 50% 90%;
-      filter: drop-shadow(0 0 3px rgba(90, 162, 240, 0.5));
-      animation: flicker 2.4s ease-in-out infinite;
+      width: 13px; height: 16px; overflow: visible;
+      animation: flameGlow 3.4s ease-in-out infinite;
     }
-    @keyframes flicker {
-      0%, 100% { transform: scale(1) skewX(0deg); filter: drop-shadow(0 0 3px rgba(90,162,240,0.5)); }
-      50%      { transform: scale(1.06) skewX(-2deg); filter: drop-shadow(0 0 6px rgba(120,190,255,0.7)); }
+    .flame .f-outer, .flame .f-cone, .flame .f-core {
+      transform-box: fill-box; transform-origin: 50% 100%;
+    }
+    .flame .f-outer { animation: fOuter 2.7s ease-in-out infinite; }
+    .flame .f-cone  { animation: fCone 1.7s ease-in-out infinite; }
+    .flame .f-core  { animation: fCore 0.95s ease-in-out infinite; transform-origin: 50% 70%; }
+    @keyframes flameGlow {
+      0%,100% { filter: drop-shadow(0 0 3px rgba(78,168,255,.5)); }
+      50%     { filter: drop-shadow(0 0 8px rgba(124,196,255,.8)); }
+    }
+    @keyframes fOuter {
+      0%,100% { transform: skewX(0deg) scale(1,1); }
+      22% { transform: skewX(-3deg) scale(.97,1.06); }
+      50% { transform: skewX(2.4deg) scale(1.03,.96); }
+      74% { transform: skewX(-1.2deg) scale(.99,1.03); }
+    }
+    @keyframes fCone {
+      0%,100% { transform: scale(1,1); opacity: .92; }
+      30% { transform: scale(.92,1.14); opacity: 1; }
+      62% { transform: scale(1.05,.88); opacity: .78; }
+    }
+    @keyframes fCore {
+      0%,100% { opacity: .8; transform: scale(1); }
+      35% { opacity: 1; transform: scale(1.18,1.28); }
+      70% { opacity: .55; transform: scale(.9,.85); }
     }
 
     .big { font-size: 32px; font-weight: 800; letter-spacing: -0.6px; line-height: 1; }
@@ -90,7 +111,7 @@
 
   <div class="glass" id="card">
     <span class="brand">
-      <svg class="flame" viewBox="0 0 24 24"><path d="M12.3 1.7C15.9 6 18.7 9.1 18.7 13.1 18.7 18.1 15.5 21.8 12 22.3 8.5 21.8 5.3 18.4 5.3 13 5.3 8.6 8.7 4.7 12.3 1.7Z" fill="url(#flameGrad)"/><path d="M12 9C13.7 11.8 14.6 13.8 14.6 16 14.6 19 13.2 20.9 12 21.1 10.6 20.9 9.4 19 9.4 16.3 9.4 13.9 10.6 11.7 12 9Z" fill="url(#flameCone)" opacity="0.92"/></svg>
+      <svg class="flame" viewBox="0 0 24 24"><path class="f-outer" d="M12.3 1.7C15.9 6 18.7 9.1 18.7 13.1 18.7 18.1 15.5 21.8 12 22.3 8.5 21.8 5.3 18.4 5.3 13 5.3 8.6 8.7 4.7 12.3 1.7Z" fill="url(#flameGrad)"/><path class="f-cone" d="M12 9C13.7 11.8 14.6 13.8 14.6 16 14.6 19 13.2 20.9 12 21.1 10.6 20.9 9.4 19 9.4 16.3 9.4 13.9 10.6 11.7 12 9Z" fill="url(#flameCone)"/><ellipse class="f-core" cx="12" cy="17.3" rx="1.8" ry="3" fill="#fff"/></svg>
       Gas Portfolio
     </span>
 

@@ -95,20 +95,44 @@ body::after {
   padding: 10px 10px 8px 15px;
 }
 .tb-title { display: flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 700; letter-spacing: 0.2px; }
+/* ---------- the living flame mark ----------
+   the <svg class="flame"> has three parts that animate independently:
+   .f-outer (body sway), .f-cone (breathing), .f-core (hot-spot flicker).   */
 .flame {
   width: 17px; height: 20px; display: inline-block; flex: none;
-  transform-origin: 50% 90%;
-  animation: flicker 2.2s ease-in-out infinite;
-  filter: drop-shadow(0 0 3px rgba(90, 162, 240, 0.55));
+  overflow: visible;
+  animation: flameGlow 3.4s ease-in-out infinite;
 }
-.flame.xl { width: 62px; height: 74px; animation-duration: 2.6s; }
-@keyframes flicker {
-  0%   { transform: scaleY(1) scaleX(1) skewX(0deg); filter: drop-shadow(0 0 3px rgba(90,162,240,.5)) hue-rotate(0deg); }
-  20%  { transform: scaleY(1.09) scaleX(0.96) skewX(-2.5deg); filter: drop-shadow(0 0 6px rgba(120,190,255,.75)) hue-rotate(-8deg); }
-  40%  { transform: scaleY(0.97) scaleX(1.04) skewX(1.5deg); filter: drop-shadow(0 0 3px rgba(90,162,240,.5)) hue-rotate(4deg); }
-  60%  { transform: scaleY(1.06) scaleX(0.98) skewX(2deg); filter: drop-shadow(0 0 7px rgba(150,205,255,.8)) hue-rotate(-4deg); }
-  80%  { transform: scaleY(0.99) scaleX(1.02) skewX(-1deg); filter: drop-shadow(0 0 4px rgba(90,162,240,.55)) hue-rotate(2deg); }
-  100% { transform: scaleY(1) scaleX(1) skewX(0deg); filter: drop-shadow(0 0 3px rgba(90,162,240,.5)) hue-rotate(0deg); }
+.flame.xl { width: 62px; height: 74px; }
+.flame .f-outer, .flame .f-cone, .flame .f-core {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  will-change: transform, opacity;
+}
+.flame .f-outer { animation: fOuter 2.7s ease-in-out infinite; }
+.flame .f-cone  { animation: fCone 1.7s ease-in-out infinite; }
+.flame .f-core  { animation: fCore 0.95s ease-in-out infinite; transform-origin: 50% 70%; }
+.flame.xl .f-outer { animation-duration: 3.4s; }
+.flame.xl .f-cone  { animation-duration: 2.1s; }
+@keyframes flameGlow {
+  0%, 100% { filter: drop-shadow(0 0 3px rgba(78,168,255,.5)); }
+  50%      { filter: drop-shadow(0 0 9px rgba(124,196,255,.85)); }
+}
+@keyframes fOuter {
+  0%, 100% { transform: skewX(0deg) scale(1, 1); }
+  22%      { transform: skewX(-3deg) scale(0.97, 1.06); }
+  50%      { transform: skewX(2.4deg) scale(1.03, 0.96); }
+  74%      { transform: skewX(-1.2deg) scale(0.99, 1.03); }
+}
+@keyframes fCone {
+  0%, 100% { transform: scale(1, 1); opacity: 0.92; }
+  30%      { transform: scale(0.92, 1.14); opacity: 1; }
+  62%      { transform: scale(1.05, 0.88); opacity: 0.78; }
+}
+@keyframes fCore {
+  0%, 100% { opacity: 0.8;  transform: scale(1); }
+  35%      { opacity: 1;    transform: scale(1.18, 1.28); }
+  70%      { opacity: 0.55; transform: scale(0.9, 0.85); }
 }
 .tb-btns { -webkit-app-region: no-drag; display: flex; gap: 5px; }
 .tb-btns button {
@@ -608,7 +632,7 @@ button:focus-visible, a:focus-visible, .tile:focus-visible, summary:focus-visibl
 }
 #splash .flame.xl {
   position: relative;
-  animation: flameIn 1s cubic-bezier(0.2, 1, 0.3, 1) both, flicker 2.4s ease-in-out 1s infinite;
+  animation: flameIn 1s cubic-bezier(0.2, 1, 0.3, 1) both, flameGlow 3.4s ease-in-out 1s infinite;
 }
 #splash .splash-name {
   font-size: 21px;

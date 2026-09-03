@@ -277,6 +277,7 @@ function createWindow(opts = {}) {
     height: b.height,
     x: b.x,
     y: b.y,
+    icon: path.join(__dirname, "..", "build", "icon.png"),
     minWidth: 400,
     minHeight: 560,
     resizable: true,
