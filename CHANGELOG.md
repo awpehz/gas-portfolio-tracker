@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.3.4 — splash is the brand lockup
+
+- The launch splash now mirrors the brand mark: flame ignites, "Gas Portfolio
+  Tracker" wipes in with a light sweep, "know if you'll hit the deadline" rises,
+  then it settles and fades. Shorter (out at 3.6s).
+
 ## 2.3.3 — consistent blue detail text on Home
 
 - Every line under a header on Home is now blue with a soft glow, matching the
