@@ -390,6 +390,7 @@ function gaugeSVG(s) {
 
       <path class="g-track" d="${gArc(80, GAUGE.start, GAUGE.end)}"/>
       <path class="g-val" pathLength="100" d="${gArc(80, GAUGE.start, valAng)}"/>
+      <circle class="g-val-tip" cx="${gPolar(valAng, 80)[0].toFixed(2)}" cy="${gPolar(valAng, 80)[1].toFixed(2)}" r="3.6"/>
 
       <g class="g-redwrap" style="--at:${passAng.toFixed(2)}deg">
         <line class="g-red" x1="120" y1="${(116 - 87).toFixed(1)}" x2="120" y2="${(116 - 66).toFixed(1)}"/>
@@ -397,8 +398,10 @@ function gaugeSVG(s) {
       <text class="g-passlabel" x="${px.toFixed(1)}" y="${(py + 3).toFixed(1)}">${s.required}</text>
 
       <g class="g-needle" style="--to:${valAng.toFixed(2)}deg">
-        <path class="g-needle-tail" d="M120 116 L117.5 131 L122.5 131 Z"/>
-        <path class="g-needle-tip" d="M120 116 L116.5 48 L120 38 L123.5 48 Z"/>
+        <g class="g-needle-in">
+          <path class="g-needle-tail" d="M120 116 L117.5 131 L122.5 131 Z"/>
+          <path class="g-needle-tip" d="M120 116 L116.5 48 L120 38 L123.5 48 Z"/>
+        </g>
       </g>
       <circle class="g-hub-o" cx="120" cy="116" r="12"/>
       <circle class="g-hub-m" cx="120" cy="116" r="7.5"/>

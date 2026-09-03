@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.2.1 — gauge comes alive
+
+- The needle now sweeps in with a **damped bounce** and settles like a real
+  gauge, then holds with a faint idle tremor.
+- The value arc **breathes a glow**, with a bright bead riding its leading edge.
+
 ## 2.2.0 — Home & widget rework
 
 - **Home is a dashboard now, not a wall of text.** The gauge got a real

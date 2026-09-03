@@ -659,6 +659,7 @@ button:focus-visible, a:focus-visible, .tile:focus-visible, summary:focus-visibl
   * { animation: none !important; transition: none !important; }
   .g-val { stroke-dashoffset: 0 !important; }
   .g-needle { transform: rotate(var(--to)) !important; }
+  .g-val-tip { opacity: 1 !important; }
 }
 
 /* ---------- pressure gauge (Home hero) ---------- */
@@ -682,36 +683,67 @@ button:focus-visible, a:focus-visible, .tile:focus-visible, summary:focus-visibl
 .gauge .g-ticks-major line { stroke: rgba(255,255,255,0.5); stroke-width: 2.6; stroke-linecap: round; }
 .gauge .g-num { fill: var(--ink-3); font-size: 9px; font-weight: 700; text-anchor: middle; }
 
-/* the value read-out arc */
+/* the value read-out arc — draws on, then breathes a glow */
 .gauge .g-track { fill: none; stroke: rgba(0,0,0,0.5); stroke-width: 9; stroke-linecap: round; }
 .gauge .g-val {
   fill: none; stroke: url(#gaugeGrad);
   stroke-width: 9; stroke-linecap: round;
   stroke-dasharray: 100; stroke-dashoffset: 100;
-  animation: gaugeDraw 1.25s cubic-bezier(.16, .84, .36, 1) .12s both;
-  filter: drop-shadow(0 0 5px rgba(78, 168, 255, 0.6));
+  animation:
+    gaugeDraw 1.5s cubic-bezier(.16, .84, .36, 1) .12s both,
+    gaugeGlow 3.2s ease-in-out 1.7s infinite;
 }
-.gauge.full .g-val { stroke: var(--ok); filter: drop-shadow(0 0 8px rgba(120, 220, 170, 0.7)); }
+.gauge.full .g-val { stroke: var(--ok); animation: gaugeDraw 1.5s cubic-bezier(.16,.84,.36,1) .12s both, gaugeGlowOk 3.2s ease-in-out 1.7s infinite; }
 @keyframes gaugeDraw { to { stroke-dashoffset: 0; } }
+@keyframes gaugeGlow {
+  0%, 100% { filter: drop-shadow(0 0 3px rgba(78,168,255,.4)); }
+  50%      { filter: drop-shadow(0 0 10px rgba(124,196,255,.9)); }
+}
+@keyframes gaugeGlowOk {
+  0%, 100% { filter: drop-shadow(0 0 4px rgba(99,200,148,.45)); }
+  50%      { filter: drop-shadow(0 0 11px rgba(140,230,190,.95)); }
+}
+
+/* bright bead riding the end of the fill */
+.gauge .g-val-tip {
+  fill: #eef6ff; transform-box: fill-box; transform-origin: center;
+  opacity: 0;
+  animation: tipIn .3s ease 1.5s forwards, tipPulse 2s ease-in-out 1.8s infinite;
+  filter: drop-shadow(0 0 6px rgba(124,196,255,.95));
+}
+.gauge.full .g-val-tip { filter: drop-shadow(0 0 6px rgba(140,230,190,.95)); }
+@keyframes tipIn { to { opacity: 1; } }
+@keyframes tipPulse { 0%, 100% { transform: scale(.8); } 50% { transform: scale(1.3); } }
 
 /* pass-mark: a red radial line, drawn vertical then rotated to its angle */
 .gauge .g-redwrap { transform-box: view-box; transform-origin: 120px 116px; transform: rotate(var(--at)); }
 .gauge .g-red { stroke: #ff5b5b; stroke-width: 3.5; stroke-linecap: round; filter: drop-shadow(0 0 4px rgba(255,91,91,.8)); }
 .gauge .g-passlabel { fill: #ff8a8a; font-size: 9px; font-weight: 800; text-anchor: middle; }
 
-/* counter-weighted needle */
+/* counter-weighted needle — sweeps in with a damped bounce, then a faint idle tremor */
 .gauge .g-needle {
   transform-box: view-box; transform-origin: 120px 116px;
-  animation: needleSweep 1.3s cubic-bezier(.2, .9, .22, 1) both;
-  filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.5));
+  animation: needleSweep 1.7s cubic-bezier(.33, 1.06, .5, 1) both;
+  filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.55));
+}
+.gauge .g-needle-in {
+  transform-box: view-box; transform-origin: 120px 116px;
+  animation: needleTremor 2.6s ease-in-out 1.9s infinite;
 }
 .gauge .g-needle-tip { fill: #eef3fb; }
 .gauge .g-needle-tail { fill: #8b97ab; }
 @keyframes needleSweep {
   0%   { transform: rotate(-125deg); }
-  68%  { transform: rotate(calc(var(--to) + 7deg)); }
-  85%  { transform: rotate(calc(var(--to) - 2deg)); }
+  52%  { transform: rotate(calc(var(--to) + 10deg)); }
+  66%  { transform: rotate(calc(var(--to) - 6deg)); }
+  78%  { transform: rotate(calc(var(--to) + 3.2deg)); }
+  87%  { transform: rotate(calc(var(--to) - 1.6deg)); }
+  94%  { transform: rotate(calc(var(--to) + 0.7deg)); }
   100% { transform: rotate(var(--to)); }
+}
+@keyframes needleTremor {
+  0%, 100% { transform: rotate(-0.32deg); }
+  50%      { transform: rotate(0.32deg); }
 }
 
 /* machined hub */
