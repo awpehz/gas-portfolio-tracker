@@ -273,12 +273,19 @@ function setWeekTotal(h) {
   data.hours.push({ date: todayISO(), h, note: "week total" });
   toast(`week set to ${h}h`); save();
 }
+// when set, the next write-up logged replaces this hours[] entry instead of adding fresh hours
+let pendingConvert = null;
+
 function addJob(type, h, boiler, fault, engineer) {
   h = Number(h) || 2;
-  const row = { date: todayISO(), type, h, boiler: boiler || "" };
+  const row = { date: (pendingConvert && pendingConvert.date) || todayISO(), type, h, boiler: boiler || "" };
   if (type === "repair" && fault) row.fault = fault;
   if (engineer) row.engineer = engineer;
   data.jobs.push(row);
+  if (pendingConvert) {
+    if (Array.isArray(data.hours) && data.hours[pendingConvert.i]) data.hours.splice(pendingConvert.i, 1);
+    pendingConvert = null;
+  }
   const bits = [type, boiler, type === "repair" && fault ? fault : null].filter(Boolean).join(" / ");
   toast(`${bits} (+${h}h)`); save();
 }
@@ -324,7 +331,7 @@ function countUp(scope) {
 function trimNum(n, dp) { return dp ? n.toFixed(dp).replace(/\.0$/, "") : String(Math.round(n)); }
 
 // ---------- the pressure gauge (Home hero) ----------
-const GAUGE = { cx: 120, cy: 120, r: 92, start: -125, end: 125 };
+const GAUGE = { cx: 120, cy: 116, start: -125, end: 125 };
 function gPolar(deg, r) {
   const a = (deg * Math.PI) / 180;
   return [GAUGE.cx + r * Math.sin(a), GAUGE.cy - r * Math.cos(a)];
@@ -335,28 +342,67 @@ function gArc(r, d0, d1) {
   const large = Math.abs(d1 - d0) > 180 ? 1 : 0;
   return `M ${x0.toFixed(2)} ${y0.toFixed(2)} A ${r} ${r} 0 ${large} 1 ${x1.toFixed(2)} ${y1.toFixed(2)}`;
 }
-// A manometer-style dial: track, flame-filled value arc, red pass-mark line, sweeping needle.
+function gLine(deg, r0, r1) {
+  const [x0, y0] = gPolar(deg, r0);
+  const [x1, y1] = gPolar(deg, r1);
+  return `<line x1="${x0.toFixed(1)}" y1="${y0.toFixed(1)}" x2="${x1.toFixed(1)}" y2="${y1.toFixed(1)}"/>`;
+}
+// A proper manometer dial: bezel, graduated face, coloured zones, glowing value
+// arc, a counter-weighted needle that sweeps on load, and a machined hub.
 function gaugeSVG(s) {
   const span = GAUGE.end - GAUGE.start;
-  const fGoal = Math.max(0, Math.min(1, s.goal ? s.total / s.goal : 0));
-  const fPass = Math.max(0, Math.min(1, s.goal ? s.required / s.goal : 0));
-  const valAng = GAUGE.start + fGoal * span;
-  const passAng = GAUGE.start + fPass * span;
-  const [rx0, ry0] = gPolar(passAng, GAUGE.r - 14);
-  const [rx1, ry1] = gPolar(passAng, GAUGE.r + 14);
+  const f = (x) => GAUGE.start + Math.max(0, Math.min(1, x)) * span;
+  const fGoal = s.goal ? s.total / s.goal : 0;
+  const valAng = f(fGoal);
+  const passAng = f(s.goal ? s.required / s.goal : 0);
   const overGoal = s.total >= s.goal;
+
+  // graduations — 41 minor ticks, every 5th major, a number every 10th
+  const N = 40;
+  let minor = "", major = "", labels = "";
+  for (let i = 0; i <= N; i++) {
+    const ang = GAUGE.start + (i / N) * span;
+    if (i % 5 === 0) {
+      major += gLine(ang, 64, 78);
+      if (i === 0 || i === N) {
+        const [lx, ly] = gPolar(ang, 50);
+        labels += `<text class="g-num" x="${lx.toFixed(1)}" y="${(ly + 3).toFixed(1)}">${i === 0 ? 0 : s.goal}</text>`;
+      }
+    } else {
+      minor += gLine(ang, 71, 78);
+    }
+  }
+  const [px, py] = gPolar(passAng, 46);
+
   return `
-    <svg class="gauge ${overGoal ? "full" : ""}" viewBox="0 0 240 188" data-needle="${valAng.toFixed(2)}">
-      <path class="g-track" d="${gArc(GAUGE.r, GAUGE.start, GAUGE.end)}"/>
-      <path class="g-val" pathLength="100" d="${gArc(GAUGE.r, GAUGE.start, valAng)}"/>
-      <line class="g-red" x1="${rx0.toFixed(2)}" y1="${ry0.toFixed(2)}" x2="${rx1.toFixed(2)}" y2="${ry1.toFixed(2)}"/>
-      <g class="g-needle" style="--to:${valAng.toFixed(2)}deg">
-        <path d="M120 120 L117 58 L120 48 L123 58 Z"/>
+    <svg class="gauge ${overGoal ? "full" : ""}" viewBox="0 0 240 214">
+      <circle class="g-bezel-o" cx="120" cy="116" r="102"/>
+      <circle class="g-bezel-i" cx="120" cy="116" r="95"/>
+      <circle class="g-face" cx="120" cy="116" r="92"/>
+      <ellipse class="g-glass" cx="100" cy="78" rx="70" ry="44"/>
+
+      <path class="g-zone g-zone-lo" d="${gArc(80, GAUGE.start, passAng)}"/>
+      <path class="g-zone g-zone-hi" d="${gArc(80, passAng, GAUGE.end)}"/>
+
+      <g class="g-ticks-minor">${minor}</g>
+      <g class="g-ticks-major">${major}</g>
+      ${labels}
+
+      <path class="g-track" d="${gArc(80, GAUGE.start, GAUGE.end)}"/>
+      <path class="g-val" pathLength="100" d="${gArc(80, GAUGE.start, valAng)}"/>
+
+      <g class="g-redwrap" style="--at:${passAng.toFixed(2)}deg">
+        <line class="g-red" x1="120" y1="${(116 - 87).toFixed(1)}" x2="120" y2="${(116 - 66).toFixed(1)}"/>
       </g>
-      <circle class="g-hub" cx="120" cy="120" r="9"/>
-      <circle class="g-hub-dot" cx="120" cy="120" r="3.5"/>
-      <text class="g-end" x="30" y="182">0</text>
-      <text class="g-end" x="210" y="182" text-anchor="end">${s.goal}</text>
+      <text class="g-passlabel" x="${px.toFixed(1)}" y="${(py + 3).toFixed(1)}">${s.required}</text>
+
+      <g class="g-needle" style="--to:${valAng.toFixed(2)}deg">
+        <path class="g-needle-tail" d="M120 116 L117.5 131 L122.5 131 Z"/>
+        <path class="g-needle-tip" d="M120 116 L116.5 48 L120 38 L123.5 48 Z"/>
+      </g>
+      <circle class="g-hub-o" cx="120" cy="116" r="12"/>
+      <circle class="g-hub-m" cx="120" cy="116" r="7.5"/>
+      <circle class="g-hub-c" cx="120" cy="116" r="3.2"/>
     </svg>`;
 }
 
@@ -372,6 +418,7 @@ const TABS = [
 
 let prevStatus = null;
 function render() {
+  if (tab !== "unassisted") pendingConvert = null;
   const s = computeStatus(data);
   app.innerHTML = "";
   app.appendChild(tabBar());
@@ -420,15 +467,42 @@ function tabBar() {
 function homePane(s) {
   const el = document.createElement("section");
   el.className = "card dash home";
-  const paceCls = s.verdictOk ? "ok" : "warn";
   const weekAim = Math.round(s.perDayGoal * 5 * 10) / 10;
+  const weekPct = weekAim > 0 ? Math.min(100, Math.round((s.weekLogged / weekAim) * 100)) : 0;
   const college = s.atCollegeNow
-    ? `At college now — back on the tools ${s.backOnTools}`
-    : `Next college block ${s.nextBlock}${s.nextBlockDays != null ? ` · in ${s.nextBlockDays} days` : ""}`;
-  const cov = (obj, kind) => Object.entries(obj).map(([k, v]) =>
-    `<span class="${v > 0 ? "ok" : "dim"}" data-cov="${kind}:${k}">${cap1(k)}</span>`).join('<span class="dim"> &middot; </span>');
+    ? `At college &mdash; back on the tools ${s.backOnTools}`
+    : `Next block ${s.nextBlock}${s.nextBlockDays != null ? ` &middot; in ${s.nextBlockDays} days` : ""}`;
+
+  // one stat tile
+  const tile = (k, v, sub, cls = "") =>
+    `<div class="htile ${cls}"><div class="ht-k">${k}</div><div class="ht-v">${v}</div><div class="ht-s">${sub}</div></div>`;
+
+  // mini progress bar for a job type
+  const jb = (label, n, t) => {
+    const pct = t > 0 ? Math.min(100, Math.round((n / t) * 100)) : 0;
+    return `<div class="jline"><span class="jl-l">${label}</span>
+      <span class="jl-bar"><i style="width:${pct}%"></i></span>
+      <span class="jl-n ${n >= t ? "done" : ""}">${n}/${t}</span></div>`;
+  };
+  // coverage pips
+  const pips = (obj, kind) => Object.entries(obj).map(([k, v]) =>
+    `<span class="pip ${v > 0 ? "on" : ""}" data-cov="${kind}:${k}" title="${cap1(k)}${v ? ` &times;${v}` : ""}">${cap1(k)}</span>`).join("");
+
+  const rateCls = s.verdictOk ? (s.perDayGoal > s.hoursPerDay * 0.75 ? "amber" : "good") : "bad";
+  const finishV = s.toGoal <= 0 ? "Done"
+    : s.canFinish ? fmtDate(s.finishDate, { day: "numeric", month: "short" }) : "Off pace";
+  const finishS = s.toGoal <= 0 ? "goal reached"
+    : s.canFinish ? `${s.finishSpareDays} day${s.finishSpareDays === 1 ? "" : "s"} spare`
+    : `${s.shortfall} h short`;
+  const portDate = s.portfolioCanFinish ? fmtDate(s.portfolioFinishDate, { day: "numeric", month: "short", year: "numeric" }) : "&mdash;";
+  const portSlack = s.portfolioSlackDays == null ? ""
+    : s.portfolioSlackDays >= 0 ? `${s.portfolioSlackDays} days before the deadline`
+    : `${-s.portfolioSlackDays} days past the deadline`;
+  const gateWord = s.portfolioGate === "write-ups" ? "write-ups are the hold-up" : "hours are the hold-up";
+  const gaps = [...s.boilerGaps.map(cap1), ...s.faultGaps.map((f) => cap1(f) + " fault")];
+
   el.innerHTML = `
-    <div class="hsec hero">
+    <div class="hero">
       <svg class="flame md" viewBox="0 0 24 24"><path class="f-outer" d="M12.3 1.7C15.9 6 18.7 9.1 18.7 13.1 18.7 18.1 15.5 21.8 12 22.3 8.5 21.8 5.3 18.4 5.3 13 5.3 8.6 8.7 4.7 12.3 1.7Z" fill="url(#flameGrad)"/><path class="f-cone" d="M12 9C13.7 11.8 14.6 13.8 14.6 16 14.6 19 13.2 20.9 12 21.1 10.6 20.9 9.4 19 9.4 16.3 9.4 13.9 10.6 11.7 12 9Z" fill="url(#flameCone)"/><ellipse class="f-core" cx="12" cy="17.3" rx="1.8" ry="3" fill="#fff"/></svg>
       <div class="hcap">Progress</div>
       <div class="gaugewrap">
@@ -437,48 +511,40 @@ function homePane(s) {
           <div class="stat"><span class="v" data-to="${s.total}">0</span><small> / ${s.goal} h</small></div>
         </div>
       </div>
-      <div class="dim sm gaugesub">${s.past275 ? '<span class="pastmark">past the 275 pass mark</span>' : `<span class="v" data-to="${s.toRequired}">0</span> h to pass`} &middot; ${s.toGoal} h to goal</div>
+      <div class="dim sm gaugesub">${s.past275 ? '<span class="pastmark">&#10003; past the 275 pass mark</span>' : `<span class="v" data-to="${s.toRequired}">0</span> h to the pass mark`} &middot; ${s.toGoal} h to goal</div>
+    </div>
+
+    <div class="hgrid">
+      ${tile("Rate needed", `${trimNum(s.perDayGoal, 1)}<em> h/day</em>`, esc(s.verdict), rateCls)}
+      ${tile("This week", `${trimNum(s.weekLogged, 1)}<em> h</em>`, `aim ~${weekAim} h`, s.weekLogged >= weekAim && weekAim > 0 ? "good" : "")}
+      ${tile("Hours done by", finishV, finishS)}
+      ${tile("Deadline", `${s.daysLeft}<em> days</em>`, s.dl || d0(data).deadline)}
+    </div>
+
+    <div class="pstrip ${s.portfolioGate === "write-ups" ? "" : "hrs"}">
+      <div class="ps-k">Earliest realistic finish</div>
+      <div class="ps-v">${portDate}</div>
+      <div class="ps-s">${portSlack ? portSlack + " &middot; " : ""}${gateWord}</div>
+      ${gaps.length ? `<div class="ps-s">still need ${gaps.join(" &middot; ")}</div>` : ""}
     </div>
 
     <div class="hsec">
-      <div class="hcap">On track</div>
-      <div class="pace ${paceCls}"><span class="v" data-to="${s.perDayGoal}" data-dp="1">0</span> h per working day</div>
-      <div class="dim sm">${esc(s.verdict)}</div>
-      <div class="dim sm">${s.availDays} working days left &middot; deadline ${s.dl || d0(data).deadline}</div>
-      <div class="dim sm">this week: <b class="${s.weekLogged >= weekAim && weekAim > 0 ? "ok" : ""}">${s.weekLogged} h</b> logged &middot; aim ~${weekAim} h</div>
-      <div class="dim sm quickest"><b>Quickest way there:</b> ${fastestFinishText(s)}</div>
-    </div>
-
-    <div class="hsec">
-      <div class="hcap">Write-ups &nbsp;<span class="dim" data-flag="jobsdone">${s.jobsDone} / ${s.jobsTotal}</span></div>
-      <div class="dim sm">Installs ${s.install}/${s.targets.install} &middot; Services ${s.service}/${s.targets.service} &middot; Repairs ${s.repair}/${s.targets.repair}</div>
-      <div class="dim sm">Boilers ${cov(s.boiler, "b")} &nbsp;&middot;&nbsp; Faults ${cov(s.fault, "f")}</div>
-    </div>
-
-    <div class="hsec">
-      <div class="hcap">Whole portfolio</div>
-      <div class="dim sm portfolio">${portfolioFinishText(s)}</div>
-      <div class="dim sm">Hours gate: ${s.toGoal <= 0 ? "done" : (s.canFinish ? fmtDate(s.finishDate, { day: "numeric", month: "short" }) : "not in time")}
-        &nbsp;&middot;&nbsp; Write-ups gate: ${s.jobsNeeded <= 0 ? "done" : fmtDate(s.jobsFinishDate, { day: "numeric", month: "short" }) + ` (${s.jobsNeeded} left)`}</div>
-      ${(s.boilerGaps.length || s.faultGaps.length)
-        ? `<div class="dim sm">Still need: ${[...s.boilerGaps.map(cap1), ...s.faultGaps.map((f) => cap1(f) + " fault")].join(" &middot; ")}</div>`
-        : ""}
-      ${s.jobsPerWeekActual > 0 ? `<div class="dim sm">you're averaging ${s.jobsPerWeekActual} write-ups/week so far</div>` : ""}
-    </div>
-
-    <div class="hsec">
-      <div class="hcap">College</div>
-      <div class="dim sm">${esc(college)}</div>
-    </div>
-
-    <div class="hsec">
-      <div class="hcap">Quick log</div>
-      <div class="qrow">
-        <button class="pill" data-q="2">+2 h</button>
-        <button class="pill" data-q="3">+3 h</button>
-        <button class="pill" data-q="4">+4 h</button>
-        <button class="pill go" data-goto="unassisted">Log a write-up &rarr;</button>
+      <div class="hcap">Write-ups <span class="dim" data-flag="jobsdone">${s.jobsDone} / ${s.jobsTotal}</span></div>
+      <div class="jlines">
+        ${jb("Installs", s.install, s.targets.install)}
+        ${jb("Services", s.service, s.targets.service)}
+        ${jb("Repairs", s.repair, s.targets.repair)}
       </div>
+      <div class="pips">${pips(s.boiler, "b")}<span class="pip-sep"></span>${pips(s.fault, "f")}</div>
+    </div>
+
+    <div class="hrow"><span class="hr-i">&#9788;</span> ${college}</div>
+
+    <div class="qrow">
+      <button class="pill" data-q="2">+2 h</button>
+      <button class="pill" data-q="3">+3 h</button>
+      <button class="pill" data-q="4">+4 h</button>
+      <button class="pill go" data-goto="unassisted">Log a write-up &rarr;</button>
     </div>`;
   return el;
 }
@@ -515,6 +581,7 @@ function hoursPane(s) {
   el.className = "card";
   const recent = data.hours.map((r, i) => ({ r, i })).slice(-10).reverse().map(({ r, i }) =>
     `<li><span class="li-d">${esc(r.date)}</span><span class="li-v">${r.h} h${r.note ? " &middot; " + esc(r.note) : ""}</span>` +
+    `<button class="conv" data-conv="${i}" title="turn this into a write-up">&rarr; write-up</button>` +
     `<button class="del" data-arr="hours" data-i="${i}" title="delete">&times;</button></li>`).join("");
   const today = todayISO();
   const todayLabel = new Date().toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" });
@@ -571,8 +638,10 @@ function writeupsPane(s) {
       `<button class="del" data-arr="jobs" data-i="${i}" title="delete">&times;</button></li>`;
   }).join("");
   const engOpts = (data.engineers || []).map((e) => `<option value="${esc(e.name)}">${esc(e.name)}</option>`).join("");
+  const pc = pendingConvert;
   el.innerHTML = `
     <h3>Unassisted write-ups <span class="h3-r">${s.jobsDone}/${s.jobsTotal} &middot; ${s.jobHours} h</span></h3>
+    ${pc ? `<div class="convbanner">Converting <b>${pc.h} h</b> logged on <b>${esc(pc.date)}</b> &mdash; set the details below and log it. Those hours move across, they don't double-count. <button class="cx" id="convcancel">cancel</button></div>` : ""}
     <div class="tiles">${tile("Installs", "install", s.install, t.install)}${tile("Services", "service", s.service, t.service)}${tile("Repairs", "repair", s.repair, t.repair)}</div>
     <div class="cover">
       <div><span class="cl">Boilers</span> ${cover(s.boiler)}${s.boilerCovered ? ' <span class="ok">✓</span>' : ""}</div>
@@ -852,6 +921,14 @@ function wire(s) {
     h.addEventListener("keydown", (e) => { if (e.key === "Enter") go(); });
     syncBtn();
     h.focus({ preventScroll: true });
+
+    app.querySelectorAll("[data-conv]").forEach((b) => b.addEventListener("click", () => {
+      const i = parseInt(b.dataset.conv, 10);
+      const r = data.hours[i];
+      if (!r) return;
+      pendingConvert = { i, date: r.date, h: r.h };
+      tab = "unassisted"; render();
+    }));
   }
 
   if (tab === "unassisted") {
@@ -859,6 +936,11 @@ function wire(s) {
     const jb = document.getElementById("jboiler");
     const jf = document.getElementById("jfault");
     const jh = document.getElementById("jh");
+    if (pendingConvert) {
+      jh.value = pendingConvert.h;
+      const cc = document.getElementById("convcancel");
+      if (cc) cc.onclick = () => { pendingConvert = null; render(); };
+    }
     const syncFault = () => {
       const on = jt.value === "repair";
       jf.disabled = !on;

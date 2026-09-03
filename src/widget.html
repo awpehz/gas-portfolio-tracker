@@ -8,40 +8,48 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body {
       width: 100%; height: 100%; overflow: hidden; background: transparent;
-      font: 13px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font: 13px/1.4 "Inter", "SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
+      font-synthesis: none;
       color: #eaf2fb; -webkit-user-select: none; user-select: none; cursor: default;
     }
     /* One widget: a frosted card that lives on the desktop. No controls — the
-       menu-bar (tray) icon drives everything. Frosted over the wallpaper, so the
-       fill stays dark enough to read on any background. */
+       menu-bar (tray) icon drives everything. */
     .glass {
       position: absolute; inset: 7px;
-      border-radius: 17px;
-      padding: 13px 14px 12px;
-      display: flex; flex-direction: column; gap: 7px;
-      background: rgba(16, 19, 26, 0.52);
-      backdrop-filter: blur(24px) saturate(155%);
-      -webkit-backdrop-filter: blur(24px) saturate(155%);
+      border-radius: 18px;
+      padding: 13px 15px 13px;
+      display: flex; flex-direction: column; gap: 8px;
+      background:
+        radial-gradient(130% 90% at 90% 0%, rgba(78,168,255,0.14), transparent 55%),
+        rgba(15, 18, 25, 0.58);
+      backdrop-filter: blur(26px) saturate(160%);
+      -webkit-backdrop-filter: blur(26px) saturate(160%);
       border: 1px solid rgba(150, 200, 255, 0.16);
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.10), 0 12px 30px rgba(0, 0, 0, 0.30);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 14px 34px rgba(0, 0, 0, 0.34);
       animation: breathe 6.5s ease-in-out infinite;
+      overflow: hidden;
+    }
+    .glass::before {
+      content: ""; position: absolute; left: 15px; right: 15px; top: 0; height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(124,196,255,0.7), rgba(109,63,242,0.6), transparent);
     }
     @keyframes breathe {
       0%, 100% {
         border-color: rgba(120, 185, 255, 0.14);
-        box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 12px 26px rgba(0,0,0,0.26), 0 0 0 rgba(94,176,255,0);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.09), 0 14px 30px rgba(0,0,0,0.30), 0 0 0 rgba(94,176,255,0);
       }
       50% {
-        border-color: rgba(150, 205, 255, 0.32);
-        box-shadow: inset 0 1px 0 rgba(255,255,255,0.13), 0 12px 32px rgba(0,0,0,0.30), 0 0 20px rgba(94,176,255,0.20);
+        border-color: rgba(150, 205, 255, 0.30);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.14), 0 14px 36px rgba(0,0,0,0.34), 0 0 22px rgba(94,176,255,0.18);
       }
     }
 
     .brand {
       display: flex; align-items: center; gap: 6px;
-      font-size: 10.5px; letter-spacing: 0.6px; text-transform: uppercase;
-      font-weight: 700; color: rgba(220, 235, 255, 0.6);
+      font-size: 10px; letter-spacing: 1px; text-transform: uppercase;
+      font-weight: 800; color: rgba(220, 235, 255, 0.55);
     }
+    .brand .wcount { margin-left: auto; letter-spacing: 0.4px; color: rgba(220,235,255,0.4); font-weight: 700; }
     .flame {
       width: 13px; height: 16px; overflow: visible;
       animation: flameGlow 3.4s ease-in-out infinite;
@@ -73,23 +81,43 @@
       70% { opacity: .55; transform: scale(.9,.85); }
     }
 
-    .big { font-size: 32px; font-weight: 800; letter-spacing: -0.6px; line-height: 1; }
-    .big small { font-size: 12px; font-weight: 600; color: rgba(220, 235, 255, 0.42); margin-left: 5px; letter-spacing: 0; }
-
-    .bar { position: relative; height: 7px; border-radius: 4px; background: rgba(255, 255, 255, 0.10); }
-    .bar > i {
-      position: absolute; left: 0; top: 0; bottom: 0; width: 0; border-radius: 4px;
-      background: linear-gradient(90deg, #3f8fd8, #6fbcff); transition: width 0.5s ease;
+    .hero { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+    .big { font-size: 34px; font-weight: 800; letter-spacing: -1px; line-height: 1; }
+    .big small { font-size: 12px; font-weight: 700; color: rgba(220, 235, 255, 0.4); margin-left: 5px; letter-spacing: 0; }
+    .chip {
+      font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 999px;
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
+      color: rgba(220,235,255,0.66); white-space: nowrap;
     }
-    .bar > b { position: absolute; top: -3px; bottom: -3px; width: 2px; background: rgba(255, 255, 255, 0.8); border-radius: 1px; }
+    .chip.ok { background: rgba(99,200,148,0.16); border-color: rgba(99,200,148,0.4); color: #9fe6c0; }
 
-    .line { font-size: 12px; color: rgba(220, 235, 255, 0.72); }
+    .bar {
+      position: relative; height: 9px; border-radius: 5px;
+      background: rgba(0, 0, 0, 0.4);
+      box-shadow: inset 0 1px 2px rgba(0,0,0,0.45);
+    }
+    .bar > i {
+      position: absolute; left: 0; top: 0; bottom: 0; width: 0; border-radius: 5px;
+      background: linear-gradient(90deg, #2338a8, #2c78f2 55%, #5cb4ff);
+      box-shadow: 0 0 8px rgba(78,168,255,0.6);
+      transition: width 0.7s cubic-bezier(.16,.84,.36,1);
+    }
+    .bar.full > i { background: linear-gradient(90deg, #3f9d78, #63c894); box-shadow: 0 0 9px rgba(99,200,148,0.7); }
+    .bar > b {
+      position: absolute; top: -3px; bottom: -3px; width: 2px;
+      background: #ff5b5b; border-radius: 1px;
+      box-shadow: 0 0 5px rgba(255,91,91,0.9);
+    }
+
+    .line { font-size: 11.5px; color: rgba(220, 235, 255, 0.68); display: flex; align-items: center; gap: 6px; }
+    .line .dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; flex: none; opacity: .8; }
     .line.warn { color: #ffb4a0; }
     .line.ok { color: #9fe6c0; }
 
     @media (prefers-reduced-motion: reduce) {
-      .glass, .flame { animation: none; }
+      .glass, .flame, .glass::before { animation: none; }
       .bar > i { transition: none; }
+      .flame .f-outer, .flame .f-cone, .flame .f-core { animation: none; }
     }
   </style>
 </head>
@@ -113,13 +141,17 @@
     <span class="brand">
       <svg class="flame" viewBox="0 0 24 24"><path class="f-outer" d="M12.3 1.7C15.9 6 18.7 9.1 18.7 13.1 18.7 18.1 15.5 21.8 12 22.3 8.5 21.8 5.3 18.4 5.3 13 5.3 8.6 8.7 4.7 12.3 1.7Z" fill="url(#flameGrad)"/><path class="f-cone" d="M12 9C13.7 11.8 14.6 13.8 14.6 16 14.6 19 13.2 20.9 12 21.1 10.6 20.9 9.4 19 9.4 16.3 9.4 13.9 10.6 11.7 12 9Z" fill="url(#flameCone)"/><ellipse class="f-core" cx="12" cy="17.3" rx="1.8" ry="3" fill="#fff"/></svg>
       Gas Portfolio
+      <span class="wcount" id="wcount"></span>
     </span>
 
-    <div class="big"><span id="total">0</span><small id="goal">/ 330 h</small></div>
+    <div class="hero">
+      <div class="big"><span id="total">0</span><small id="goal">/ 330 h</small></div>
+      <span class="chip" id="chip"></span>
+    </div>
 
-    <div class="bar"><i id="fill"></i><b id="mark"></b></div>
+    <div class="bar" id="bar"><i id="fill"></i><b id="mark"></b></div>
 
-    <div class="line" id="pace">&mdash;</div>
+    <div class="line" id="pace"><span class="dot"></span><span id="pacetext">&mdash;</span></div>
   </div>
 
   <script src="widget.js"></script>

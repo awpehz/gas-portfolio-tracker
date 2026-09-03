@@ -1,5 +1,21 @@
 # Changelog
 
+## 2.2.0 — Home & widget rework
+
+- **Home is a dashboard now, not a wall of text.** The gauge got a real
+  instrument treatment (bezel, graduations, coloured zones, machined hub,
+  counter-weighted needle). Below it: four stat tiles (rate needed, this week,
+  hours-done-by, deadline), a highlighted "earliest realistic finish" strip,
+  write-up progress bars, and coverage pips that fill in.
+- **Desktop widget polished** — bigger, frosted with a blue corner glow and an
+  accent hairline, a proper value bar with a red pass-mark, a "to pass" chip,
+  write-up count, and Inter to match the app. Window a touch larger (286 x 152).
+- **Turn logged hours into a write-up** — every row in the Hours list has a
+  "-> write-up" button. It carries the date and hours across, you set the
+  type/boiler/fault, and the original hours entry is swapped (no double-count).
+- Single-instance lock — no more double tray icon / double widget if the app
+  gets launched twice.
+
 ## 2.1.0 — the gauge
 
 - **Home progress is now a pressure gauge.** The thin bar is replaced by a
