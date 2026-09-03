@@ -86,9 +86,11 @@ HTML = f"""<!doctype html>
   @keyframes br{{0%,100%{{transform:scale(1,1);opacity:.92}}40%{{transform:scale(.92,1.13);opacity:1}}}}
   @keyframes fl{{0%,100%{{opacity:.8;transform:scale(1)}}40%{{opacity:1;transform:scale(1.2,1.3)}}}}
 
-  header{{text-align:center;padding:104px 0 40px}}
-  .badge{{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
-    color:var(--ink3);border:1px solid var(--line);border-radius:999px;padding:7px 15px}}
+  header{{text-align:center;padding:64px 0 40px}}
+  .lockup{{display:block;width:min(600px,90vw);height:auto;margin:-14px auto -6px}}
+  .foot-mark{{}}
+  .badge{{display:inline-flex;align-items:center;gap:8px;font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--ink3);border:1px solid var(--line);border-radius:999px;padding:6px 14px}}
   h1{{font-size:clamp(36px,7vw,66px);font-weight:800;letter-spacing:-.03em;line-height:1.04;margin:24px 0 14px;
     background:linear-gradient(180deg,#fff,#a7c4e4);-webkit-background-clip:text;background-clip:text;color:transparent}}
   .sub{{font-size:clamp(16px,2.3vw,20px);color:var(--ink2);max-width:600px;margin:0 auto}}
@@ -125,7 +127,7 @@ HTML = f"""<!doctype html>
   .quote .by{{color:var(--ink3);font-size:13px;margin-top:14px}}
 
   .foot{{text-align:center;padding:70px 0 80px;color:var(--ink3);font-size:13px}}
-  .foot .big{{color:var(--ink);font-size:18px;font-weight:700;margin:12px 0 4px}}
+  .foot-mark{{display:block;width:min(320px,70vw);margin:0 auto 12px;opacity:.9}}
   .foot a{{color:var(--accent2)}}
 
   @media(max-width:820px){{
@@ -140,7 +142,9 @@ HTML = f"""<!doctype html>
 <div class="bg"></div>
 
 <header class="wrap">
-  <span class="badge">{FLAME} Gas Portfolio Tracker · v{VERSION}</span>
+  <img class="lockup" src="brand-lockup.png" alt="Gas Portfolio Tracker"
+       width="1600" height="500" fetchpriority="high">
+  <span class="badge">v{VERSION} · free · macOS &amp; Windows</span>
   <h1>Know if you'll actually<br>hit the deadline.</h1>
   <p class="sub">A desktop tracker for a gas SVQ / NVQ portfolio &mdash; assisted hours, unassisted write&#8209;ups, boiler and fault coverage, and the one date that says whether you're on track. Free. Yours. Nothing uploaded.</p>
   <div>
@@ -177,8 +181,7 @@ HTML = f"""<!doctype html>
 </div>
 
 <div class="foot">
-  {FLAME}
-  <div class="big">Gas Portfolio Tracker</div>
+  <img class="foot-mark" src="brand-lockup.png" alt="Gas Portfolio Tracker">
   <div>Free · macOS + Windows · in&#8209;app updates · <a href="{REPO}/releases/latest">Download v{VERSION}</a> · <a href="{REPO}">Source</a></div>
 </div>
 

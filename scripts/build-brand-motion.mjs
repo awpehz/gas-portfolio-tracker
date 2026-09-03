@@ -30,17 +30,15 @@ rmSync(COMP, { recursive: true, force: true });
 mkdirSync(COMP, { recursive: true });
 const q = (p) => p.replace(/\\/g, "\\\\");
 const py = `
-from PIL import Image, ImageDraw, ImageFilter
+from PIL import Image
 import glob, os
 frames = sorted(glob.glob(os.path.join("${q(FRAMES)}","*.png")))
 fw, fh = Image.open(frames[0]).size
-bg = Image.new("RGB",(fw,fh),(10,12,17))
-glow = Image.new("RGB",(fw,fh),(10,12,17)); d = ImageDraw.Draw(glow)
-d.ellipse((fw*0.16, fh*-0.55, fw*0.64, fh*1.25), fill=(24,44,86))
-bg = Image.blend(bg, glow.filter(ImageFilter.GaussianBlur(fw*0.11)), 0.62)
+# flat black so the clip drops cleanly onto any dark page with mix-blend-mode:screen
+bg = Image.new("RGBA",(fw,fh),(0,0,0,255))
 for f in frames:
     im = Image.open(f).convert("RGBA")
-    c = bg.convert("RGBA").copy(); c.alpha_composite(im)
+    c = bg.copy(); c.alpha_composite(im)
     c.convert("RGB").save(os.path.join("${q(COMP)}", os.path.basename(f)))
 print("composited", len(frames), f"{fw}x{fh}")
 `;
@@ -53,10 +51,10 @@ execFileSync(ffmpeg, [
   "-movflags", "+faststart", "-an", path.join(DOCS, "brand-lockup.mp4"),
 ], { stdio: "inherit" });
 
-// 3) a clean settled still, scaled to output size
-const files = readdirSync(COMP).filter((f) => f.endsWith(".png")).sort();
-const still = files[Math.min(64, files.length - 1)];
-execFileSync(ffmpeg, ["-y", "-i", path.join(COMP, still), "-vf", `scale=${W}:${H}:flags=lanczos`, path.join(DOCS, "brand-lockup.png")], { stdio: "inherit" });
+// 3) a clean settled still — from the TRANSPARENT frame, so it drops onto any bg
+const rawFiles = readdirSync(FRAMES).filter((f) => f.endsWith(".png")).sort();
+const still = rawFiles[Math.min(64, rawFiles.length - 1)];
+execFileSync(ffmpeg, ["-y", "-i", path.join(FRAMES, still), "-vf", `scale=${W}:${H}:flags=lanczos`, "-frames:v", "1", path.join(DOCS, "brand-lockup.png")], { stdio: "inherit" });
 
 rmSync(COMP, { recursive: true, force: true });
 for (const f of ["brand-lockup.mp4", "brand-lockup.webm", "brand-lockup.png"]) {
