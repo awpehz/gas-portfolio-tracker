@@ -180,6 +180,37 @@ function computeStatus(data, now = new Date()) {
 
   const daysLeft = Math.round((deadline - today) / DAY);
 
+  // ---- accountability: last entry, gap, and logging streak ----
+  const isWorkingDay = (dt) =>
+    dt.getDay() >= 1 && dt.getDay() <= 5 &&
+    !collegeWeeks.has(isoWeek(dt)) && !offSet.has(toISO(dt));
+  const logDaySet = new Set(
+    [...d.hours, ...d.jobs].map((r) => r.date).filter((x) => /^\d{4}-\d{2}-\d{2}$/.test(x))
+  );
+  const loggedToday = logDaySet.has(toISO(today));
+  const allLogDays = [...logDaySet].sort();
+  const lastLog = allLogDays.length ? allLogDays[allLogDays.length - 1] : null;
+
+  let daysSinceLog = null;   // *working* days with no entry since the last one
+  if (lastLog) {
+    daysSinceLog = 0;
+    for (const dt = new Date(parseISO(lastLog)); dt < today; dt.setDate(dt.getDate() + 1)) {
+      if (toISO(dt) === lastLog) continue;
+      if (isWorkingDay(dt)) daysSinceLog++;
+    }
+  }
+
+  let logStreak = 0;  // consecutive working days each with >=1 entry, ending today/yesterday
+  {
+    const dt = new Date(today);
+    if (!loggedToday) dt.setDate(dt.getDate() - 1);
+    for (let guard = 0; guard < 90; guard++) {
+      if (!isWorkingDay(dt)) { dt.setDate(dt.getDate() - 1); continue; }
+      if (logDaySet.has(toISO(dt))) { logStreak++; dt.setDate(dt.getDate() - 1); }
+      else break;
+    }
+  }
+
   return {
     total: Math.round(total * 10) / 10, required: d.required, goal: d.goal,
     toRequired: Math.round(toRequired * 10) / 10, toGoal: Math.round(toGoal * 10) / 10,
@@ -196,6 +227,7 @@ function computeStatus(data, now = new Date()) {
     portfolioFinishDate, portfolioCanFinish, portfolioSlackDays, portfolioGate,
     boilerTypes: d.boilerTypes, repairFaults: d.repairFaults,
     atCollegeNow, backOnTools, nextBlock, nextBlockDays, blocksBeforeDeadline,
+    loggedToday, lastLog, daysSinceLog, logStreak,
   };
 }
 

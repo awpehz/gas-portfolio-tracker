@@ -1118,3 +1118,27 @@ label.wide.ta textarea { min-height: 58px; font-family: inherit; font-size: 12.5
   flex-basis: 100%; margin-top: 4px; font-size: 11.5px; color: var(--ink-2);
   line-height: 1.4; padding-left: 2px;
 }
+
+/* ---- accountability strip (Home) ---- */
+.home .astrip {
+  margin-top: 12px; padding: 13px 15px; border-radius: 12px;
+  display: flex; gap: 12px; align-items: flex-start;
+  background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.008));
+  border: 1px solid var(--line);
+}
+.home .astrip.good { border-color: rgba(99,200,148,0.3); background: linear-gradient(180deg, rgba(99,200,148,0.09), rgba(99,200,148,0.02)); }
+.home .astrip.amber { border-color: rgba(230,178,92,0.32); background: linear-gradient(180deg, rgba(230,178,92,0.09), rgba(230,178,92,0.02)); }
+.home .astrip.bad { border-color: rgba(231,122,122,0.35); background: linear-gradient(180deg, rgba(231,122,122,0.10), rgba(231,122,122,0.02)); }
+.home .as-mark { font-size: 18px; line-height: 1.2; flex: none; }
+.home .astrip.good .as-mark { color: var(--ok); }
+.home .astrip.amber .as-mark { color: var(--warn); }
+.home .astrip.bad .as-mark { color: var(--danger); }
+.home .as-head { font-size: 13px; font-weight: 800; letter-spacing: -0.2px; }
+.home .as-body { font-size: 11.5px; color: var(--ink-2); line-height: 1.4; margin-top: 2px; }
+.home .as-meta { font-size: 10px; font-weight: 600; letter-spacing: 0.3px; color: var(--accent-2); text-shadow: 0 0 9px rgba(78,168,255,0.5); margin-top: 5px; }
+
+@media (min-width: 900px) {
+  .home .astrip  { grid-column: 1; grid-row: 3; margin-top: 6px; align-self: start; }
+  .home .hrow    { grid-column: 2; grid-row: 3; margin-top: 6px; align-self: start; }
+  .home .qrow    { grid-column: 1 / -1; grid-row: 4; margin-top: 10px; }
+}

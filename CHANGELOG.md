@@ -1,5 +1,15 @@
 # Changelog
 
+## 3.1.0 — accountability
+
+A strip on Home that keeps you honest about logging:
+- a **logging streak** (consecutive working days with an entry),
+- **how long since your last entry** in working days, colour-coded,
+- a short, direct nudge that changes with the situation &mdash; from "keep it
+  going" to "it piles up fast, catch up now".
+
+Weekends, college block weeks and booked days off never count against you.
+
 ## 3.0.0 — full-size window, job notes, an apprentice's app
 
 - **Opens as a real desktop window** (1120x860, min 680x600, resizable). On a

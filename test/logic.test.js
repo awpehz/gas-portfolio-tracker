@@ -215,5 +215,39 @@ t("portfolio: all targets met => jobsNeeded 0 and hours become the gate", () => 
   assert.strictEqual(s.portfolioFinishDate, s.finishDate);
 });
 
+t("accountability: no entries => lastLog null, streak 0", () => {
+  const s = computeStatus({ blocks: [], off: [] }, new Date(2026, 8, 10));
+  assert.strictEqual(s.lastLog, null);
+  assert.strictEqual(s.daysSinceLog, null);
+  assert.strictEqual(s.logStreak, 0);
+  assert.strictEqual(s.loggedToday, false);
+});
+
+t("accountability: logged today builds a streak over working days", () => {
+  // Wed 9, Thu 10 Sep 2026 are weekdays; Fri 11 is 'today'
+  const s = computeStatus({
+    blocks: [], off: [],
+    hours: [{ date: "2026-09-09", h: 4 }, { date: "2026-09-10", h: 4 }, { date: "2026-09-11", h: 4 }],
+  }, new Date(2026, 8, 11));
+  assert.strictEqual(s.loggedToday, true);
+  assert.strictEqual(s.lastLog, "2026-09-11");
+  assert.strictEqual(s.daysSinceLog, 0);
+  assert.strictEqual(s.logStreak, 3);
+});
+
+t("accountability: a gap of working days is counted; streak resets", () => {
+  // last entry Mon 7 Sep; today Fri 11 Sep -> Tue/Wed/Thu = 3 working days missed
+  const s = computeStatus({ blocks: [], off: [], hours: [{ date: "2026-09-07", h: 6 }] }, new Date(2026, 8, 11));
+  assert.strictEqual(s.lastLog, "2026-09-07");
+  assert.strictEqual(s.daysSinceLog, 3);
+  assert.strictEqual(s.logStreak, 0);
+});
+
+t("accountability: weekend + days off don't count against the streak", () => {
+  // entry Fri 4 Sep, today Mon 7 Sep -> only weekend between => no missed working days
+  const s = computeStatus({ blocks: [], off: [], jobs: [{ date: "2026-09-04", type: "install", h: 3, boiler: "combi" }] }, new Date(2026, 8, 7));
+  assert.strictEqual(s.daysSinceLog, 0);
+});
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

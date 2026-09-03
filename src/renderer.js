@@ -392,6 +392,40 @@ function tabBar() {
   return el;
 }
 
+// A gentle-but-firm accountability nudge for keeping the log current.
+function accountabilityHTML(s) {
+  const streak = s.logStreak || 0;
+  const gap = s.daysSinceLog;
+  let cls, head, body;
+  if (!s.lastLog) {
+    cls = "amber"; head = "Nothing logged yet";
+    body = "Start today &mdash; even the small jobs count toward your hours.";
+  } else if (gap != null && gap >= 5) {
+    cls = "bad"; head = `${gap} working days without an entry`;
+    body = "It piles up fast and the details fade. Log what you remember now, then keep on top of it every day.";
+  } else if (gap != null && gap >= 2) {
+    cls = "amber"; head = `${gap} working days since your last entry`;
+    body = "Catch up before you forget &mdash; five minutes now saves an hour later.";
+  } else if (s.loggedToday) {
+    cls = "good";
+    head = streak > 1 ? `${streak}&#8209;day logging streak` : "Logged today";
+    body = streak > 2 ? "Solid. Do it again tomorrow." : "Good habit &mdash; keep it going.";
+  } else {
+    cls = "good";
+    head = streak > 1 ? `${streak}&#8209;day streak &mdash; don't break it` : "You're up to date";
+    body = "Log today's work before you clock off.";
+  }
+  const meta = [
+    s.lastLog ? `last entry ${fmtDate(s.lastLog, { day: "numeric", month: "short" })}` : null,
+    `${trimNum(s.weekLogged, 1)} h this week`,
+  ].filter(Boolean).join(" &middot; ");
+  return `<div class="astrip ${cls}">
+    <span class="as-mark">${streak > 1 ? "&#128293;" : cls === "good" ? "&#10003;" : "&#9888;"}</span>
+    <div class="as-text"><div class="as-head">${head}</div><div class="as-body">${body}</div>
+      <div class="as-meta">${meta}</div></div>
+  </div>`;
+}
+
 function homePane(s) {
   const el = document.createElement("section");
   el.className = "card dash home";
@@ -448,6 +482,8 @@ function homePane(s) {
       ${tile("Flat out, hours done", finishV, finishS)}
       ${tile("Deadline", `${s.daysLeft}<em> days</em>`, s.dl || d0(data).deadline)}
     </div>
+
+    ${accountabilityHTML(s)}
 
     <div class="pstrip ${s.portfolioGate === "write-ups" ? "" : "hrs"}">
       <div class="ps-k">Earliest realistic finish</div>
