@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self';" />
   <title>Gas Portfolio</title>
+  <link rel="stylesheet" href="gauge.css" />
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body {
@@ -109,14 +110,23 @@
       box-shadow: 0 0 5px rgba(255,91,91,0.9);
     }
 
-    .line { font-size: 11.5px; color: rgba(220, 235, 255, 0.68); display: flex; align-items: center; gap: 6px; }
+    .line { font-size: 11.5px; color: rgba(220, 235, 255, 0.68); display: flex; align-items: center; justify-content: center; gap: 7px; }
     .line .dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; flex: none; opacity: .8; }
     .line.warn { color: #ffb4a0; }
     .line.ok { color: #9fe6c0; }
+    .line .chip {
+      font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 999px;
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: rgba(220,235,255,0.7);
+    }
+    .line .chip.ok { background: rgba(99,200,148,0.16); border-color: rgba(99,200,148,0.4); color: #9fe6c0; }
+
+    /* the shared gauge, sized for the widget */
+    .gaugewrap { max-width: 240px; margin: 2px auto 0; }
+    .gaugereadout .stat { font-size: 27px; }
+    .gaugereadout .stat small { font-size: 9px; }
 
     @media (prefers-reduced-motion: reduce) {
       .glass, .flame, .glass::before { animation: none; }
-      .bar > i { transition: none; }
       .flame .f-outer, .flame .f-cone, .flame .f-core { animation: none; }
     }
   </style>
@@ -134,6 +144,12 @@
         <stop offset="0" stop-color="#84cbff" />
         <stop offset="1" stop-color="#ffffff" />
       </linearGradient>
+      <linearGradient id="gaugeGrad" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#2338a8" /><stop offset="0.5" stop-color="#2c78f2" /><stop offset="1" stop-color="#5cb4ff" />
+      </linearGradient>
+      <radialGradient id="gaugeFace" cx="0.4" cy="0.34" r="0.85">
+        <stop offset="0" stop-color="#212736" /><stop offset="0.6" stop-color="#141925" /><stop offset="1" stop-color="#0a0d14" />
+      </radialGradient>
     </defs>
   </svg>
 
@@ -144,16 +160,12 @@
       <span class="wcount" id="wcount"></span>
     </span>
 
-    <div class="hero">
-      <div class="big"><span id="total">0</span><small id="goal">/ 330 h</small></div>
-      <span class="chip" id="chip"></span>
-    </div>
+    <div class="gaugewrap" id="gaugebox"></div>
 
-    <div class="bar" id="bar"><i id="fill"></i><b id="mark"></b></div>
-
-    <div class="line" id="pace"><span class="dot"></span><span id="pacetext">&mdash;</span></div>
+    <div class="line" id="pace"><span class="chip" id="chip"></span><span id="pacetext">&mdash;</span></div>
   </div>
 
+  <script src="gauge.js"></script>
   <script src="widget.js"></script>
 </body>
 </html>

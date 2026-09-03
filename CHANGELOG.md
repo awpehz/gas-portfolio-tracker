@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.3.0 — the widget gets the gauge
+
+- The desktop widget now shows the **same animated pressure gauge as the app** —
+  same bezel, ticks, needle bounce and glow. The gauge SVG + styles moved to
+  shared `gauge.js` / `gauge.css` so the two can never drift apart.
+- Widget is larger (300 x 300) to give the dial room, with the brand row,
+  write-up count, a "to pass" chip and the pace line around it.
+
 ## 2.2.1 — gauge comes alive
 
 - The needle now sweeps in with a **damped bounce** and settles like a real

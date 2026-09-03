@@ -1,6 +1,5 @@
 // Renderer for the desktop widget. Display only — it paints whatever status the
-// main process pushes over `widget:data`. No controls, no stored state; the
-// menu-bar (tray) icon is the control surface.
+// main process pushes over `widget:data`. Uses the same gauge as the app (gauge.js).
 const $ = (id) => document.getElementById(id);
 
 function fmt(n) {
@@ -10,16 +9,17 @@ function fmt(n) {
 
 function paint(s) {
   if (!s) return;
-  $("total").textContent = fmt(s.total);
-  $("goal").textContent = "/ " + s.goal + " h";
 
   if ($("wcount")) $("wcount").textContent = s.jobsDone + "/" + s.jobsTotal + " write-ups";
 
-  const pct = Math.max(2, Math.min(100, s.pctGoal || 0));
-  $("fill").style.width = pct + "%";
-  $("mark").style.left = Math.max(0, Math.min(100, s.requiredMark || 0)) + "%";
-  const bar = $("bar");
-  if (bar) bar.classList.toggle("full", s.toGoal <= 0);
+  // rebuild the gauge (fresh DOM => the sweep + glow animations replay)
+  const box = $("gaugebox");
+  if (box && window.GaugeUI) {
+    box.innerHTML =
+      window.GaugeUI.svg(s) +
+      '<div class="gaugereadout"><div class="stat">' + fmt(s.total) +
+      '<small>/ ' + s.goal + ' h</small></div></div>';
+  }
 
   const chip = $("chip");
   if (chip) {
@@ -31,10 +31,10 @@ function paint(s) {
   const pace = $("pace");
   const pt = $("pacetext") || pace;
   if (s.toGoal <= 0) {
-    pt.textContent = "nicely done — keep the write-ups coming";
+    pt.textContent = "keep the write-ups coming";
     pace.className = "line ok";
   } else {
-    pt.textContent = fmt(s.perDayGoal) + " h/day · " + s.availDays + " working days left";
+    pt.textContent = fmt(s.perDayGoal) + " h/day · " + s.availDays + " days left";
     pace.className = "line " + (s.verdictOk ? "" : "warn");
   }
 }

@@ -36,8 +36,8 @@ function saveState(s) { try { fs.writeFileSync(STATE_FILE, JSON.stringify(s)); }
 // every Space, never taking focus or a click. All interaction is via the menu-bar
 // (tray) icon. The main process keeps it fed with computed status over IPC.
 let widgetWin = null;
-const WIDGET_W = 286;
-const WIDGET_H = 152;
+const WIDGET_W = 300;
+const WIDGET_H = 300;
 const WIDGET_MARGIN = 22;
 
 function widgetStatus() {

@@ -55,7 +55,7 @@ app.whenReady().then(async () => {
 
   // desktop widget — its own window loading widget.html, over a wallpaper-ish backdrop
   const wv = new BrowserWindow({
-    width: 264, height: 138, show: true, frame: false,
+    width: 300, height: 300, show: true, frame: false,
     transparent: false, backgroundColor: "#2a3f5c", x: -3000, y: 80,
     webPreferences: { contextIsolation: true },
   });
