@@ -99,7 +99,7 @@ HTML = f"""<!doctype html>
   .demo{{margin:52px auto 0;max-width:392px}}
   .frame{{border-radius:22px;overflow:hidden;border:1px solid var(--line);
     box-shadow:0 44px 100px -34px rgba(0,0,0,.85),0 0 0 1px rgba(78,168,255,.08),0 0 70px -12px rgba(78,168,255,.28)}}
-  .frame img{{display:block;width:100%}}
+  .frame img,.frame video{{display:block;width:100%}}
   .demo .cap{{text-align:center;color:var(--ink3);font-size:12px;margin-top:12px}}
 
   .band{{padding:64px 0}}
@@ -148,7 +148,12 @@ HTML = f"""<!doctype html>
     <a class="cta ghost" href="{REPO}">View the code</a>
   </div>
   <div class="demo">
-    <div class="frame"><img src="app-demo.gif" alt="The app in motion — gauge, tabs, logging an entry"></div>
+    <div class="frame">
+      <video src="app-demo.mp4" poster="home.png" autoplay muted loop playsinline preload="metadata"
+             aria-label="The app in motion — gauge, tabs, logging an entry">
+        <img src="app-demo.gif" alt="The app in motion">
+      </video>
+    </div>
     <div class="cap">the actual app &mdash; nothing staged</div>
   </div>
 </header>
