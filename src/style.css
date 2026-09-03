@@ -977,3 +977,96 @@ main > .card:nth-of-type(2) { animation-delay: 0.05s; }
   font: inherit; font-size: 10.5px; font-weight: 700; padding: 3px 9px; border-radius: 999px; cursor: pointer;
 }
 .convbanner .cx:hover { background: rgba(255,255,255,0.16); color: var(--ink); }
+
+/* ============================================================
+   v2.5 — bring the other tabs up to the Home page's finish
+   ============================================================ */
+
+/* page title + intro */
+.card > h3 {
+  font-size: 17px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 3px;
+}
+.card > h3 .h3-r {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;
+  color: var(--accent-2); text-shadow: 0 0 9px rgba(78,168,255,0.5);
+}
+.card > p, .card > p.dim { font-size: 12.5px; color: var(--ink-2); line-height: 1.5; margin: 6px 0 16px; }
+.card > p.sm, .card p.dim.sm { font-size: 11px; }
+
+/* form field labels -> the Home hcap style (column: caption over input) */
+.form2 > label, .form3 > label, .sgrid > label, label.wide {
+  display: flex; flex-direction: column; gap: 6px; font-size: 10px; font-weight: 700;
+  letter-spacing: 0.6px; text-transform: uppercase; color: var(--ink-3); margin-bottom: 0;
+}
+.form2, .form3, .sgrid { gap: 12px; margin-bottom: 14px; }
+.form2 > label input, .form3 > label input, .form3 > label select,
+.sgrid > label input, label.wide input, label.wide select,
+label.wide textarea { text-transform: none; letter-spacing: 0; font-weight: 500; }
+
+/* ---- Report: preview cells become Home-style tiles ---- */
+.report-preview { gap: 10px; margin: 6px 0 16px; }
+.report-preview > div {
+  background: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.012));
+  border: 1px solid var(--line); border-radius: 12px; padding: 11px 13px;
+}
+.report-preview b { font-size: 21px; font-weight: 800; letter-spacing: -0.5px; color: var(--ink); }
+.report-preview span {
+  font-size: 9px; font-weight: 700; letter-spacing: 0.9px; text-transform: uppercase; color: var(--ink-3);
+  display: block; margin-top: 2px;
+}
+
+/* ---- Jobs: tiles + coverage ---- */
+.tiles { gap: 10px; margin: 8px 0 14px; }
+.tile {
+  background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.012));
+  border: 1px solid var(--line); border-radius: 12px; padding: 12px 10px;
+  transition: border-color 0.14s, background 0.14s, transform 0.08s;
+}
+.tile:hover { border-color: var(--accent); background: rgba(78,168,255,0.09); transform: translateY(-1px); }
+.tile-n { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
+.tile-l { font-size: 8.5px; font-weight: 700; letter-spacing: 0.8px; }
+.cover { gap: 6px; margin: 6px 0 8px; font-size: 12px; }
+.cover .cl { color: var(--ink-3); }
+.cover .ok { color: #8fe6bb; font-weight: 700; }
+.cover .dim { color: var(--ink-3); }
+
+/* ---- Settings: sectioned, tidy ---- */
+.chipedit {
+  margin-top: 16px; padding: 14px; border: 1px solid var(--line); border-radius: 12px;
+  background: rgba(255,255,255,0.015);
+}
+.ce-h {
+  font-size: 9.5px; font-weight: 700; letter-spacing: 1.3px; text-transform: uppercase;
+  color: var(--ink-3); margin-bottom: 10px;
+}
+.chip2 {
+  font-size: 11px; font-weight: 600; padding: 4px 6px 4px 10px; border-radius: 999px;
+  background: rgba(78,168,255,0.08); border: 1px solid rgba(78,168,255,0.2); color: var(--accent-2);
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.chip2 button { color: var(--ink-3); }
+.engrow { background: var(--surface-2); border-color: var(--line-2); border-radius: 10px; }
+.engadd input, .ce-add input[type="date"] { text-transform: none; }
+.upsec {
+  margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line);
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+}
+.row-links { margin-top: 16px; }
+
+/* ---- lists (recent hours / write-ups) ---- */
+.listwrap { margin-top: 16px; padding-top: 12px; }
+.list-h { font-size: 9.5px; letter-spacing: 1.2px; }
+.list li { font-size: 12.5px; padding: 10px 0; }
+.list .li-d { color: var(--ink-3); }
+.list .li-v { color: var(--ink); }
+
+/* ---- Help: match the section-header language ---- */
+.help > h3 { margin-bottom: 12px; }
+.help h4 {
+  font-size: 9.5px; font-weight: 700; letter-spacing: 1.3px; text-transform: uppercase;
+  color: var(--ink-3); margin: 20px 0 6px;
+}
+.help p { font-size: 12.5px; color: var(--ink-2); line-height: 1.55; }
+.help details { border-color: var(--line); padding: 11px 0 6px; }
+.help summary { font-size: 12.5px; }
+.help summary::marker { content: ""; }

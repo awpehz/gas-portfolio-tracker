@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.5.0 — the other tabs, brought up to Home's finish
+
+Hours, Jobs, Report, Settings and Help now share the Home page's language:
+big titles, uppercase section/field captions, the stat-tile look, blue accent
+text, consistent inputs and buttons. Settings' college-week and days-off editors
+are proper bordered sections with pill chips.
+
 ## 2.4.0 — one mark everywhere
 
 - **App icon redrawn** to the brand flame — the same clean flame + cone as the
