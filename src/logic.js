@@ -275,9 +275,122 @@ function heatInputImperial(ft3h, cv, g2n) {
   return { ft3h: rate, cv, g2n, btuh: Math.round(btuh), gross: r1(gross), net: r1(gross / g2n) };
 }
 
+// ---------- scheme presets (targets are only a starting point; centres vary) ----------
+const SCHEMES = [
+  { id: "standard", label: "Standard gas portfolio",
+    required: 275, goal: 330, hoursPerDay: 8,
+    jobTargets: { install: 5, service: 5, repair: 4 } },
+  { id: "extended", label: "Extended — some centres",
+    required: 300, goal: 350, hoursPerDay: 8,
+    jobTargets: { install: 6, service: 6, repair: 5 } },
+  { id: "custom", label: "Custom — my centre's numbers" },
+];
+
+// ---------- weekly hours history (for the progress view) ----------
+function weeklyHours(data, now = new Date(), weeks = 8) {
+  const d = { ...DEFAULT_DATA, ...data };
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const thisMon = mondayOf(today);
+  const out = [];
+  for (let i = weeks - 1; i >= 0; i--) {
+    const from = new Date(thisMon); from.setDate(from.getDate() - i * 7);
+    const to = new Date(from); to.setDate(to.getDate() + 7);
+    let assisted = 0, jobH = 0;
+    for (const r of d.hours || []) {
+      const dt = parseISO(r.date);
+      if (!isNaN(dt) && dt >= from && dt < to) assisted += Number(r.h) || 0;
+    }
+    for (const r of d.jobs || []) {
+      const dt = parseISO(r.date);
+      if (!isNaN(dt) && dt >= from && dt < to) jobH += Number(r.h) || 0;
+    }
+    out.push({
+      weekStart: toISO(from), week: isoWeek(from),
+      assisted: r1(assisted), jobHours: r1(jobH), total: r1(assisted + jobH),
+      current: i === 0,
+    });
+  }
+  return out;
+}
+
+// ---------- Gas Safe card warnings for engineers you've logged work under ----------
+function engineerCardWarnings(data, now = new Date()) {
+  const d = { ...DEFAULT_DATA, ...data };
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const soon = new Date(today); soon.setDate(soon.getDate() + 30);
+  const out = [];
+  for (const e of d.engineers || []) {
+    if (!e || !/^\d{4}-\d{2}-\d{2}$/.test(e.expiry || "")) continue;
+    const exp = parseISO(e.expiry);
+    const jobs = (d.jobs || []).filter((j) => j.engineer === e.name).length;
+    if (exp < today) {
+      out.push({ name: e.name, expired: true, jobs,
+        detail: `card expired ${toISO(exp)}${jobs ? ` — ${jobs} write-up${jobs === 1 ? "" : "s"} linked` : ""}` });
+    } else if (exp < soon) {
+      out.push({ name: e.name, expired: false, soon: true, jobs, detail: `card expires ${toISO(exp)}` });
+    }
+  }
+  return out;
+}
+
+// ---------- "what's left" checklist ----------
+function buildChecklist(data, now = new Date()) {
+  const s = computeStatus(data, now);
+  const d = { ...DEFAULT_DATA, ...data };
+  const items = [];
+  items.push({ key: "pass", label: `Reach the ${d.required} h pass mark`, done: !!s.past275,
+    detail: s.past275 ? `${s.total} h logged` : `${s.toRequired} h to go` });
+  items.push({ key: "goal", label: `Reach your ${d.goal} h goal`, done: s.toGoal <= 0,
+    detail: s.toGoal <= 0 ? `${s.total} h logged` : `${s.toGoal} h to go` });
+  for (const [k, lbl] of [["install", "installs"], ["service", "services"], ["repair", "repairs"]]) {
+    const have = s[k] || 0, need = (s.targets && s.targets[k]) || 0;
+    items.push({ key: "wu:" + k, label: `${need} unassisted ${lbl}`, done: have >= need, detail: `${have} of ${need}` });
+  }
+  for (const b of d.boilerTypes || [])
+    items.push({ key: "boiler:" + b, label: `Write-up on a ${b} boiler`, done: (s.boiler[b] || 0) > 0,
+      detail: (s.boiler[b] || 0) > 0 ? `${s.boiler[b]} logged` : "none yet" });
+  for (const f of d.repairFaults || [])
+    items.push({ key: "fault:" + f, label: `Repair write-up — ${f} fault`, done: (s.fault[f] || 0) > 0,
+      detail: (s.fault[f] || 0) > 0 ? `${s.fault[f]} logged` : "none yet" });
+  for (const w of engineerCardWarnings(data, now))
+    if (w.expired) items.push({ key: "eng:" + w.name, label: `${w.name}'s Gas Safe card`, done: false, detail: w.detail, warn: true });
+  const counted = items.filter((x) => !x.warn);
+  return { items, done: counted.filter((x) => x.done).length, total: counted.length };
+}
+
+// ---------- data sanity warnings ----------
+function dataWarnings(data, now = new Date()) {
+  const d = { ...DEFAULT_DATA, ...data };
+  const perDay = Number(d.hoursPerDay) || 8;
+  const collegeWeeks = new Set((d.blocks || []).map((b) => isoWeek(parseISO(b))));
+  const out = [];
+  const byDay = {};
+  const all = [
+    ...(d.hours || []).map((r) => ({ ...r, kind: "hours" })),
+    ...(d.jobs || []).map((r) => ({ ...r, kind: "job" })),
+  ];
+  for (const r of all) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(r.date || "")) continue;
+    byDay[r.date] = (byDay[r.date] || 0) + (Number(r.h) || 0);
+    if (!(Number(r.h) > 0))
+      out.push({ kind: "zero", date: r.date, msg: `${r.kind === "job" ? "Write-up" : "Hours entry"} on ${r.date} has no hours` });
+    if (collegeWeeks.has(isoWeek(parseISO(r.date))))
+      out.push({ kind: "college", date: r.date, msg: `Entry dated ${r.date} is in a college block week` });
+  }
+  for (const [day, h] of Object.entries(byDay))
+    if (h > perDay + 0.01) out.push({ kind: "overday", date: day, msg: `${r1(h)} h on ${day} — more than a ${perDay} h day` });
+  const hd = {};
+  for (const r of d.hours || [])
+    if (/^\d{4}-\d{2}-\d{2}$/.test(r.date || "")) hd[r.date] = (hd[r.date] || 0) + 1;
+  for (const [day, n] of Object.entries(hd))
+    if (n > 1) out.push({ kind: "dupe", date: day, msg: `${n} separate hours entries on ${day} — check that's right` });
+  return out.sort((a, b) => (a.date < b.date ? 1 : -1));
+}
+
 const GasLogic = {
   computeStatus, DEFAULT_DATA, toISO, parseISO, isoWeek,
   GAS, gasRateMetric, gasRateImperial, heatInputMetric, heatInputImperial,
+  SCHEMES, weeklyHours, buildChecklist, engineerCardWarnings, dataWarnings,
 };
 if (typeof module !== "undefined" && module.exports) module.exports = GasLogic;
 if (typeof window !== "undefined") window.GasLogic = GasLogic;

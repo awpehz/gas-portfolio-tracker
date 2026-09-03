@@ -1,6 +1,9 @@
 // Plain Node assertions — run: node test/logic.test.js
 const assert = require("assert");
-const { computeStatus, DEFAULT_DATA } = require("../src/logic.js");
+const {
+  computeStatus, DEFAULT_DATA,
+  SCHEMES, weeklyHours, buildChecklist, engineerCardWarnings, dataWarnings,
+} = require("../src/logic.js");
 
 let pass = 0, fail = 0;
 function t(name, fn) {
@@ -247,6 +250,91 @@ t("accountability: weekend + days off don't count against the streak", () => {
   // entry Fri 4 Sep, today Mon 7 Sep -> only weekend between => no missed working days
   const s = computeStatus({ blocks: [], off: [], jobs: [{ date: "2026-09-04", type: "install", h: 3, boiler: "combi" }] }, new Date(2026, 8, 7));
   assert.strictEqual(s.daysSinceLog, 0);
+});
+
+// ---------- scheme presets ----------
+t("scheme presets: standard + extended carry full numbers, custom is a blank", () => {
+  const std = SCHEMES.find((x) => x.id === "standard");
+  assert.strictEqual(std.required, 275);
+  assert.strictEqual(std.goal, 330);
+  assert.deepStrictEqual(std.jobTargets, { install: 5, service: 5, repair: 4 });
+  const ext = SCHEMES.find((x) => x.id === "extended");
+  assert.ok(ext.goal > std.goal && ext.jobTargets.repair >= std.jobTargets.repair);
+  assert.strictEqual(SCHEMES.find((x) => x.id === "custom").required, undefined);
+});
+
+// ---------- weekly hours history ----------
+t("weeklyHours: buckets assisted + write-up hours into Mon–Sun weeks", () => {
+  const w = weeklyHours({
+    hours: [{ date: "2026-08-31", h: 6 }, { date: "2026-09-02", h: 4 }],
+    jobs: [{ date: "2026-09-01", type: "install", h: 3, boiler: "combi" }],
+  }, new Date(2026, 8, 4), 3);
+  assert.strictEqual(w.length, 3);
+  const cur = w[w.length - 1];
+  assert.strictEqual(cur.current, true);
+  assert.strictEqual(cur.assisted, 10);
+  assert.strictEqual(cur.jobHours, 3);
+  assert.strictEqual(cur.total, 13);
+  assert.strictEqual(w[0].total, 0);
+});
+
+// ---------- engineer card warnings ----------
+t("engineerCardWarnings: expired card with a linked write-up is flagged", () => {
+  const out = engineerCardWarnings({
+    engineers: [{ name: "D. Harper", expiry: "2026-01-01" }, { name: "M. Cole", expiry: "2030-01-01" }],
+    jobs: [{ date: "2026-08-20", type: "install", h: 3, engineer: "D. Harper" }],
+  }, new Date(2026, 8, 4));
+  assert.strictEqual(out.length, 1);
+  assert.strictEqual(out[0].name, "D. Harper");
+  assert.strictEqual(out[0].expired, true);
+  assert.strictEqual(out[0].jobs, 1);
+});
+
+t("engineerCardWarnings: a card expiring within 30 days is a soft warning, not expired", () => {
+  const out = engineerCardWarnings({
+    engineers: [{ name: "A. Fitter", expiry: "2026-09-20" }],
+  }, new Date(2026, 8, 4));
+  assert.strictEqual(out.length, 1);
+  assert.strictEqual(out[0].expired, false);
+  assert.strictEqual(out[0].soon, true);
+});
+
+// ---------- checklist ----------
+t("buildChecklist: every target becomes an item; done count tracks progress", () => {
+  const c = buildChecklist({}, NOW);
+  // 2 hours targets + 3 write-up counts + 3 boilers + 3 faults = 11, none done
+  assert.strictEqual(c.total, 11);
+  assert.strictEqual(c.done, 0);
+  const c2 = buildChecklist({
+    baseHours: 400,
+    jobs: [{ date: "2026-08-01", type: "install", h: 3, boiler: "combi" }],
+  }, NOW);
+  assert.ok(c2.done >= 3); // pass + goal + combi boiler
+  assert.ok(c2.items.some((i) => i.key === "boiler:combi" && i.done));
+});
+
+// ---------- data sanity warnings ----------
+t("dataWarnings: zero-hour entry, over-long day, duplicate day and college-week entry", () => {
+  const w = dataWarnings({
+    hoursPerDay: 8,
+    blocks: ["2026-08-24"],
+    hours: [{ date: "2026-08-25", h: 5 }, { date: "2026-08-25", h: 6 }, { date: "2026-09-02", h: 0 }],
+    jobs: [{ date: "2026-08-26", type: "service", h: 2, boiler: "system" }],
+  }, new Date(2026, 8, 4));
+  const kinds = w.map((x) => x.kind);
+  assert.ok(kinds.includes("zero"));
+  assert.ok(kinds.includes("overday")); // 25 Aug: 5 + 6 = 11 h
+  assert.ok(kinds.includes("dupe"));
+  assert.ok(kinds.includes("college")); // w/c 24 Aug block, entries 25/26 Aug
+});
+
+t("dataWarnings: a clean log produces nothing", () => {
+  const w = dataWarnings({
+    hoursPerDay: 8, blocks: [],
+    hours: [{ date: "2026-08-25", h: 6 }],
+    jobs: [{ date: "2026-08-26", type: "service", h: 2, boiler: "system" }],
+  }, new Date(2026, 8, 4));
+  assert.strictEqual(w.length, 0);
 });
 
 console.log(`\n${pass} passed, ${fail} failed`);

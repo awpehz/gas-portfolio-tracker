@@ -7,23 +7,37 @@ const GasLogic = require(path.join(__dirname, "..", "src", "logic.js"));
 const OUT = path.join(__dirname, "..", "docs");
 fs.mkdirSync(OUT, { recursive: true });
 
+const _shotHours = (() => {
+  // ~10 weeks of assisted work up to today, 2–3 days a week
+  const out = [];
+  const today = new Date();
+  const notes = ["landlord safety checks", "combi service — FGA", "install, second fix", "fault find — no hot water", "system flush + filter", "boiler swap assist"];
+  for (let i = 68; i >= 1; i--) {
+    const d = new Date(today); d.setDate(d.getDate() - i);
+    const wd = d.getDay();
+    if (wd === 0 || wd === 6) continue;
+    if (i % 2 === 0 && i % 3 !== 0) continue;      // skip some weekdays -> 2–3 days/week
+    out.push({ date: d.toISOString().slice(0, 10), h: [4, 5, 6, 7, 7.5][i % 5], note: notes[i % notes.length] });
+  }
+  return out;
+})();
+
 const SAMPLE = {
-  name: "C. Wales", baseHours: 29, goal: 330, required: 275, hoursPerDay: 8, deadline: "2026-12-22",
-  jobTargets: { install: 5, service: 5, repair: 4 },
+  setupDone: true,
+  name: "C. Wales", schemeName: "Standard gas portfolio",
+  baseHours: 29, goal: 330, required: 275, hoursPerDay: 8, deadline: "2026-12-22",
+  jobTargets: { install: 5, service: 5, repair: 4 }, jobsPerWeek: 1.5,
   boilerTypes: ["traditional", "combi", "system"], repairFaults: ["water", "gas", "electrical"],
   blocks: ["2026-09-14", "2026-10-05", "2026-11-02", "2026-11-23", "2026-12-14"],
   off: ["2026-11-09", "2026-11-10"],
-  hours: [
-    { date: "2026-08-25", h: 6, note: "boiler swap assist" },
-    { date: "2026-08-27", h: 5, note: "" },
-    { date: "2026-09-01", h: 6, note: "landlord checks — 3 flats" },
-    { date: "2026-09-02", h: 7, note: "combi install, second fix + commissioning" },
-    { date: "2026-09-03", h: 4.5, note: "fault find, diverter valve" },
+  engineers: [
+    { name: "D. Harper", regNo: "512874", licence: "1", company: "Harper Heating Ltd", categories: "CENWAT, CKR1, HTR1", expiry: "2027-06-01" },
   ],
+  hours: _shotHours,
   jobs: [
-    { date: "2026-08-20", type: "install", h: 3, boiler: "combi", notes: "Worcester 4000, full combi swap. Gas rate 2.9 m3/h, tightness test passed." },
-    { date: "2026-08-26", type: "repair", h: 2, boiler: "system", fault: "water", notes: "No heating — seized 3-port valve, swapped the motorhead." },
-    { date: "2026-09-02", type: "service", h: 1.5, boiler: "traditional", notes: "Annual service, open-flue. Cleaned the pilot assembly, flue flow test OK." },
+    { date: "2026-08-20", type: "install", h: 3, boiler: "combi", engineer: "D. Harper", notes: "Worcester 4000, full combi swap. Gas rate 2.9 m3/h, tightness test passed." },
+    { date: "2026-08-26", type: "repair", h: 2, boiler: "system", fault: "water", engineer: "D. Harper", notes: "No heating — seized 3-port valve, swapped the motorhead." },
+    { date: "2026-09-02", type: "service", h: 1.5, boiler: "traditional", engineer: "D. Harper", notes: "Annual service, open-flue. Cleaned the pilot assembly, flue flow test OK." },
   ],
 };
 
@@ -49,7 +63,7 @@ app.whenReady().then(async () => {
   await js(win, `document.getElementById('splash') && document.getElementById('splash').remove()`);
   await sleep(500);
 
-  for (const tab of ["Home", "Hours", "Jobs", "Report"]) {
+  for (const tab of ["Home", "Hours", "Jobs", "Progress", "Report"]) {
     await js(win, `[...document.querySelectorAll('.tabs button')].find(b=>b.textContent===${JSON.stringify(tab)}).click(); document.querySelector('main').scrollTop=0; true`);
     await sleep(650);
     await shot(win, tab.toLowerCase().replace(/[^a-z]+/g, "-"));

@@ -16,6 +16,24 @@ function loadData() {
 function saveData(d) {
   fs.mkdirSync(path.dirname(DATA_FILE), { recursive: true });
   fs.writeFileSync(DATA_FILE, JSON.stringify(d, null, 2));
+  autoBackup(d);
+}
+
+// ---------- automatic backup: a dated JSON copy in a folder the user picks ----------
+// One file per day (rewritten as you work), newest 21 kept. Never throws into save().
+const BACKUP_KEEP = 21;
+function autoBackup(d) {
+  try {
+    const dir = loadState().backupDir;
+    if (!dir || !fs.existsSync(dir)) return;
+    const day = new Date().toISOString().slice(0, 10);
+    fs.writeFileSync(path.join(dir, `gas-portfolio-${day}.json`), JSON.stringify(d, null, 2));
+    const mine = fs.readdirSync(dir)
+      .filter((f) => /^gas-portfolio-\d{4}-\d{2}-\d{2}\.json$/.test(f)).sort();
+    for (const f of mine.slice(0, Math.max(0, mine.length - BACKUP_KEEP)))
+      fs.rmSync(path.join(dir, f), { force: true });
+    saveState({ ...loadState(), lastBackup: Date.now() });
+  } catch {}
 }
 
 const BOUNDS_FILE = path.join(app.getPath("userData"), "window-bounds.json");
@@ -393,6 +411,31 @@ ipcMain.handle("add-calendar-reminder", async () => {
   } catch (e) {
     return { ok: false, error: String(e && e.message || e) };
   }
+});
+ipcMain.handle("backup-state", () => {
+  const st = loadState();
+  return { dir: st.backupDir || null, lastBackup: st.lastBackup || null };
+});
+ipcMain.handle("pick-backup-folder", async () => {
+  const r = await dialog.showOpenDialog(win, {
+    title: "Choose a folder for automatic backups",
+    properties: ["openDirectory", "createDirectory"],
+    message: "Pick a synced folder (iCloud Drive, Dropbox, OneDrive) so a copy is kept off this machine.",
+  });
+  if (r.canceled || !r.filePaths[0]) return { ok: false };
+  saveState({ ...loadState(), backupDir: r.filePaths[0] });
+  autoBackup(loadData());
+  const st = loadState();
+  return { ok: true, dir: st.backupDir, lastBackup: st.lastBackup || null };
+});
+ipcMain.handle("disable-backup", () => {
+  const st = loadState(); delete st.backupDir; delete st.lastBackup; saveState(st);
+  return { ok: true };
+});
+ipcMain.handle("backup-now", () => {
+  if (!loadState().backupDir) return { ok: false };
+  autoBackup(loadData());
+  return { ok: true, lastBackup: loadState().lastBackup || null };
 });
 ipcMain.handle("check-update", () => updater.checkUpdate());
 ipcMain.handle("update-download", (e) =>

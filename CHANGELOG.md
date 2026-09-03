@@ -1,5 +1,31 @@
 # Changelog
 
+## 3.3.0 — Progress tab, setup wizard, presets, backups
+
+A big one. Nine things:
+
+- **Progress tab.** Hours logged per week for the last two months, a
+  **what's-left checklist** (pass mark, goal, every write-up count, every boiler
+  and fault), and a **worth a look** list.
+- **Setup wizard** on first run &mdash; name, targets, deadline, college weeks,
+  backup, in four steps. "Run setup again" in Settings.
+- **Scheme presets.** Pick a starting point and it fills the target numbers;
+  everything stays editable.
+- **Automatic backup.** Point the app at a folder (iCloud Drive, Dropbox,
+  OneDrive) and it writes a dated copy every time you log something, keeping the
+  last 21.
+- **Engineer card warnings.** A Gas Safe card that's expired &mdash; or expires
+  within a month &mdash; is flagged in Settings and on the checklist, with the
+  number of write-ups linked to it.
+- **Sanity checks.** The Progress tab flags a zero-hour entry, more hours in a
+  day than your work-day length, two entries on one date, or an entry dated in a
+  college block week.
+- **Filter the logs.** Hours and Jobs get a filter box and a show-all toggle
+  once there's more than a handful of entries.
+- **Load example data** from Settings to look around, then reset it out.
+- **Tidier recent lists** &mdash; each entry is now a clean card: date chip,
+  detail, note underneath, actions on the right.
+
 ## 3.2.0 — new PDF, and the big window sticks
 
 - **The progress PDF has been rebuilt.** Same dark brand look as the app &mdash;

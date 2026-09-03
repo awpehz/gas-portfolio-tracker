@@ -371,6 +371,7 @@ const TABS = [
   ["home", "Home"],
   ["assisted", "Hours"],
   ["unassisted", "Jobs"],
+  ["progress", "Progress"],
   ["report", "Report"],
   ["settings", "Settings"],
   ["help", "Help"],
@@ -385,6 +386,7 @@ function render() {
   if (tab === "home") app.appendChild(homePane(s));
   else if (tab === "assisted") app.appendChild(hoursPane(s));
   else if (tab === "unassisted") app.appendChild(writeupsPane(s));
+  else if (tab === "progress") app.appendChild(progressPane(s));
   else if (tab === "report") app.appendChild(reportPane(s));
   else if (tab === "help") app.appendChild(helpPane());
   else app.appendChild(settingsPane());
@@ -575,7 +577,8 @@ function dash(s) {
 function hoursPane(s) {
   const el = document.createElement("section");
   el.className = "card";
-  const recent = data.hours.map((r, i) => ({ r, i })).slice(-10).reverse().map(({ r, i }) =>
+  const rowsAll = data.hours.map((r, i) => ({ r, i })).reverse();
+  const recent = rowsAll.map(({ r, i }) =>
     `<li><span class="li-d">${esc(r.date)}</span><span class="li-v">${r.h} h${r.note ? " &middot; " + esc(r.note) : ""}</span>` +
     `<button class="conv" data-conv="${i}" title="turn this into a write-up">&rarr; write-up</button>` +
     `<button class="del" data-arr="hours" data-i="${i}" title="delete">&times;</button></li>`).join("");
@@ -612,8 +615,9 @@ function hoursPane(s) {
     <button class="btn big" id="ahlog">Log hours</button>
 
     <div class="listwrap">
-      <div class="list-h">Recent</div>
-      <ul class="list">${recent || '<li class="empty">nothing logged yet</li>'}</ul>
+      <div class="list-h">Recent${rowsAll.length > 10 ? ` <span class="dim sm">(${rowsAll.length})</span>` : ""}</div>
+      ${rowsAll.length > 4 ? `<div class="listtools"><input class="lfilter" placeholder="filter by date, hours or note"><button class="btn ghost sm lall" type="button" data-all="hlist">show all</button></div>` : ""}
+      <ul class="list" id="hlist">${recent || '<li class="empty">nothing logged yet</li>'}</ul>
     </div>`;
   return el;
 }
@@ -629,7 +633,8 @@ function writeupsPane(s) {
   const cover = (obj) => Object.entries(obj).map(([k, v]) =>
     `<span class="${v > 0 ? "ok" : "dim"}">${cap1(k)} ${v}</span>`).join('<span class="dim"> &middot; </span>');
   const opt = (o) => `<option value="${o}">${cap1(o)}</option>`;
-  const recent = data.jobs.map((r, i) => ({ r, i })).slice(-10).reverse().map(({ r, i }) => {
+  const rowsAll = data.jobs.map((r, i) => ({ r, i })).reverse();
+  const recent = rowsAll.map(({ r, i }) => {
     const bits = [r.type, r.boiler, r.fault].filter(Boolean).map(cap1).join(" / ");
     const eng = r.engineer ? ` &middot; ${esc(r.engineer)}` : "";
     const note = r.notes ? `<span class="li-note">${esc(r.notes)}</span>` : "";
@@ -659,8 +664,64 @@ function writeupsPane(s) {
     <button class="btn" id="jlog">Log write-up</button>
     <p class="dim sm">Tapping a tile logs one straight away using the dropdowns. Fault only counts on repairs. Notes go on your PDF.</p>
     <div class="listwrap">
-      <div class="list-h">Recent</div>
-      <ul class="list">${recent || '<li class="empty">nothing logged yet</li>'}</ul>
+      <div class="list-h">Recent${rowsAll.length > 10 ? ` <span class="dim sm">(${rowsAll.length})</span>` : ""}</div>
+      ${rowsAll.length > 4 ? `<div class="listtools"><input class="lfilter" placeholder="filter by date, type, boiler, engineer or note"><button class="btn ghost sm lall" type="button" data-all="jlist">show all</button></div>` : ""}
+      <ul class="list" id="jlist">${recent || '<li class="empty">nothing logged yet</li>'}</ul>
+    </div>`;
+  return el;
+}
+
+function progressPane(s) {
+  const el = document.createElement("section");
+  el.className = "card";
+  const L = window.GasLogic;
+  const weeks = L.weeklyHours(data, new Date(), 8);
+  const max = Math.max(4, ...weeks.map((w) => w.total));
+  const avg = weeks.reduce((a, w) => a + w.total, 0) / weeks.length;
+  const wkAim = Math.round(s.perDayGoal * 5 * 10) / 10;
+
+  const bars = weeks.map((w) => {
+    const h = Math.round((w.total / max) * 100);
+    const dd = w.weekStart.slice(8), mm = w.weekStart.slice(5, 7);
+    return `<div class="wk ${w.current ? "now" : ""}" title="w/c ${esc(fmtDate(w.weekStart))}: ${w.total} h">
+      <div class="wk-n">${w.total || ""}</div>
+      <div class="wk-bar"><i style="height:${Math.max(2, h)}%"></i></div>
+      <div class="wk-l">${dd}/${mm}</div></div>`;
+  }).join("");
+
+  const chk = L.buildChecklist(data);
+  const rows = chk.items.map((it) =>
+    `<li class="${it.done ? "done" : it.warn ? "warn" : ""}">
+      <span class="ci-mark">${it.done ? "&#10003;" : it.warn ? "&#9888;" : ""}</span>
+      <span class="ci-l">${esc(it.label)}</span>
+      <span class="ci-d">${it.detail || ""}</span></li>`).join("");
+
+  const warns = [
+    ...L.engineerCardWarnings(data).filter((w) => w.soon).map((w) => ({ kind: "card", msg: `${esc(w.name)}: ${w.detail}` })),
+    ...L.dataWarnings(data).map((w) => ({ kind: w.kind, msg: esc(w.msg) })),
+  ];
+  const warnHTML = warns.length
+    ? `<ul class="warns">${warns.map((w) => `<li>&#9888; ${w.msg}</li>`).join("")}</ul>`
+    : `<p class="dim sm ok-line">&#10003; Nothing looks off in your log.</p>`;
+
+  el.innerHTML = `
+    <h3>Progress <span class="h3-r">${chk.done}/${chk.total} boxes ticked</span></h3>
+
+    <div class="prog-sec">
+      <div class="ps-h">Hours per week <span class="dim sm">&mdash; last 8 weeks</span></div>
+      <div class="wk-strip">${bars}</div>
+      <p class="dim sm">Averaging <b>${trimNum(avg, 1)} h/week</b>. To finish by your deadline you need about
+        <b>${wkAim} h/week</b> from here.</p>
+    </div>
+
+    <div class="prog-sec">
+      <div class="ps-h">What's left</div>
+      <ul class="chk-list">${rows}</ul>
+    </div>
+
+    <div class="prog-sec">
+      <div class="ps-h">Worth a look</div>
+      ${warnHTML}
     </div>`;
   return el;
 }
@@ -728,13 +789,16 @@ function settingsPane() {
     return `<span class="chip2">${label} <button data-x="off" data-v="${r.dates.join(",")}" title="remove">&times;</button></span>`;
   }).join("") || `<span class="dim sm">none set</span>`;
 
+  const cardWarn = Object.fromEntries((window.GasLogic.engineerCardWarnings(data) || []).map((w) => [w.name, w]));
   const engRows = (d.engineers || []).map((e, i) => {
     const jobs = (d.jobs || []).filter((j) => j.engineer === e.name).length;
     const bits = [e.regNo && `reg ${esc(e.regNo)}`, e.company && esc(e.company),
       e.expiry && `card to ${fmtDate(e.expiry, { month: "short", year: "numeric" })}`,
       jobs ? `${jobs} job${jobs === 1 ? "" : "s"}` : null].filter(Boolean).join(" &middot; ");
+    const cw = cardWarn[e.name];
+    const flag = cw ? `<div class="eng-flag ${cw.expired ? "bad" : "warn"}">&#9888; ${esc(cw.detail)}</div>` : "";
     return `<div class="engrow"><div><b>${esc(e.name)}</b>${bits ? `<div class="dim sm">${bits}</div>` : ""}` +
-      `${e.categories ? `<div class="dim sm">${esc(e.categories)}</div>` : ""}</div>` +
+      `${e.categories ? `<div class="dim sm">${esc(e.categories)}</div>` : ""}${flag}</div>` +
       `<button class="del" data-eng="${i}" title="remove">&times;</button></div>`;
   }).join("") || `<span class="dim sm">none added</span>`;
 
@@ -750,6 +814,8 @@ function settingsPane() {
       <label>Services needed<input type="number" id="s_ts" value="${d.jobTargets.service}"></label>
       <label>Repairs needed<input type="number" id="s_tr" value="${d.jobTargets.repair}"></label>
       <label>Write-ups per week (estimate)<input type="number" id="s_jpw" step="0.5" min="0.5" value="${d.jobsPerWeek ?? DEFAULT_DATA.jobsPerWeek}"></label>
+      <label class="wide">Preset ${d.schemeName ? `<span class="dim sm">&mdash; now: ${esc(d.schemeName)}</span>` : ""}
+        <select id="s_scheme"><option value="">Fill the numbers above&hellip;</option>${(window.GasLogic.SCHEMES || []).filter((x) => x.required).map((x) => `<option value="${x.id}">${esc(x.label)} &mdash; ${x.required}/${x.goal} h, ${x.jobTargets.install}/${x.jobTargets.service}/${x.jobTargets.repair}</option>`).join("")}</select></label>
     </div>
     <button class="btn" id="s_save">Save settings</button>
 
@@ -788,7 +854,20 @@ function settingsPane() {
     <label class="chk" id="s_widget_l"><input type="checkbox" id="s_widget"> Show desktop widget &mdash; a translucent card on your desktop, controlled from the menu bar</label>
     <label class="chk" id="s_remind_l"><input type="checkbox" id="s_remind"> Daily reminder at 5:30&thinsp;pm (weekdays) to log jobs &mdash; skipped if you've already logged something that day</label>
     <p class="dim sm" id="s_remind_cal_p" style="margin:-6px 0 0 24px"><a id="s_remind_cal">Add it to your Calendar</a> &mdash; syncs the alert to your phone</p>
+
+    <div class="chipedit" id="s_backup_box">
+      <div class="ce-h">Automatic backup</div>
+      <p class="dim sm" style="margin:0 0 8px">A dated copy of your data, written to a folder you choose every time you log something. Point it at a synced folder to keep a copy off this machine.</p>
+      <div class="backup-row">
+        <button class="btn ghost sm" id="s_backup_pick" type="button">Choose folder&hellip;</button>
+        <button class="btn ghost sm" id="s_backup_off" type="button" hidden>Turn off</button>
+        <span class="dim sm" id="s_backup_state">off</span>
+      </div>
+    </div>
+
     <div class="row-links">
+      <a id="s_wizard">run setup again</a>
+      <a id="s_example">load example data</a>
       <a id="s_export">export my data</a>
       <label class="filelink">import data<input type="file" id="s_import" accept="application/json" hidden></label>
       <a id="s_reset" class="danger">reset everything</a>
@@ -822,12 +901,21 @@ function helpPane() {
     <b>boiler</b> and, for repairs, the <b>fault</b>, set the hours, and who
     <b>supervised</b> it (from the engineers you've added in Settings), then <b>Log write-up</b>.
     Those hours count toward your total too. Tapping a tile logs one instantly.</p>
+    <h4>Progress tab</h4>
+    <p>Hours logged <b>per week</b> for the last two months, a <b>what's&#8209;left checklist</b>
+    (pass mark, goal, every write-up count, every boiler and fault), and a <b>worth a look</b>
+    list that flags things like a zero-hour entry, more hours in a day than your work-day
+    length, or an engineer's Gas&nbsp;Safe card that's run out.</p>
     <h4>Report tab</h4>
     <p><b>Export PDF</b> &mdash; a one-page progress sheet for your lecturer. Add your name on the Report tab before exporting.</p>
     <h4>Settings</h4>
-    <p>Every number is adjustable. Add the <b>Gas Safe engineers</b> you've worked under
-    (name, registration, licence, categories, card expiry) &mdash; write-ups link to them and
-    they appear on the PDF. <b>export / import data</b> moves your whole tracker between machines.</p>
+    <p>Every number is adjustable &mdash; or pick a <b>preset</b> to fill them in. Add the
+    <b>Gas Safe engineers</b> you've worked under (name, registration, licence, categories,
+    card expiry) &mdash; write-ups link to them and they appear on the PDF.
+    <b>Automatic backup</b> writes a dated copy to a folder you choose every time you log
+    something; point it at iCloud&nbsp;Drive, Dropbox or OneDrive to keep a copy off this
+    machine. <b>export / import data</b> moves your whole tracker between machines, and
+    <b>run setup again</b> reopens the welcome wizard.</p>
     <h4>Desktop widget</h4>
     <p>Turn it on with the <span class="k">&#9713;</span> button, <span class="k">Cmd/Ctrl + Shift + W</span>, or the tick-box in Settings. It sits on your desktop behind your windows &mdash; total, bar and daily rate, updating live &mdash; and stays there even when the app is closed. Control it from the <b>menu-bar flame</b> at the top of the screen: open the app, log +2 h, move the widget to another corner, or set it to start at login. Closing the app window just tucks it away; the widget and menu-bar icon keep going until you pick <b>Quit</b>. The <span class="k">pin</span> button just keeps the app window itself on top.</p>
 
@@ -836,7 +924,8 @@ function helpPane() {
     ${faq("I logged the wrong thing.", "Hit the <b>&times;</b> next to that entry in the Recent list. Or open the raw file &mdash; app menu &rarr; Data &rarr; Reveal data file.")}
     ${faq("Why did the rate needed jump up?", "It's spread only over the days you're actually available. Adding a college week or a holiday takes days out, so the rate on the days that remain goes up.")}
     ${faq("Can I log for a day in the past?", "Yes &mdash; the Hours tab has a date picker next to the hours box.")}
-    ${faq("I got a new laptop.", "Settings &rarr; <b>export my data</b> on the old one, <b>import data</b> on the new one.")}
+    ${faq("I got a new laptop.", "Settings &rarr; <b>export my data</b> on the old one, <b>import data</b> on the new one. Or turn on <b>Automatic backup</b> to a synced folder and import the latest dated file.")}
+    ${faq("Just want to see what it does?", "Settings &rarr; <b>load example data</b> fills it with a worked example. <b>reset everything</b> clears it back out.")}
     ${faq("The Windows app says 'unknown publisher'.", "It isn't code-signed. <b>More info &rarr; Run anyway</b> on Windows, or right-click &rarr; Open on Mac. The source is on GitHub.")}
     ${faq("My numbers disappeared.", "Data is per machine. Clearing site data or switching browser loses it unless you exported a backup first.")}
   `;
@@ -887,6 +976,32 @@ function wire(s) {
   }
   app.querySelectorAll(".del").forEach((b) =>
     b.addEventListener("click", () => removeEntry(b.dataset.arr, parseInt(b.dataset.i, 10))));
+
+  // recent-list filter + show-all (Hours / Jobs)
+  app.querySelectorAll(".listtools").forEach((tools) => {
+    const list = tools.parentElement.querySelector("ul.list");
+    const inp = tools.querySelector(".lfilter");
+    const allBtn = tools.querySelector(".lall");
+    const apply = () => {
+      const q = (inp.value || "").trim().toLowerCase();
+      let shown = 0;
+      list.querySelectorAll("li").forEach((li, idx) => {
+        const match = !q || li.textContent.toLowerCase().includes(q);
+        const within = q ? true : list.classList.contains("all") || idx < 10;
+        li.hidden = !(match && within);
+        if (match && within) shown++;
+      });
+      list.classList.toggle("has-hidden", !q && !list.classList.contains("all") && list.children.length > 10);
+    };
+    inp.addEventListener("input", apply);
+    if (allBtn) allBtn.addEventListener("click", () => {
+      list.classList.toggle("all");
+      allBtn.textContent = list.classList.contains("all") ? "show recent" : "show all";
+      apply();
+    });
+    apply();
+  });
+
   if (tab === "assisted") {
     const h = document.getElementById("ah");
     const btn = document.getElementById("ahlog");
@@ -1079,8 +1194,54 @@ function wire(s) {
         repair: num("s_tr", 0, DEFAULT_DATA.jobTargets.repair),
       };
       data.jobsPerWeek = num("s_jpw", 0.5, DEFAULT_DATA.jobsPerWeek);
+      const scId = document.getElementById("s_scheme").value;
+      const sc = (window.GasLogic.SCHEMES || []).find((x) => x.id === scId);
+      if (sc && sc.label) data.schemeName = sc.label;
       toast("settings saved"); save();
     };
+    // preset dropdown fills the number fields (does not save until Save settings)
+    const schemeSel = document.getElementById("s_scheme");
+    if (schemeSel) schemeSel.onchange = () => {
+      const sc = (window.GasLogic.SCHEMES || []).find((x) => x.id === schemeSel.value);
+      if (!sc || !sc.required) return;
+      const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+      set("s_req", sc.required); set("s_goal", sc.goal); set("s_hpd", sc.hoursPerDay);
+      set("s_ti", sc.jobTargets.install); set("s_ts", sc.jobTargets.service); set("s_tr", sc.jobTargets.repair);
+      toast("preset loaded — hit Save settings");
+    };
+    // run setup again / load example data
+    document.getElementById("s_wizard").onclick = () => openWizard(true);
+    document.getElementById("s_example").onclick = () => {
+      if (confirm("Replace everything with example data? Export first if you want to keep what you have.")) {
+        data = normalise(structuredClone(EXAMPLE_DATA));
+        toast("example data loaded"); save();
+      }
+    };
+    // automatic backup
+    const bPick = document.getElementById("s_backup_pick");
+    const bOff = document.getElementById("s_backup_off");
+    const bState = document.getElementById("s_backup_state");
+    if (!window.api.pickBackupFolder) {
+      document.getElementById("s_backup_box").style.display = "none";
+    } else {
+      const paintBackup = (b) => {
+        const on = b && b.dir;
+        bState.textContent = on
+          ? `on — ${b.dir}${b.lastBackup ? ` · last ${fmtDate(new Date(b.lastBackup).toISOString().slice(0, 10), { day: "numeric", month: "short" })}` : ""}`
+          : "off";
+        bOff.hidden = !on;
+        bPick.textContent = on ? "Change folder…" : "Choose folder…";
+      };
+      window.api.backupState().then(paintBackup).catch(() => {});
+      bPick.onclick = async () => {
+        const r = await window.api.pickBackupFolder().catch(() => null);
+        if (r && r.ok) { paintBackup(r); toast("backup folder set"); }
+      };
+      bOff.onclick = async () => {
+        await window.api.disableBackup().catch(() => {});
+        paintBackup(null); toast("automatic backup off");
+      };
+    }
     document.getElementById("s_export").onclick = () => {
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
       const a = document.createElement("a");
@@ -1105,6 +1266,185 @@ function wire(s) {
     };
   }
 }
+// ---------- first-run setup wizard + example data ----------
+const EXAMPLE_DATA = (() => {
+  const now = new Date();
+  const iso = (back) => { const d = new Date(now); d.setDate(d.getDate() - back); return toISO(d); };
+  const plus = (months) => { const d = new Date(now); d.setMonth(d.getMonth() + months); return toISO(d); };
+  const hours = [];
+  for (let i = 26; i >= 1; i--) {
+    const d = new Date(now); d.setDate(d.getDate() - i * 2);
+    const wd = d.getDay(); if (wd === 0 || wd === 6) continue;
+    hours.push({ date: toISO(d), h: [4, 5, 6, 7][i % 4],
+      note: ["landlord safety checks", "combi service — FGA done", "install, second fix + fill", "fault find, no hot water"][i % 4] });
+  }
+  return {
+    setupDone: true, name: "Alex Doyle", schemeName: "Standard gas portfolio",
+    baseHours: 58, required: 275, goal: 330, hoursPerDay: 8, deadline: plus(7),
+    jobTargets: { install: 5, service: 5, repair: 4 }, jobsPerWeek: 1.5,
+    boilerTypes: ["traditional", "combi", "system"], repairFaults: ["water", "gas", "electrical"],
+    blocks: [], off: [],
+    engineers: [{ name: "D. Harper", regNo: "512874", licence: "1", company: "Harper Heating Ltd",
+      categories: "CENWAT, CKR1, HTR1", expiry: plus(11) }],
+    hours,
+    jobs: [
+      { date: iso(40), type: "install", h: 3, boiler: "combi", engineer: "D. Harper",
+        notes: "Worcester 4000 25kW, full combi swap. Gas rate 2.9 m3/h, working pressure 20 mbar, tightness test passed." },
+      { date: iso(23), type: "service", h: 3, boiler: "system", engineer: "D. Harper",
+        notes: "Vaillant ecoTEC plus annual service. Combustion 9.2% CO2, ratio 0.0021." },
+      { date: iso(9), type: "repair", h: 3, boiler: "combi", fault: "water", engineer: "D. Harper",
+        notes: "Ideal Logic 30 — diverter cartridge stuck on CH, swapped it, tested DHW to 52 C." },
+    ],
+  };
+})();
+
+function openWizard(rerun) {
+  if (document.getElementById("wizard")) return;
+  const SCH = window.GasLogic.SCHEMES || [];
+  const w = { ...structuredClone(DEFAULT_DATA), ...(rerun ? structuredClone(data) : {}) };
+  const N = 4;
+  let step = 0;
+  const host = document.createElement("div");
+  host.id = "wizard";
+  document.body.appendChild(host);
+  const close = () => host.remove();
+
+  const readStep = () => {
+    const gv = (id) => (document.getElementById(id) || {}).value;
+    const n = (id, fb) => { const v = Number(gv(id)); return isNaN(v) ? fb : v; };
+    if (step === 0) {
+      w.name = (gv("wz_name") || "").trim();
+      w.baseHours = Math.max(0, n("wz_base", 0));
+    } else if (step === 1) {
+      w.required = Math.max(1, n("wz_req", 275));
+      w.goal = Math.max(1, n("wz_goal", 330));
+      w.hoursPerDay = Math.max(1, n("wz_hpd", 8));
+      if (/^\d{4}-\d{2}-\d{2}$/.test(gv("wz_dl") || "")) w.deadline = gv("wz_dl");
+      w.jobTargets = { install: Math.max(0, n("wz_ti", 5)), service: Math.max(0, n("wz_ts", 5)), repair: Math.max(0, n("wz_tr", 4)) };
+      const sc = SCH.find((x) => x.id === gv("wz_scheme"));
+      if (sc) w.schemeName = sc.label;
+    } else if (step === 2) {
+      const set = new Set();
+      for (const ln of (gv("wz_blocks") || "").split(/[\n,]/).map((x) => x.trim()).filter(Boolean)) {
+        const m = mondayISO(ln); if (m) set.add(m);
+      }
+      w.blocks = [...set].sort();
+    }
+  };
+
+  const finish = () => {
+    Object.assign(data, {
+      name: w.name, baseHours: w.baseHours, required: w.required, goal: w.goal,
+      hoursPerDay: w.hoursPerDay, deadline: w.deadline, jobTargets: w.jobTargets,
+      blocks: w.blocks, schemeName: w.schemeName, setupDone: true,
+    });
+    close(); toast(rerun ? "settings updated" : "all set — start logging"); save();
+  };
+
+  const draw = () => {
+    const dots = Array.from({ length: N }, (_, i) =>
+      `<span class="wz-dot ${i === step ? "on" : i < step ? "done" : ""}"></span>`).join("");
+    const panes = [
+      `<h2>${rerun ? "Setup" : "Welcome"}</h2>
+       <p class="wz-sub">A few details and you're set &mdash; all of this stays editable in Settings.</p>
+       <label class="wz-f">Your name <span class="dim sm">&mdash; appears on the PDF</span>
+         <input id="wz_name" value="${esc(w.name || "")}" maxlength="60" placeholder="e.g. C. Wales"></label>
+       <label class="wz-f">Hours already done <span class="dim sm">&mdash; before using this app</span>
+         <input id="wz_base" type="number" min="0" value="${w.baseHours || 0}"></label>
+       ${rerun ? "" : `<p class="wz-alt"><a id="wz_example">or load some example data to look around first</a></p>`}`,
+
+      `<h2>Your targets</h2>
+       <label class="wz-f">Scheme
+         <select id="wz_scheme">${SCH.map((x) => `<option value="${x.id}">${esc(x.label)}</option>`).join("")}</select></label>
+       <div class="wz-grid">
+         <label>Pass mark (h)<input id="wz_req" type="number" min="1" value="${w.required}"></label>
+         <label>Goal (h)<input id="wz_goal" type="number" min="1" value="${w.goal}"></label>
+         <label>Hours in a work day<input id="wz_hpd" type="number" min="1" value="${w.hoursPerDay}"></label>
+         <label>Deadline<input id="wz_dl" type="date" value="${w.deadline}"></label>
+         <label>Installs<input id="wz_ti" type="number" min="0" value="${w.jobTargets.install}"></label>
+         <label>Services<input id="wz_ts" type="number" min="0" value="${w.jobTargets.service}"></label>
+         <label>Repairs<input id="wz_tr" type="number" min="0" value="${w.jobTargets.repair}"></label>
+       </div>
+       <p class="dim sm">A starting point &mdash; confirm the exact requirements with your training centre.</p>`,
+
+      `<h2>College block weeks</h2>
+       <p class="wz-sub">Paste the week-commencing dates for your college blocks, one per line. They come out of your working-days maths. Skip it and add them later in Settings if you like.</p>
+       <textarea id="wz_blocks" rows="6" placeholder="2026-09-14&#10;2026-10-05&#10;2026-11-02">${(w.blocks || []).join("\n")}</textarea>`,
+
+      `<h2>Keep a backup</h2>
+       <p class="wz-sub">Your data lives only on this machine. Point the app at a synced folder (iCloud&nbsp;Drive, Dropbox, OneDrive) and it keeps a dated copy every time you log something.</p>
+       <div class="wz-backup">
+         <button class="btn ghost" id="wz_backup_pick" type="button">Choose backup folder&hellip;</button>
+         <div class="dim sm" id="wz_backup_state">no folder set</div>
+       </div>
+       <p class="dim sm">Optional &mdash; also in Settings any time.</p>`,
+    ];
+    host.innerHTML = `
+      <div class="wz-scrim"></div>
+      <div class="wz-card">
+        <div class="wz-dots">${dots}</div>
+        <div class="wz-body">${panes[step]}</div>
+        <div class="wz-nav">
+          ${step > 0
+            ? `<button class="btn ghost" id="wz_back" type="button">Back</button>`
+            : `<button class="btn ghost" id="wz_skip" type="button">${rerun ? "Cancel" : "Skip setup"}</button>`}
+          <button class="btn" id="wz_next" type="button">${step === N - 1 ? "Finish" : "Next"}</button>
+        </div>
+      </div>`;
+    bind();
+  };
+
+  const bind = () => {
+    document.getElementById("wz_next").onclick = () => { readStep(); if (step < N - 1) { step++; draw(); } else finish(); };
+    const back = document.getElementById("wz_back");
+    if (back) back.onclick = () => { readStep(); step--; draw(); };
+    const skip = document.getElementById("wz_skip");
+    if (skip) skip.onclick = () => { if (!rerun) { data.setupDone = true; save(); } close(); };
+    const ex = document.getElementById("wz_example");
+    if (ex) ex.onclick = () => { data = normalise(structuredClone(EXAMPLE_DATA)); close(); toast("example data loaded"); save(); };
+
+    if (step === 1) {
+      const sel = document.getElementById("wz_scheme");
+      const cur = SCH.find((x) => x.label === w.schemeName);
+      sel.value = cur ? cur.id : "standard";
+      sel.onchange = () => {
+        const sc = SCH.find((x) => x.id === sel.value);
+        if (!sc || !sc.required) return;
+        document.getElementById("wz_req").value = sc.required;
+        document.getElementById("wz_goal").value = sc.goal;
+        document.getElementById("wz_hpd").value = sc.hoursPerDay;
+        document.getElementById("wz_ti").value = sc.jobTargets.install;
+        document.getElementById("wz_ts").value = sc.jobTargets.service;
+        document.getElementById("wz_tr").value = sc.jobTargets.repair;
+      };
+    }
+    if (step === 3) {
+      const st = document.getElementById("wz_backup_state");
+      const pick = document.getElementById("wz_backup_pick");
+      if (!window.api || !window.api.pickBackupFolder) {
+        pick.style.display = "none";
+        st.textContent = "not available in this build";
+      } else {
+        window.api.backupState().then((b) => { if (b && b.dir) st.textContent = "backing up to " + b.dir; }).catch(() => {});
+        pick.onclick = async () => {
+          const r = await window.api.pickBackupFolder().catch(() => null);
+          if (r && r.ok) st.textContent = "backing up to " + r.dir;
+        };
+      }
+    }
+  };
+
+  draw();
+}
+
+function maybeWizard() {
+  if (data.setupDone) return;
+  const empty = !(data.hours || []).length && !(data.jobs || []).length && !(data.engineers || []).length;
+  if (empty) { openWizard(false); return; }
+  data.setupDone = true;                 // existing users: mark done quietly, don't nag
+  window.api.setData(data).catch(() => {});
+}
+
 // ---------- boot ----------
 function normalise(raw) {
   const d = { ...structuredClone(DEFAULT_DATA), ...(raw || {}) };
@@ -1126,6 +1466,7 @@ function normalise(raw) {
     wireTitlebar();
     window.api.onDataChanged((d) => { data = normalise(d); render(); });
     render();
+    maybeWizard();
   } catch (e) {
     document.getElementById("app").innerHTML =
       `<div class="card"><b>Couldn't start</b><div class="tiny" style="margin-top:6px">${esc(String(e))}</div></div>`;
