@@ -12,6 +12,7 @@ REPO = "https://github.com/awpehz/gas-portfolio-tracker"
 
 # make the font available next to the page
 shutil.copyfile(ROOT / "src/fonts/InterVariable.woff2", DOCS / "InterVariable.woff2")
+shutil.copyfile(ROOT / "src/img/mascot-tradesman.png", DOCS / "mascot-tradesman.png")
 
 FEATURES = [
     ("home.png", "right", "One glance tells you if you're on track",
@@ -125,9 +126,12 @@ HTML = f"""<!doctype html>
   .pills{{list-style:none;display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}}
   .pills li{{font-size:12px;font-weight:600;color:var(--accent2);background:rgba(78,168,255,.09);border:1px solid rgba(78,168,255,.22);border-radius:999px;padding:5px 12px}}
 
-  .quote{{max-width:680px;margin:20px auto;text-align:center;padding:40px 0}}
+  .quote{{max-width:680px;margin:20px auto;padding:40px 0;display:flex;align-items:center;gap:36px;justify-content:center}}
+  .quote .qmark{{flex:none;width:96px;height:auto;filter:drop-shadow(0 16px 24px rgba(0,0,0,.5))}}
+  .quote blockquote{{text-align:left}}
   .quote p{{font-size:clamp(18px,2.6vw,24px);font-weight:600;letter-spacing:-.01em}}
   .quote .by{{color:var(--ink3);font-size:13px;margin-top:14px}}
+  @media(max-width:600px){{.quote{{flex-direction:column;text-align:center}} .quote blockquote{{text-align:center}}}}
 
   .foot{{text-align:center;padding:70px 0 80px;color:var(--ink3);font-size:13px}}
   .foot-mark{{display:block;width:min(320px,70vw);margin:0 auto 12px;opacity:.9}}
@@ -179,8 +183,11 @@ HTML = f"""<!doctype html>
 </main>
 
 <div class="quote wrap">
-  <p>&ldquo;Built it for my own portfolio because nothing did this. Turns out every apprentice needs it.&rdquo;</p>
-  <div class="by">&mdash; Connor W, gas apprentice</div>
+  <img class="qmark" src="mascot-tradesman.png" alt="" width="560" height="1082" loading="lazy">
+  <blockquote>
+    <p>&ldquo;Built it for my own portfolio because nothing did this. Turns out every apprentice needs it.&rdquo;</p>
+    <div class="by">&mdash; Connor W, gas apprentice</div>
+  </blockquote>
 </div>
 
 <div class="foot">

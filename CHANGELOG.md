@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.5.0 — a face for the flame
+
+- **A mascot, used sparingly.** A small illustrated character &mdash; not the app's
+  brand mark, which stays the flame everywhere else &mdash; greets you on the
+  setup wizard's welcome step, and appears alongside the founder's quote on the
+  showcase page.
+
 ## 3.4.0 — photos on every job, and editing entries
 
 - **Photos for your jobs.** Link a Gas Portfolio folder in Settings &mdash; an

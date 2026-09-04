@@ -1495,8 +1495,13 @@ function openWizard(rerun) {
     const dots = Array.from({ length: N }, (_, i) =>
       `<span class="wz-dot ${i === step ? "on" : i < step ? "done" : ""}"></span>`).join("");
     const panes = [
-      `<h2>${rerun ? "Setup" : "Welcome"}</h2>
-       <p class="wz-sub">A few details and you're set &mdash; all of this stays editable in Settings.</p>
+      `<div class="wz-welcome-head">
+         ${rerun ? "" : `<img class="wz-mascot" src="img/mascot-tradesman.png" alt="" width="76" height="147">`}
+         <div>
+           <h2>${rerun ? "Setup" : "Welcome"}</h2>
+           <p class="wz-sub">A few details and you're set &mdash; all of this stays editable in Settings.</p>
+         </div>
+       </div>
        <label class="wz-f">Your name <span class="dim sm">&mdash; appears on the PDF</span>
          <input id="wz_name" value="${esc(w.name || "")}" maxlength="60" placeholder="e.g. C. Wales"></label>
        <label class="wz-f">Hours already done <span class="dim sm">&mdash; before using this app</span>
