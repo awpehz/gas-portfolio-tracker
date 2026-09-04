@@ -16,6 +16,26 @@ const app = document.getElementById("app");
 
 let data = {};
 let tab = "home";
+let hubLinked = false;   // a Gas Portfolio photo folder has been chosen/created
+let hubDirPath = null;   // its path, for display in Settings (kept locally — never fetched mid-render)
+let hubFolders = null;   // [{name, count}] inside its "Work Experience Records", once loaded
+
+function refreshHubFolders() {
+  if (!window.api.hubFolders) return;
+  window.api.hubFolders().then((r) => { hubFolders = (r && r.ok) ? r.folders : []; render(); }).catch(() => { hubFolders = []; });
+}
+function hubMatch(dateISO) {
+  return hubFolders ? window.GasLogic.matchHubFolder(hubFolders, dateISO) : null;
+}
+// entry-level control for the recent lists: an "open" pill once photos are linked,
+// an "add photos" button once a hub is set up but nothing's linked for that date yet
+function hubPhotoControl(dateISO, label, type) {
+  if (!hubLinked) return "";
+  const m = hubMatch(dateISO);
+  if (m) return `<button class="photopill" data-hubopen="${esc(m.name)}" title="open ${m.count} photo${m.count === 1 ? "" : "s"} in Finder">&#128247; ${m.count}</button>`;
+  if (hubFolders === null) return "";   // still loading
+  return `<button class="photopill add" data-hubadd="${esc(dateISO)}" data-hublabel="${esc(label || "")}" data-hubtype="${esc(type || "")}" title="add photos for this entry">&#128247; add</button>`;
+}
 
 function todayISO() { return toISO(new Date()); }
 function esc(s) { return String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
@@ -288,11 +308,28 @@ async function runUpdate(u, setText) {
 async function save() { await window.api.setData(data); render(); }
 
 // ---------- actions ----------
-function addHours(h, dateISO, note) {
+function addHours(h, dateISO, note, engineer) {
   h = Number(h);
   if (isNaN(h) || h <= 0) { toast("enter hours as a number"); return; }
-  data.hours.push({ date: dateISO || todayISO(), h, note: note || "" });
+  const row = { date: dateISO || todayISO(), h, note: note || "" };
+  if (engineer) row.engineer = engineer;
+  data.hours.push(row);
   toast(`+${h}h logged`); save();
+}
+// { arr: "hours"|"jobs", i } while a recent-list row is being edited inline
+let editing = null;
+function editEntry(arrName, idx, patch) {
+  const arr = data[arrName];
+  if (!Array.isArray(arr) || !arr[idx]) return;
+  Object.assign(arr[idx], patch);
+  for (const k of ["note", "notes", "engineer", "fault", "boiler"])
+    if (arr[idx][k] === "") delete arr[idx][k];
+  editing = null;
+  toast("updated"); save();
+}
+function engineerOptions(selected) {
+  return (data.engineers || []).map((e) =>
+    `<option value="${esc(e.name)}"${e.name === selected ? " selected" : ""}>${esc(e.name)}</option>`).join("");
 }
 function setWeekTotal(h) {
   h = Number(h);
@@ -578,10 +615,25 @@ function hoursPane(s) {
   const el = document.createElement("section");
   el.className = "card";
   const rowsAll = data.hours.map((r, i) => ({ r, i })).reverse();
-  const recent = rowsAll.map(({ r, i }) =>
-    `<li><span class="li-d">${esc(r.date)}</span><span class="li-v">${r.h} h${r.note ? " &middot; " + esc(r.note) : ""}</span>` +
+  const engOpts = engineerOptions();
+  const editRow = (r, i) => `<li class="li-edit">
+      <input type="date" id="eh_d" value="${r.date}" max="${todayISO()}">
+      <input type="number" id="eh_h" step="0.5" min="0.5" value="${r.h}">
+      <select id="eh_eng"><option value="">&mdash; assisted by &mdash;</option>${engineerOptions(r.engineer)}</select>
+      <input type="text" id="eh_note" value="${esc(r.note || "")}" placeholder="what was the job?">
+      <div class="li-edit-btns">
+        <button class="btn ghost sm" data-editsave="hours:${i}">Save</button>
+        <button class="btn ghost sm" data-editcancel>Cancel</button>
+      </div>
+    </li>`;
+  const recent = rowsAll.map(({ r, i }) => {
+    if (editing && editing.arr === "hours" && editing.i === i) return editRow(r, i);
+    return `<li><span class="li-d">${esc(r.date)}</span><span class="li-v">${r.h} h${r.engineer ? " &middot; " + esc(r.engineer) : ""}${r.note ? " &middot; " + esc(r.note) : ""}</span>` +
+    hubPhotoControl(r.date, r.note) +
+    `<button class="edit" data-editarr="hours" data-editi="${i}" title="edit">&#9998;</button>` +
     `<button class="conv" data-conv="${i}" title="turn this into a write-up">&rarr; write-up</button>` +
-    `<button class="del" data-arr="hours" data-i="${i}" title="delete">&times;</button></li>`).join("");
+    `<button class="del" data-arr="hours" data-i="${i}" title="delete">&times;</button></li>`;
+  }).join("");
   const today = todayISO();
   const todayLabel = new Date().toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" });
   el.innerHTML = `
@@ -609,6 +661,8 @@ function hoursPane(s) {
     </div>
     <input type="date" id="ad" value="${today}" max="${today}" hidden>
 
+    <label class="wide">Assisted by ${engOpts ? "" : `<span class="dim sm">(add engineers in Settings)</span>`}
+      <select id="aheng"><option value="">&mdash;</option>${engOpts}</select></label>
     <label class="wide ta">What was the job? <span class="dim sm">&mdash; boiler, install / service / repair, what you did</span>
       <textarea id="ahnote" rows="2" placeholder="e.g. Worcester 4000 combi service &mdash; FGA, cleaned condensate trap, checked working pressure"></textarea></label>
     <label class="chk"><input type="checkbox" id="awk"> this is my whole-week total (replaces the week)</label>
@@ -634,14 +688,31 @@ function writeupsPane(s) {
     `<span class="${v > 0 ? "ok" : "dim"}">${cap1(k)} ${v}</span>`).join('<span class="dim"> &middot; </span>');
   const opt = (o) => `<option value="${o}">${cap1(o)}</option>`;
   const rowsAll = data.jobs.map((r, i) => ({ r, i })).reverse();
+  const jobEditRow = (r, i) => `<li class="li-edit li-edit-wide">
+      <input type="date" id="ej_d" value="${r.date}" max="${todayISO()}">
+      <select id="ej_type">${["install", "service", "repair"].map((o) => `<option value="${o}"${o === r.type ? " selected" : ""}>${cap1(o)}</option>`).join("")}</select>
+      <select id="ej_boiler">${(s.boilerTypes || []).map((o) => `<option value="${o}"${o === r.boiler ? " selected" : ""}>${cap1(o)}</option>`).join("")}</select>
+      <select id="ej_fault">${(s.repairFaults || []).map((o) => `<option value="${o}"${o === r.fault ? " selected" : ""}>${cap1(o)}</option>`).join("")}</select>
+      <input type="number" id="ej_h" step="0.5" min="0.5" value="${r.h}">
+      <select id="ej_eng"><option value="">&mdash; supervised by &mdash;</option>${engineerOptions(r.engineer)}</select>
+      <textarea id="ej_notes" rows="2" placeholder="job notes">${esc(r.notes || "")}</textarea>
+      <div class="li-edit-btns">
+        <button class="btn ghost sm" data-editsave="jobs:${i}">Save</button>
+        <button class="btn ghost sm" data-editcancel>Cancel</button>
+      </div>
+    </li>`;
   const recent = rowsAll.map(({ r, i }) => {
+    if (editing && editing.arr === "jobs" && editing.i === i) return jobEditRow(r, i);
     const bits = [r.type, r.boiler, r.fault].filter(Boolean).map(cap1).join(" / ");
     const eng = r.engineer ? ` &middot; ${esc(r.engineer)}` : "";
     const note = r.notes ? `<span class="li-note">${esc(r.notes)}</span>` : "";
+    const label = [cap1(r.type), r.boiler && cap1(r.boiler)].filter(Boolean).join(" - ");
     return `<li class="li-wrap"><span class="li-d">${esc(r.date)}</span><span class="li-v">${esc(bits)} &middot; ${r.h} h${eng}</span>` +
+      hubPhotoControl(r.date, label, r.type) +
+      `<button class="edit" data-editarr="jobs" data-editi="${i}" title="edit">&#9998;</button>` +
       `<button class="del" data-arr="jobs" data-i="${i}" title="delete">&times;</button>${note}</li>`;
   }).join("");
-  const engOpts = (data.engineers || []).map((e) => `<option value="${esc(e.name)}">${esc(e.name)}</option>`).join("");
+  const engOpts = engineerOptions();
   const pc = pendingConvert;
   el.innerHTML = `
     <h3>Unassisted write-ups <span class="h3-r">${s.jobsDone}/${s.jobsTotal} &middot; ${s.jobHours} h</span></h3>
@@ -865,6 +936,16 @@ function settingsPane() {
       </div>
     </div>
 
+    <div class="chipedit" id="s_hub_box">
+      <div class="ce-h">Photos for your jobs</div>
+      <p class="dim sm" style="margin:0 0 8px">Link a Gas Portfolio folder and every Hours / Jobs entry gets a photo button &mdash; open the ones you've already filed, or add new ones straight from an entry. Pick an existing folder (one with a "Work Experience Records" folder in it) or an empty one and it's set up for you: <b>Work Experience Records</b>, <b>Unassisted Job Records</b> (one bay per target), <b>Gas Safe Engineer Credentials</b>.</p>
+      <div class="backup-row">
+        <button class="btn ghost sm" id="s_hub_pick" type="button">Choose or create folder&hellip;</button>
+        <button class="btn ghost sm" id="s_hub_off" type="button" hidden>Unlink</button>
+        <span class="dim sm" id="s_hub_state">not linked</span>
+      </div>
+    </div>
+
     <div class="row-links">
       <a id="s_wizard">run setup again</a>
       <a id="s_example">load example data</a>
@@ -894,13 +975,15 @@ function helpPane() {
     or a booked holiday.</p>
     <h4>Hours tab</h4>
     <p>Assisted work &mdash; hours alongside a Gas&nbsp;Safe engineer. Type the hours, pick the
-    date, <b>Log hours</b>. Tick <b>whole-week total</b> to set one figure for the week
-    instead of adding. Each entry in the Recent list has its own <b>&times;</b> to delete just that one.</p>
+    date, who you were <b>assisted by</b>, and <b>Log hours</b>. Tick <b>whole-week total</b>
+    to set one figure for the week instead of adding. Each entry in the Recent list has its own
+    <b>&#9998;</b> to edit it and <b>&times;</b> to delete just that one.</p>
     <h4>Write-ups tab</h4>
     <p>Your 14 unassisted jobs (5 / 5 / 4, all editable in Settings). Pick the type, the
     <b>boiler</b> and, for repairs, the <b>fault</b>, set the hours, and who
     <b>supervised</b> it (from the engineers you've added in Settings), then <b>Log write-up</b>.
-    Those hours count toward your total too. Tapping a tile logs one instantly.</p>
+    Those hours count toward your total too. Tapping a tile logs one instantly, and every entry
+    can be edited afterwards with <b>&#9998;</b>.</p>
     <h4>Progress tab</h4>
     <p>Hours logged <b>per week</b> for the last two months, a <b>what's&#8209;left checklist</b>
     (pass mark, goal, every write-up count, every boiler and fault), and a <b>worth a look</b>
@@ -915,13 +998,17 @@ function helpPane() {
     <b>Automatic backup</b> writes a dated copy to a folder you choose every time you log
     something; point it at iCloud&nbsp;Drive, Dropbox or OneDrive to keep a copy off this
     machine. <b>export / import data</b> moves your whole tracker between machines, and
-    <b>run setup again</b> reopens the welcome wizard.</p>
+    <b>run setup again</b> reopens the welcome wizard. <b>Photos for your jobs</b> links a Gas
+    Portfolio folder (an existing one, or an empty one to set up fresh) &mdash; once linked,
+    every Hours / Jobs entry gets a camera button: add photos straight from the entry, or open
+    the ones you've already filed.</p>
     <h4>Desktop widget</h4>
     <p>Turn it on with the <span class="k">&#9713;</span> button, <span class="k">Cmd/Ctrl + Shift + W</span>, or the tick-box in Settings. It sits on your desktop behind your windows &mdash; total, bar and daily rate, updating live &mdash; and stays there even when the app is closed. Control it from the <b>menu-bar flame</b> at the top of the screen: open the app, log +2 h, move the widget to another corner, or set it to start at login. Closing the app window just tucks it away; the widget and menu-bar icon keep going until you pick <b>Quit</b>. The <span class="k">pin</span> button just keeps the app window itself on top.</p>
 
     <h3 style="margin-top:16px">FAQ</h3>
     ${faq("Does any of this leave my computer?", "No. Everything is saved on your machine. The PDF and data export are files you choose to share.")}
-    ${faq("I logged the wrong thing.", "Hit the <b>&times;</b> next to that entry in the Recent list. Or open the raw file &mdash; app menu &rarr; Data &rarr; Reveal data file.")}
+    ${faq("I logged the wrong thing.", "Hit <b>&#9998;</b> next to that entry in the Recent list to fix the date, hours, engineer or note &mdash; or <b>&times;</b> to delete it outright. Or open the raw file: app menu &rarr; Data &rarr; Reveal data file.")}
+    ${faq("How do photos work?", "Settings &rarr; <b>Photos for your jobs</b>, then link a folder (or let the app set one up). Each Hours / Jobs entry then gets a camera button &mdash; add photos to it, or open the ones already filed. Nothing is copied anywhere else; it's all on your machine.")}
     ${faq("Why did the rate needed jump up?", "It's spread only over the days you're actually available. Adding a college week or a holiday takes days out, so the rate on the days that remain goes up.")}
     ${faq("Can I log for a day in the past?", "Yes &mdash; the Hours tab has a date picker next to the hours box.")}
     ${faq("I got a new laptop.", "Settings &rarr; <b>export my data</b> on the old one, <b>import data</b> on the new one. Or turn on <b>Automatic backup</b> to a synced folder and import the latest dated file.")}
@@ -977,6 +1064,43 @@ function wire(s) {
   app.querySelectorAll(".del").forEach((b) =>
     b.addEventListener("click", () => removeEntry(b.dataset.arr, parseInt(b.dataset.i, 10))));
 
+  // inline edit for a recent-list entry (Hours / Jobs)
+  app.querySelectorAll("[data-editarr]").forEach((b) =>
+    b.addEventListener("click", () => { editing = { arr: b.dataset.editarr, i: parseInt(b.dataset.editi, 10) }; render(); }));
+  app.querySelectorAll("[data-editcancel]").forEach((b) =>
+    b.addEventListener("click", () => { editing = null; render(); }));
+  app.querySelectorAll("[data-editsave]").forEach((b) =>
+    b.addEventListener("click", () => {
+      const [arrName, iStr] = b.dataset.editsave.split(":");
+      const i = parseInt(iStr, 10);
+      const gv = (id) => { const el = document.getElementById(id); return el ? el.value : ""; };
+      const h = Number(gv(arrName === "hours" ? "eh_h" : "ej_h"));
+      if (isNaN(h) || h <= 0) { toast("enter hours as a number"); return; }
+      if (arrName === "hours") {
+        editEntry("hours", i, { date: gv("eh_d") || todayISO(), h, note: gv("eh_note"), engineer: gv("eh_eng") });
+      } else if (arrName === "jobs") {
+        const type = gv("ej_type");
+        editEntry("jobs", i, {
+          date: gv("ej_d") || todayISO(), type, boiler: gv("ej_boiler"),
+          fault: type === "repair" ? gv("ej_fault") : "",
+          h, engineer: gv("ej_eng"), notes: gv("ej_notes"),
+        });
+      }
+    }));
+
+  // College Hub photo pills on recent-list entries
+  app.querySelectorAll("[data-hubopen]").forEach((b) =>
+    b.addEventListener("click", () => window.api.openHubFolder(b.dataset.hubopen)));
+  app.querySelectorAll("[data-hubadd]").forEach((b) =>
+    b.addEventListener("click", async () => {
+      b.disabled = true;
+      const r = await window.api.addEntryPhotos({
+        date: b.dataset.hubadd, label: b.dataset.hublabel, type: b.dataset.hubtype,
+      }).catch(() => null);
+      b.disabled = false;
+      if (r && r.ok) { toast(`${r.copied} photo${r.copied === 1 ? "" : "s"} added`); refreshHubFolders(); }
+    }));
+
   // recent-list filter + show-all (Hours / Jobs)
   app.querySelectorAll(".listtools").forEach((tools) => {
     const list = tools.parentElement.querySelector("ul.list");
@@ -1016,9 +1140,10 @@ function wire(s) {
         : (v > 0 ? `Log ${r1(v)} h` : "Log hours");
     };
     const noteEl = document.getElementById("ahnote");
+    const engEl = document.getElementById("aheng");
     const go = () => {
       if (wk.checked) setWeekTotal(h.value);
-      else addHours(h.value, dateEl.value, noteEl && noteEl.value);
+      else addHours(h.value, dateEl.value, noteEl && noteEl.value, engEl && engEl.value);
     };
     app.querySelectorAll("[data-add]").forEach((b) => b.addEventListener("click", () => {
       if (b.dataset.add === "clear") h.value = "";
@@ -1240,6 +1365,31 @@ function wire(s) {
       bOff.onclick = async () => {
         await window.api.disableBackup().catch(() => {});
         paintBackup(null); toast("automatic backup off");
+      };
+    }
+    // photos for jobs — the College Hub folder link
+    const hPick = document.getElementById("s_hub_pick");
+    const hOff = document.getElementById("s_hub_off");
+    const hState = document.getElementById("s_hub_state");
+    if (!window.api.pickHubFolder) {
+      document.getElementById("s_hub_box").style.display = "none";
+    } else {
+      const paintHub = (dir) => {
+        hubLinked = !!dir; hubDirPath = dir || null;
+        hState.textContent = dir
+          ? `linked — ${dir}${hubFolders ? ` · ${hubFolders.length} job folder${hubFolders.length === 1 ? "" : "s"}` : ""}`
+          : "not linked";
+        hOff.hidden = !dir;
+        hPick.textContent = dir ? "Change folder…" : "Choose or create folder…";
+      };
+      paintHub(hubDirPath);   // paint from what we already know — no re-fetch on every render
+      hPick.onclick = async () => {
+        const r = await window.api.pickHubFolder(data.jobTargets).catch(() => null);
+        if (r && r.ok) { paintHub(r.dir); refreshHubFolders(); toast(r.created ? "Gas Portfolio folder set up" : "folder linked"); }
+      };
+      hOff.onclick = async () => {
+        await window.api.disableHub().catch(() => {});
+        hubFolders = null; paintHub(null); toast("photo folder unlinked");
       };
     }
     document.getElementById("s_export").onclick = () => {
@@ -1467,6 +1617,7 @@ function normalise(raw) {
     window.api.onDataChanged((d) => { data = normalise(d); render(); });
     render();
     maybeWizard();
+    if (window.api.hubState) window.api.hubState().then((r) => { if (r && r.dir) { hubLinked = true; hubDirPath = r.dir; refreshHubFolders(); } }).catch(() => {});
   } catch (e) {
     document.getElementById("app").innerHTML =
       `<div class="card"><b>Couldn't start</b><div class="tiny" style="margin-top:6px">${esc(String(e))}</div></div>`;

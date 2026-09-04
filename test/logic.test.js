@@ -3,6 +3,7 @@ const assert = require("assert");
 const {
   computeStatus, DEFAULT_DATA,
   SCHEMES, weeklyHours, buildChecklist, engineerCardWarnings, dataWarnings,
+  matchHubFolder,
 } = require("../src/logic.js");
 
 let pass = 0, fail = 0;
@@ -335,6 +336,21 @@ t("dataWarnings: a clean log produces nothing", () => {
     jobs: [{ date: "2026-08-26", type: "service", h: 2, boiler: "system" }],
   }, new Date(2026, 8, 4));
   assert.strictEqual(w.length, 0);
+});
+
+// ---------- College Hub folder matching ----------
+t("matchHubFolder: matches a numbered date-prefixed folder by exact date", () => {
+  const folders = [
+    "19. 2026-09-03  62 Lawson Drive, KA22 7JL (install)",
+    "20. 2026-09-04  33 Victoria Drive East (2), Renfrew, PA4 8EZ (install)",
+  ];
+  assert.strictEqual(matchHubFolder(folders, "2026-09-04"), "20. 2026-09-04  33 Victoria Drive East (2), Renfrew, PA4 8EZ (install)");
+  assert.strictEqual(matchHubFolder(folders, "2026-09-05"), null);
+});
+
+t("matchHubFolder: works with {name,count} objects too", () => {
+  const folders = [{ name: "01. 2025-09-04  1 Fullarton Square, Ardrossan (service)", count: 22 }];
+  assert.strictEqual(matchHubFolder(folders, "2025-09-04"), folders[0]);
 });
 
 console.log(`\n${pass} passed, ${fail} failed`);

@@ -1280,3 +1280,37 @@ label.wide.ta textarea { min-height: 58px; font-family: inherit; font-size: 12.5
 
 /* 7 tabs — a touch tighter so the labels still breathe */
 .tabs button { padding-left: 3px; padding-right: 3px; letter-spacing: -0.1px; }
+
+/* College Hub photo pills on Hours / Jobs entries */
+.list li .photopill {
+  flex: none; border: 1px solid var(--line-2); background: rgba(78,168,255,0.08);
+  color: var(--accent-2); font: inherit; font-size: 10px; font-weight: 700;
+  padding: 3px 8px; border-radius: 999px; cursor: pointer; margin-left: 6px;
+  transition: background 0.12s, border-color 0.12s, opacity 0.12s;
+}
+.list li .photopill:hover { background: rgba(78,168,255,0.18); border-color: var(--accent); }
+.list li .photopill.add { background: rgba(255,255,255,0.05); color: var(--ink-2); border-color: var(--line); }
+.list li .photopill.add:hover { background: rgba(255,255,255,0.1); color: var(--ink); }
+.list li .photopill:disabled { opacity: 0.5; cursor: default; }
+
+/* edit an existing entry inline */
+.list li .edit {
+  flex: none; width: 22px; height: 22px; border: 0; border-radius: 6px;
+  background: transparent; color: var(--ink-3); font-size: 12px; line-height: 1; cursor: pointer;
+  transition: background 0.12s, color 0.12s; margin-left: 6px;
+}
+.list li .edit:hover { background: rgba(78,168,255,0.14); color: var(--accent-2); }
+.list li.li-edit {
+  display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+  background: var(--surface-2); border: 1px solid var(--accent); border-radius: 10px; padding: 10px 11px;
+}
+.list li.li-edit input, .list li.li-edit select {
+  flex: 1 1 110px; min-width: 90px; padding: 7px 9px; font: inherit; font-size: 12px;
+  background: var(--bg2); border: 1px solid var(--line-2); border-radius: 7px; color: var(--ink);
+}
+.list li.li-edit input[type="number"] { flex: 0 1 70px; min-width: 60px; }
+.list li.li-edit.li-edit-wide textarea {
+  flex: 1 1 100%; min-width: 0; padding: 7px 9px; font: inherit; font-size: 12px; line-height: 1.4;
+  background: var(--bg2); border: 1px solid var(--line-2); border-radius: 7px; color: var(--ink); resize: vertical;
+}
+.li-edit-btns { flex: 1 1 100%; display: flex; justify-content: flex-end; gap: 8px; }

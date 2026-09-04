@@ -387,10 +387,21 @@ function dataWarnings(data, now = new Date()) {
   return out.sort((a, b) => (a.date < b.date ? 1 : -1));
 }
 
+// ---------- College Hub photo folders: match "NN. YYYY-MM-DD  <description>" to a date ----------
+const HUB_FOLDER_DATE = /^\d+\.\s+(\d{4}-\d{2}-\d{2})(?:\s|$)/;
+function matchHubFolder(folders, dateISO) {
+  return (folders || []).find((f) => {
+    const name = typeof f === "string" ? f : f.name;
+    const m = HUB_FOLDER_DATE.exec(name || "");
+    return m && m[1] === dateISO;
+  }) || null;
+}
+
 const GasLogic = {
   computeStatus, DEFAULT_DATA, toISO, parseISO, isoWeek,
   GAS, gasRateMetric, gasRateImperial, heatInputMetric, heatInputImperial,
   SCHEMES, weeklyHours, buildChecklist, engineerCardWarnings, dataWarnings,
+  matchHubFolder,
 };
 if (typeof module !== "undefined" && module.exports) module.exports = GasLogic;
 if (typeof window !== "undefined") window.GasLogic = GasLogic;

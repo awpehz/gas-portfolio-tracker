@@ -437,6 +437,137 @@ ipcMain.handle("backup-now", () => {
   autoBackup(loadData());
   return { ok: true, lastBackup: loadState().lastBackup || null };
 });
+// ---------- College Hub photo folders: link portfolio dates to your OneDrive job folders ----------
+// Expects <hubDir>/Work Experience Records/NN. YYYY-MM-DD  <description>/Photos/*.jpg
+function findHubDir() {
+  try {
+    const csRoot = path.join(app.getPath("home"), "Library", "CloudStorage");
+    for (const cloud of fs.readdirSync(csRoot)) {
+      const cloudPath = path.join(csRoot, cloud);
+      if (!fs.statSync(cloudPath).isDirectory()) continue;
+      for (const sub of fs.readdirSync(cloudPath)) {
+        const candidate = path.join(cloudPath, sub);
+        try {
+          if (fs.statSync(candidate).isDirectory() && fs.existsSync(path.join(candidate, "Work Experience Records")))
+            return candidate;
+        } catch {}
+      }
+    }
+  } catch {}
+  return null;
+}
+function hubDir() {
+  const saved = loadState().hubDir;
+  if (saved && fs.existsSync(saved)) return saved;
+  const found = findHubDir();
+  if (found) saveState({ ...loadState(), hubDir: found });
+  return found;
+}
+ipcMain.handle("hub-state", () => ({ dir: hubDir() }));
+function scaffoldHub(root, jobTargets) {
+  const t = jobTargets && typeof jobTargets === "object" ? jobTargets : { install: 5, service: 5, repair: 4 };
+  fs.mkdirSync(path.join(root, "Work Experience Records"), { recursive: true });
+  fs.mkdirSync(path.join(root, "Gas Safe Engineer Credentials"), { recursive: true });
+  const unassisted = path.join(root, "Unassisted Job Records");
+  if (!fs.existsSync(unassisted)) {
+    let n = 1;
+    const mk = (label, count) => { for (let i = 0; i < count; i++) fs.mkdirSync(path.join(unassisted, `${String(n++).padStart(2, "0")} ${label}`, "Photos"), { recursive: true }); };
+    mk("Install", Math.max(0, t.install || 0));
+    mk("Service", Math.max(0, t.service || 0));
+    mk("Repair", Math.max(0, t.repair || 0));
+  }
+}
+// pick a folder to use as the portfolio hub; if it has no "Work Experience Records"
+// subfolder yet, scaffold the full structure inside it (existing folders are never touched)
+ipcMain.handle("pick-hub-folder", async (_e, jobTargets) => {
+  const r = await dialog.showOpenDialog(win, {
+    title: "Choose or create your Gas Portfolio folder",
+    defaultPath: findHubDir() || undefined,
+    properties: ["openDirectory", "createDirectory"],
+    message: 'Pick a folder — an existing one with "Work Experience Records" in it, or an empty one to set up fresh.',
+  });
+  if (r.canceled || !r.filePaths[0]) return { ok: false };
+  const dir = r.filePaths[0];
+  const hadWER = fs.existsSync(path.join(dir, "Work Experience Records"));
+  try { scaffoldHub(dir, jobTargets); } catch (e) { return { ok: false, error: String(e && e.message || e) }; }
+  saveState({ ...loadState(), hubDir: dir });
+  return { ok: true, dir, created: !hadWER };
+});
+ipcMain.handle("disable-hub", () => {
+  const st = loadState(); delete st.hubDir; saveState(st);
+  return { ok: true };
+});
+ipcMain.handle("hub-folders", () => {
+  const dir = hubDir();
+  if (!dir) return { ok: false, folders: [] };
+  const wer = path.join(dir, "Work Experience Records");
+  try {
+    const folders = fs.readdirSync(wer, { withFileTypes: true })
+      .filter((e) => e.isDirectory())
+      .map((e) => {
+        let count = 0;
+        try { count = fs.readdirSync(path.join(wer, e.name, "Photos")).filter((f) => /\.(jpe?g|png|heic)$/i.test(f)).length; } catch {}
+        return { name: e.name, count };
+      });
+    return { ok: true, folders };
+  } catch { return { ok: false, folders: [] }; }
+});
+ipcMain.on("open-hub-folder", (_e, folderName) => {
+  const dir = hubDir();
+  if (!dir || !folderName) return;
+  shell.openPath(path.join(dir, "Work Experience Records", folderName));
+});
+
+function nextHubSeq(wer) {
+  let max = 0;
+  try {
+    for (const n of fs.readdirSync(wer)) { const m = /^(\d+)\./.exec(n); if (m) max = Math.max(max, parseInt(m[1], 10)); }
+  } catch {}
+  return max + 1;
+}
+const fsSafe = (s) => String(s || "").replace(/[\/:*?"<>|]/g, "-").trim().slice(0, 48);
+
+// user picks photo files for one dated entry; we find (or create) its job folder
+// under Work Experience Records and copy the files into its Photos bay
+ipcMain.handle("add-entry-photos", async (_e, { date, label, type } = {}) => {
+  const dir = hubDir();
+  if (!dir || !/^\d{4}-\d{2}-\d{2}$/.test(date || "")) return { ok: false };
+  const r = await dialog.showOpenDialog(win, {
+    title: "Choose photos to attach",
+    properties: ["openFile", "multiSelections"],
+    filters: [{ name: "Images", extensions: ["jpg", "jpeg", "png", "heic", "heif"] }],
+  });
+  if (r.canceled || !r.filePaths.length) return { ok: false };
+
+  const wer = path.join(dir, "Work Experience Records");
+  fs.mkdirSync(wer, { recursive: true });
+  let folderName = null;
+  try {
+    folderName = fs.readdirSync(wer).find((n) => {
+      const m = /^\d+\.\s+(\d{4}-\d{2}-\d{2})(?:\s|$)/.exec(n);
+      return m && m[1] === date;
+    });
+  } catch {}
+  if (!folderName) {
+    const seq = nextHubSeq(wer);
+    const desc = fsSafe(label);
+    const typeSuffix = type ? ` (${fsSafe(type)})` : "";
+    folderName = `${String(seq).padStart(2, "0")}. ${date}${desc ? "  " + desc : ""}${typeSuffix}`;
+  }
+  const photosDir = path.join(wer, folderName, "Photos");
+  fs.mkdirSync(photosDir, { recursive: true });
+  let start = 0;
+  try { start = fs.readdirSync(photosDir).filter((f) => /\.(jpe?g|png|heic|heif)$/i.test(f)).length; } catch {}
+  const base = fsSafe(label) || "Photo";
+  let copied = 0;
+  r.filePaths.forEach((src, i) => {
+    const ext = (path.extname(src) || ".jpg").toLowerCase();
+    const dest = path.join(photosDir, `${base} ${String(start + i + 1).padStart(2, "0")}${ext}`);
+    try { fs.copyFileSync(src, dest); copied++; } catch {}
+  });
+  return { ok: true, folder: folderName, copied };
+});
+
 ipcMain.handle("check-update", () => updater.checkUpdate());
 ipcMain.handle("update-download", (e) =>
   updater.downloadUpdate((p) => { try { e.sender.send("update-progress", p); } catch {} }));

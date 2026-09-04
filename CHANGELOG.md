@@ -1,5 +1,20 @@
 # Changelog
 
+## 3.4.0 — photos on every job, and editing entries
+
+- **Photos for your jobs.** Link a Gas Portfolio folder in Settings &mdash; an
+  existing one (with a "Work Experience Records" folder in it) or an empty one,
+  which gets the full structure set up for you: Work Experience Records,
+  Unassisted Job Records (one bay per target), Gas Safe Engineer Credentials.
+  Once linked, every Hours / Jobs entry gets a camera button: open the photos
+  already filed for that date, or add new ones straight from the entry &mdash;
+  no need to leave the app or match dates up by hand.
+- **Edit a logged entry.** Hours and Jobs both get an edit (&#9998;) button next
+  to delete &mdash; fix the date, hours, note or engineer after the fact instead
+  of deleting and re-logging.
+- **Assisted by, on Hours too.** Pick who you were with on an assisted-hours
+  entry, same as write-ups already had.
+
 ## 3.3.0 — Progress tab, setup wizard, presets, backups
 
 A big one. Nine things:
