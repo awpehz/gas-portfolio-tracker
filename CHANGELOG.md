@@ -1,5 +1,33 @@
 # Changelog
 
+## 3.6.1 — a proper audit pass
+
+Went through the whole app as if grading it, and fixed what I found:
+
+- **Next 14 days strip redesigned** — the pipe/valve graphic looked bolted on
+  next to the rest of the app; it's now flat tinted day-chips matching the
+  tiles and coverage pips everywhere else.
+- **"Reset all data" (app menu) now asks first**, same as the one in Settings
+  always did. One misclick used to wipe everything instantly.
+- **A corrupted data file no longer fails silently.** If it can't be read,
+  the app offers to restore your newest automatic backup instead of quietly
+  opening empty — and keeps the unreadable original alongside it either way.
+- **"Assisted by" is finished** — it's now on the PDF's assisted-hours table
+  and counted in each engineer's totals in Settings, not just saved and never
+  shown again.
+- Fixed **negative hours** being accepted on a write-up.
+- Deleting an engineer no longer **silently wipes** the reference on an entry
+  you go on to edit — the removed name stays selectable (marked "removed")
+  instead of vanishing.
+- **Keyboard access**: every Settings action (export, import, reset, run
+  setup again, calendar sync) is now a real, focusable, Enter/Space-able
+  button — they were unreachable by keyboard before.
+- Folder-picker and photo-import failures now say so instead of failing
+  silently or claiming success when nothing actually copied.
+- Added a note that **"unassisted" write-ups still need a Gas Safe engineer
+  present** — it means you did the hands-on work, not that you were alone.
+- Removed dead code (`portfolioFinishText`, a duplicated days-off handler).
+
 ## 3.6.0 — the working-day pipe run
 
 - **Next 14 days, drawn as a run of pipe** on Home &mdash; working days flow,

@@ -323,11 +323,13 @@ function engineerCardWarnings(data, now = new Date()) {
     if (!e || !/^\d{4}-\d{2}-\d{2}$/.test(e.expiry || "")) continue;
     const exp = parseISO(e.expiry);
     const jobs = (d.jobs || []).filter((j) => j.engineer === e.name).length;
+    const hours = (d.hours || []).filter((h) => h.engineer === e.name).length;
+    const entries = jobs + hours;
     if (exp < today) {
-      out.push({ name: e.name, expired: true, jobs,
-        detail: `card expired ${toISO(exp)}${jobs ? ` — ${jobs} write-up${jobs === 1 ? "" : "s"} linked` : ""}` });
+      out.push({ name: e.name, expired: true, jobs, hours, entries,
+        detail: `card expired ${toISO(exp)}${entries ? ` — ${entries} entr${entries === 1 ? "y" : "ies"} linked` : ""}` });
     } else if (exp < soon) {
-      out.push({ name: e.name, expired: false, soon: true, jobs, detail: `card expires ${toISO(exp)}` });
+      out.push({ name: e.name, expired: false, soon: true, jobs, hours, entries, detail: `card expires ${toISO(exp)}` });
     }
   }
   return out;

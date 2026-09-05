@@ -1,7 +1,7 @@
 // Plain Node assertions — run: node test/logic.test.js
 const assert = require("assert");
 const {
-  computeStatus, DEFAULT_DATA,
+  computeStatus, DEFAULT_DATA, toISO, parseISO,
   SCHEMES, weeklyHours, buildChecklist, engineerCardWarnings, dataWarnings,
   matchHubFolder, nextDaysStrip,
 } = require("../src/logic.js");
@@ -291,6 +291,18 @@ t("engineerCardWarnings: expired card with a linked write-up is flagged", () => 
   assert.strictEqual(out[0].jobs, 1);
 });
 
+t("engineerCardWarnings: assisted-hours entries count toward the linked total too", () => {
+  const out = engineerCardWarnings({
+    engineers: [{ name: "D. Harper", expiry: "2026-01-01" }],
+    jobs: [{ date: "2026-08-20", type: "install", h: 3, engineer: "D. Harper" }],
+    hours: [{ date: "2026-08-21", h: 5, engineer: "D. Harper" }, { date: "2026-08-22", h: 4, engineer: "" }],
+  }, new Date(2026, 8, 4));
+  assert.strictEqual(out[0].jobs, 1);
+  assert.strictEqual(out[0].hours, 1);
+  assert.strictEqual(out[0].entries, 2);
+  assert.match(out[0].detail, /2 entries linked/);
+});
+
 t("engineerCardWarnings: a card expiring within 30 days is a soft warning, not expired", () => {
   const out = engineerCardWarnings({
     engineers: [{ name: "A. Fitter", expiry: "2026-09-20" }],
@@ -375,6 +387,20 @@ t("nextDaysStrip: a college week wins over a day off booked in it", () => {
   const tue = days.find((d) => d.date === "2026-09-15");
   assert.strictEqual(tue.status, "college");
   assert.strictEqual(tue.off, true); // still flagged as off, just outranked for display
+});
+
+// ---------- date helpers (previously only exercised indirectly) ----------
+t("toISO: formats a local date as YYYY-MM-DD, zero-padded", () => {
+  assert.strictEqual(toISO(new Date(2026, 0, 5)), "2026-01-05");
+  assert.strictEqual(toISO(new Date(2026, 11, 31)), "2026-12-31");
+});
+
+t("parseISO: round-trips with toISO and reads year/month/day correctly", () => {
+  const d = parseISO("2026-09-04");
+  assert.strictEqual(d.getFullYear(), 2026);
+  assert.strictEqual(d.getMonth(), 8);   // 0-indexed: September
+  assert.strictEqual(d.getDate(), 4);
+  assert.strictEqual(toISO(parseISO("2026-09-04")), "2026-09-04");
 });
 
 console.log(`\n${pass} passed, ${fail} failed`);

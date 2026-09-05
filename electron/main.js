@@ -24,6 +24,8 @@ function saveData(d) {
 const BACKUP_KEEP = 21;
 function autoBackup(d) {
   try {
+    // never let an empty/reset save clobber a real backup — nothing worth backing up anyway
+    if (!d || (!(d.hours || []).length && !(d.jobs || []).length)) return;
     const dir = loadState().backupDir;
     if (!dir || !fs.existsSync(dir)) return;
     const day = new Date().toISOString().slice(0, 10);
@@ -34,6 +36,59 @@ function autoBackup(d) {
       fs.rmSync(path.join(dir, f), { force: true });
     saveState({ ...loadState(), lastBackup: Date.now() });
   } catch {}
+}
+
+function findLatestBackup() {
+  try {
+    const dir = loadState().backupDir;
+    if (!dir || !fs.existsSync(dir)) return null;
+    const files = fs.readdirSync(dir)
+      .filter((f) => /^gas-portfolio-\d{4}-\d{2}-\d{2}\.json$/.test(f)).sort();
+    return files.length ? path.join(dir, files[files.length - 1]) : null;
+  } catch { return null; }
+}
+
+// runs once at startup, before the window loads: tell corruption apart from a fresh
+// install / a genuine reset, and offer to restore the newest auto-backup if there is one
+function checkDataIntegrity() {
+  if (!fs.existsSync(DATA_FILE)) return;
+  let raw;
+  try { raw = fs.readFileSync(DATA_FILE, "utf8"); } catch { return; }
+  if (!raw.trim()) return;               // empty file — a deliberate reset, not corruption
+  try { JSON.parse(raw); return; } catch {}  // parses fine, nothing to do
+
+  // non-empty but unparseable: real corruption. Keep the broken file rather than lose it.
+  const broken = DATA_FILE.replace(/\.json$/, `.corrupted-${Date.now()}.json`);
+  try { fs.copyFileSync(DATA_FILE, broken); } catch {}
+
+  const backup = findLatestBackup();
+  if (backup) {
+    const m = /\d{4}-\d{2}-\d{2}/.exec(path.basename(backup));
+    const r = dialog.showMessageBoxSync({
+      type: "warning",
+      buttons: ["Restore backup", "Start empty"],
+      defaultId: 0,
+      cancelId: 1,
+      title: "Data file couldn't be read",
+      message: "Your portfolio data file looks corrupted.",
+      detail: `A backup from ${m ? m[0] : "earlier"} is available. The unreadable file has been kept alongside it as a .corrupted copy either way, in case it can be recovered by hand.`,
+    });
+    try {
+      if (r === 0) fs.writeFileSync(DATA_FILE, fs.readFileSync(backup, "utf8"));
+      else fs.writeFileSync(DATA_FILE, "{}");
+    } catch {}
+  } else {
+    try {
+      dialog.showMessageBoxSync({
+        type: "warning",
+        buttons: ["OK"],
+        title: "Data file couldn't be read",
+        message: "Your portfolio data file looks corrupted, and no automatic backup was found.",
+        detail: `The app will start with an empty portfolio. The unreadable original was kept at:\n${broken}\nin case it can be recovered by hand.`,
+      });
+    } catch {}
+    try { fs.writeFileSync(DATA_FILE, "{}"); } catch {}
+  }
 }
 
 const BOUNDS_FILE = path.join(app.getPath("userData"), "window-bounds.json");
@@ -368,8 +423,18 @@ function createWindow(opts = {}) {
           click: () => shell.showItemInFolder(DATA_FILE),
         },
         {
-          label: "Reset all data",
-          click: () => {
+          label: "Reset all data…",
+          click: async () => {
+            const r = await dialog.showMessageBox(win, {
+              type: "warning",
+              buttons: ["Cancel", "Reset everything"],
+              defaultId: 0,
+              cancelId: 0,
+              title: "Reset all data",
+              message: "Wipe all logged hours, write-ups and settings?",
+              detail: "This can't be undone from here. If automatic backup is on, the last backup will still be on disk.",
+            });
+            if (r.response !== 1) return;
             saveData({});
             win.webContents.send("data-changed", {});
             pushWidget();
@@ -565,7 +630,9 @@ ipcMain.handle("add-entry-photos", async (_e, { date, label, type } = {}) => {
     const dest = path.join(photosDir, `${base} ${String(start + i + 1).padStart(2, "0")}${ext}`);
     try { fs.copyFileSync(src, dest); copied++; } catch {}
   });
-  return { ok: true, folder: folderName, copied };
+  const failed = r.filePaths.length - copied;
+  // ok reflects whether ANY file actually copied, so a total failure doesn't read as success
+  return { ok: copied > 0, folder: folderName, copied, failed };
 });
 
 ipcMain.handle("check-update", () => updater.checkUpdate());
@@ -606,6 +673,7 @@ if (!app.requestSingleInstanceLock()) {
 }
 
 app.whenReady().then(() => {
+  checkDataIntegrity();
   createTray();
   const openedHidden = (() => { try { return app.getLoginItemSettings().wasOpenedAsHidden; } catch { return false; } })();
   createWindow({ show: !openedHidden });
