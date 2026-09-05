@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  A small desktop app for tracking a gas SVQ / NVQ portfolio —<br>
+  A small desktop app for tracking the gas portfolio behind a Plumbing &amp; Heating SVQ —<br>
   assisted hours, unassisted write-ups, and whether you'll actually hit the deadline.
 </p>
 

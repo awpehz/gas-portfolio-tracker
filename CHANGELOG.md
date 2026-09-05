@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.5.1 — copy fix
+
+- Corrected the "gas apprentice" / "gas SVQ/NVQ" copy across the README, app
+  description and showcase page to "the gas portfolio behind a Plumbing &
+  Heating SVQ" — more accurate to how the gas ACS route actually works.
+
 ## 3.5.0 — a face for the flame
 
 - **A mascot, used sparingly.** A small illustrated character &mdash; not the app's

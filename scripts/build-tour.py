@@ -62,7 +62,7 @@ HTML = f"""<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Gas Portfolio Tracker</title>
-<meta name="description" content="Know if you'll actually hit the deadline. A desktop tracker for a gas SVQ/NVQ portfolio — hours, write-ups, coverage, and the one date that matters.">
+<meta name="description" content="Know if you'll actually hit the deadline. A desktop tracker for the gas portfolio behind a Plumbing &amp; Heating SVQ — hours, write-ups, coverage, and the one date that matters.">
 <style>
   @font-face {{ font-family:"Inter"; font-weight:100 900; font-display:swap; src:url("InterVariable.woff2") format("woff2"); }}
   *{{box-sizing:border-box;margin:0;padding:0}}
@@ -153,7 +153,7 @@ HTML = f"""<!doctype html>
        width="1600" height="500" fetchpriority="high">
   <span class="badge">v{VERSION} · free · macOS &amp; Windows</span>
   <h1>Know if you'll actually<br>hit the deadline.</h1>
-  <p class="sub">A desktop tracker for a gas SVQ / NVQ portfolio &mdash; assisted hours, unassisted write&#8209;ups, boiler and fault coverage, and the one date that says whether you're on track. Free. Yours. Nothing uploaded.</p>
+  <p class="sub">A desktop tracker for the gas portfolio behind a Plumbing &amp; Heating SVQ &mdash; assisted hours, unassisted write&#8209;ups, boiler and fault coverage, and the one date that says whether you're on track. Free. Yours. Nothing uploaded.</p>
   <div>
     <a class="cta" href="{REPO}/releases/latest">Download for macOS &amp; Windows</a>
     <a class="cta ghost" href="{REPO}">View the code</a>
@@ -186,7 +186,7 @@ HTML = f"""<!doctype html>
   <img class="qmark" src="mascot-tradesman.png" alt="" width="560" height="1082" loading="lazy">
   <blockquote>
     <p>&ldquo;Built it for my own portfolio because nothing did this. Turns out every apprentice needs it.&rdquo;</p>
-    <div class="by">&mdash; Connor W, gas apprentice</div>
+    <div class="by">&mdash; Connor W, Plumbing &amp; Heating SVQ apprentice (gas option)</div>
   </blockquote>
 </div>
 
