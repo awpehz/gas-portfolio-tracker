@@ -397,10 +397,39 @@ function matchHubFolder(folders, dateISO) {
   }) || null;
 }
 
+// ---------- next N days, classified for the Home "pipe run" strip ----------
+function nextDaysStrip(data, now = new Date(), days = 14) {
+  const d = { ...DEFAULT_DATA, ...data };
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const collegeWeeks = new Set((d.blocks || []).map((b) => isoWeek(parseISO(b))));
+  const offSet = new Set(d.off || []);
+  const logDaySet = new Set(
+    [...(d.hours || []), ...(d.jobs || [])].map((r) => r.date).filter((x) => /^\d{4}-\d{2}-\d{2}$/.test(x))
+  );
+  const out = [];
+  for (let i = 0; i < days; i++) {
+    const dt = new Date(today); dt.setDate(dt.getDate() + i);
+    const iso = toISO(dt);
+    const dow = dt.getDay();
+    const weekend = dow === 0 || dow === 6;
+    const college = collegeWeeks.has(isoWeek(dt));
+    const off = offSet.has(iso);
+    const logged = logDaySet.has(iso);
+    // precedence: college > off > weekend > logged > plain working day
+    let status = "work";
+    if (logged) status = "logged";
+    if (weekend) status = "weekend";
+    if (off) status = "off";
+    if (college) status = "college";
+    out.push({ date: iso, dow, today: i === 0, weekend, college, off, logged, status });
+  }
+  return out;
+}
+
 const GasLogic = {
   computeStatus, DEFAULT_DATA, toISO, parseISO, isoWeek,
   GAS, gasRateMetric, gasRateImperial, heatInputMetric, heatInputImperial,
-  SCHEMES, weeklyHours, buildChecklist, engineerCardWarnings, dataWarnings,
+  SCHEMES, weeklyHours, buildChecklist, engineerCardWarnings, dataWarnings, nextDaysStrip,
   matchHubFolder,
 };
 if (typeof module !== "undefined" && module.exports) module.exports = GasLogic;

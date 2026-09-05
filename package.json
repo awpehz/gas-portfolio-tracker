@@ -1,7 +1,7 @@
 {
   "name": "gas-portfolio-tracker",
   "productName": "Gas Portfolio Tracker",
-  "version": "3.5.1",
+  "version": "3.6.0",
   "description": "Track the gas portfolio hours and unassisted write-ups behind a Plumbing & Heating SVQ toward the deadline.",
   "main": "electron/main.js",
   "scripts": {

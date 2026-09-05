@@ -497,6 +497,48 @@ function accountabilityHTML(s) {
   </div>`;
 }
 
+// the next 14 days as a run of pipe — working days flow, weekends are capped off,
+// college weeks get a graduate valve, days off a diamond, logged days a checkmark
+const PIPE_VALVE = `<svg class="cap" viewBox="0 0 22 22"><circle cx="11" cy="11" r="8.4" fill="rgba(10,12,16,.28)" stroke="rgba(255,255,255,.7)" stroke-width="1.7"/><path d="M11 5.6v10.8M6 11h10" stroke="rgba(255,255,255,.85)" stroke-width="1.9" stroke-linecap="round"/></svg>`;
+const PIPE_GRAD = `<svg class="cap" viewBox="0 0 22 22"><path d="M3 8.4l8-3.6 8 3.6-8 3.6-8-3.6Z" fill="rgba(20,10,50,.25)" stroke="#fff" stroke-width="1.3" stroke-linejoin="round"/><path d="M6 9.8v4.6c0 1.3 2.4 2.2 5 2.2s5-.9 5-2.2V9.8" fill="none" stroke="#fff" stroke-width="1.3"/><path d="M18.4 8.9v4" stroke="#fff" stroke-width="1.3" stroke-linecap="round"/></svg>`;
+const PIPE_OFF = `<svg class="cap" viewBox="0 0 22 22"><rect x="6.5" y="6.5" width="9" height="9" rx="2" transform="rotate(45 11 11)" fill="rgba(20,10,0,.2)" stroke="#fff" stroke-width="1.7"/></svg>`;
+const PIPE_CHECK = `<svg class="checkmark" viewBox="0 0 18 18"><path d="M4 9.5l3.2 3.2L14 5.8" fill="none" stroke="#0a2417" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+const PIPE_FLAME = `<svg class="flame-mark" viewBox="0 0 24 24"><path d="M12.3 1.7C15.9 6 18.7 9.1 18.7 13.1 18.7 18.1 15.5 21.8 12 22.3 8.5 21.8 5.3 18.4 5.3 13 5.3 8.6 8.7 4.7 12.3 1.7Z" fill="url(#flameGrad)"/></svg>`;
+
+function dayStripHTML(s) {
+  const days = window.GasLogic.nextDaysStrip(data, new Date(), 14);
+  const startLbl = fmtDate(days[0].date, { day: "numeric", month: "short" });
+  const endLbl = fmtDate(days[days.length - 1].date, { day: "numeric", month: "short" });
+
+  const segs = days.map((dy, i) => {
+    const dt = window.GasLogic.parseISO(dy.date);
+    const overlay = dy.status === "weekend" ? PIPE_VALVE
+      : dy.status === "off" ? PIPE_OFF
+      : dy.status === "college" ? PIPE_GRAD
+      : dy.status === "logged" ? PIPE_CHECK : "";
+    const flow = dy.status === "work" ? `<div class="flow"></div>` : "";
+    const seg = `<div class="seg ${dy.status}${dy.today ? " today" : ""}" title="${esc(fmtDate(dy.date))}">
+        <div class="pipe"><div class="hi"></div>${flow}${overlay}<div class="sh"></div></div>${dy.today ? PIPE_FLAME : ""}
+        <div class="lbl"><b>${dt.getDate()}</b>${dt.toLocaleDateString(undefined, { weekday: "short" })}</div>
+      </div>`;
+    const joint = i < days.length - 1 ? `<div class="joint"><div class="ring"></div><div class="bolt b1"></div><div class="bolt b2"></div></div>` : "";
+    return seg + joint;
+  }).join("");
+
+  return `<div class="daystrip">
+    <div class="hcap">Next 14 days <span class="dim sm">${startLbl} &ndash; ${endLbl}</span></div>
+    <div class="pipepanel"><div class="pipe-row">${segs}</div></div>
+    <div class="pipelegend">
+      <span class="li"><span class="sw logged"></span>logged</span>
+      <span class="li"><span class="sw today"></span>today</span>
+      <span class="li"><span class="sw work"></span>working</span>
+      <span class="li"><span class="sw college"></span>college</span>
+      <span class="li"><span class="sw off"></span>day off</span>
+      <span class="li"><span class="sw weekend"></span>weekend</span>
+    </div>
+  </div>`;
+}
+
 function homePane(s) {
   const el = document.createElement("section");
   el.className = "card dash home";
@@ -574,6 +616,8 @@ function homePane(s) {
     </div>
 
     <div class="hrow"><span class="hr-i">&#9788;</span> ${college}</div>
+
+    ${dayStripHTML(s)}
 
     <div class="qrow">
       <button class="pill" data-q="2">+2 h</button>

@@ -3,7 +3,7 @@ const assert = require("assert");
 const {
   computeStatus, DEFAULT_DATA,
   SCHEMES, weeklyHours, buildChecklist, engineerCardWarnings, dataWarnings,
-  matchHubFolder,
+  matchHubFolder, nextDaysStrip,
 } = require("../src/logic.js");
 
 let pass = 0, fail = 0;
@@ -351,6 +351,30 @@ t("matchHubFolder: matches a numbered date-prefixed folder by exact date", () =>
 t("matchHubFolder: works with {name,count} objects too", () => {
   const folders = [{ name: "01. 2025-09-04  1 Fullarton Square, Ardrossan (service)", count: 22 }];
   assert.strictEqual(matchHubFolder(folders, "2025-09-04"), folders[0]);
+});
+
+// ---------- next-days strip (Home "pipe run") ----------
+t("nextDaysStrip: classifies weekend, off, college and logged days with the right precedence", () => {
+  const days = nextDaysStrip({
+    blocks: ["2026-09-14"], off: ["2026-09-09"],
+    hours: [{ date: "2026-09-04", h: 5 }],
+  }, new Date(2026, 8, 4), 14);
+  assert.strictEqual(days.length, 14);
+  assert.strictEqual(days[0].date, "2026-09-04");
+  assert.strictEqual(days[0].today, true);
+  assert.strictEqual(days[0].status, "logged");
+  assert.strictEqual(days[1].status, "weekend");  // Sat 5 Sep
+  assert.strictEqual(days[2].status, "weekend");  // Sun 6 Sep
+  assert.strictEqual(days[3].status, "work");     // Mon 7 Sep
+  assert.strictEqual(days[5].status, "off");      // Wed 9 Sep, booked off
+  assert.strictEqual(days[10].status, "college"); // Mon 14 Sep, college week
+});
+
+t("nextDaysStrip: a college week wins over a day off booked in it", () => {
+  const days = nextDaysStrip({ blocks: ["2026-09-14"], off: ["2026-09-15"] }, new Date(2026, 8, 4), 14);
+  const tue = days.find((d) => d.date === "2026-09-15");
+  assert.strictEqual(tue.status, "college");
+  assert.strictEqual(tue.off, true); // still flagged as off, just outranked for display
 });
 
 console.log(`\n${pass} passed, ${fail} failed`);

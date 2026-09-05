@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.6.0 — the working-day pipe run
+
+- **Next 14 days, drawn as a run of pipe** on Home &mdash; working days flow,
+  weekends are capped off like a closed valve, college weeks get a graduate
+  cap, days off a diamond marker, logged days a checkmark, and today glows
+  &mdash; whatever else it lands on.
+
 ## 3.5.1 — copy fix
 
 - Corrected the "gas apprentice" / "gas SVQ/NVQ" copy across the README, app
