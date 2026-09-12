@@ -1,5 +1,14 @@
 # Changelog
 
+## 3.6.2 — flat-out finish date, exact
+
+- Fixed the **"Flat out, hours done" tile** (and the rate-needed maths behind
+  it) quietly double-counting today &mdash; if you'd already logged hours for
+  today before checking the app, today was still being offered as a spare
+  8&nbsp;h slot on top of what you'd already logged, nudging the finish date
+  earlier than it really was. A day you've already logged no longer counts as
+  spare capacity.
+
 ## 3.6.1 — a proper audit pass
 
 Went through the whole app as if grading it, and fixed what I found:

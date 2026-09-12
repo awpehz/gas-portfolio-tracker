@@ -80,6 +80,12 @@ function computeStatus(data, now = new Date()) {
 
   // walk every day to the deadline, classify weekdays.
   // Step by calendar date (not +86400000ms) so the Oct DST change can't drift.
+  // A day that already has an hours/job entry is already counted in `total` —
+  // don't also offer it as spare flat-out capacity, or today double-counts
+  // itself whenever you check this after logging today's hours.
+  const alreadyLoggedDates = new Set(
+    [...d.hours, ...d.jobs].map((r) => r.date).filter((x) => /^\d{4}-\d{2}-\d{2}$/.test(x))
+  );
   let workDays = 0, collegeDays = 0, offDays = 0, availDays = 0;
   let finishDate = null, finishAvail = null;                 // earliest the goal is reachable at full days
   const need = Math.max(0, d.goal - total);
@@ -88,6 +94,7 @@ function computeStatus(data, now = new Date()) {
     workDays++;
     if (collegeWeeks.has(isoWeek(dt))) collegeDays++;
     else if (offSet.has(toISO(dt))) offDays++;
+    else if (alreadyLoggedDates.has(toISO(dt))) continue;
     else {
       availDays++;
       if (finishDate === null && need > 0 && availDays * d.hoursPerDay >= need) {

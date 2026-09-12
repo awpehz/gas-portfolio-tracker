@@ -152,6 +152,17 @@ t("fastest finish: not enough capacity => canFinish false, shortfall reported", 
   assert.ok(s.shortfall > 0);
 });
 
+t("flat out: a day already logged doesn't also count as spare capacity", () => {
+  // Tue 1 Sep already has 8h logged today — today shouldn't be offered again
+  // as a fresh 8h slot on top of what's already in the total.
+  const base = { goal: 330, hoursPerDay: 8, deadline: "2026-09-10", blocks: [], off: [] };
+  const now = new Date(2026, 8, 1);
+  const withoutTodaysHours = computeStatus(base, now);
+  const withTodaysHours = computeStatus({ ...base, hours: [{ date: "2026-09-01", h: 8 }] }, now);
+  // same number of weekdays walked either way, but the logged one shouldn't add to availDays
+  assert.strictEqual(withTodaysHours.availDays, withoutTodaysHours.availDays - 1);
+});
+
 t("heatInputMetric: 2.91 m3/h -> 31.3 kW gross / 28.5 kW net (CV 38.76, /1.1)", () => {
   const { heatInputMetric } = require("../src/logic.js");
   const r = heatInputMetric(2.91);
