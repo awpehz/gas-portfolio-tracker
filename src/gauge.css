@@ -1,5 +1,4 @@
-/* Pressure gauge — shared by the main window and the desktop widget.
-   Imported by style.css; linked directly by widget.html. */
+/* Pressure gauge — the Home tab's progress dial. Imported by style.css. */
 
 /* ---------- pressure gauge (Home hero) ---------- */
 .gaugewrap { position: relative; margin: 2px auto 6px; max-width: 190px; }
@@ -22,96 +21,69 @@
 .gauge .g-ticks-major line { stroke: rgba(255,255,255,0.5); stroke-width: 2.6; stroke-linecap: round; }
 .gauge .g-num { fill: var(--ink-3, rgba(255,255,255,.4)); font-size: 9px; font-weight: 700; text-anchor: middle; }
 
-/* the value read-out arc — draws on, then breathes a glow */
+/* the value read-out arc — draws on once, no idle glow */
 .gauge .g-track { fill: none; stroke: rgba(0,0,0,0.5); stroke-width: 9; stroke-linecap: round; }
 .gauge .g-val {
   fill: none; stroke: url(#gaugeGrad);
   stroke-width: 9; stroke-linecap: round;
   stroke-dasharray: 100; stroke-dashoffset: 100;
-  animation:
-    gaugeDraw 1.5s cubic-bezier(.16, .84, .36, 1) .12s both,
-    gaugeGlow 3.2s ease-in-out 1.7s infinite;
+  animation: gaugeDraw 0.8s ease .1s both;
 }
-.gauge.full .g-val { stroke: var(--ok, #63c894); animation: gaugeDraw 1.5s cubic-bezier(.16,.84,.36,1) .12s both, gaugeGlowOk 3.2s ease-in-out 1.7s infinite; }
+.gauge.full .g-val { stroke: var(--ok, #167a45); animation: gaugeDraw 0.8s ease .1s both; }
 @keyframes gaugeDraw { to { stroke-dashoffset: 0; } }
-@keyframes gaugeGlow {
-  0%, 100% { filter: drop-shadow(0 0 3px rgba(78,168,255,.4)); }
-  50%      { filter: drop-shadow(0 0 10px rgba(124,196,255,.9)); }
-}
-@keyframes gaugeGlowOk {
-  0%, 100% { filter: drop-shadow(0 0 4px rgba(99,200,148,.45)); }
-  50%      { filter: drop-shadow(0 0 11px rgba(140,230,190,.95)); }
-}
 
-/* bright bead riding the end of the fill */
+/* bead marking the end of the fill */
 .gauge .g-val-tip {
   fill: #eef6ff; transform-box: fill-box; transform-origin: center;
   opacity: 0;
-  animation: tipIn .3s ease 1.5s forwards, tipPulse 2s ease-in-out 1.8s infinite;
-  filter: drop-shadow(0 0 6px rgba(124,196,255,.95));
+  animation: tipIn .2s ease .8s forwards;
 }
-.gauge.full .g-val-tip { filter: drop-shadow(0 0 6px rgba(140,230,190,.95)); }
 @keyframes tipIn { to { opacity: 1; } }
-@keyframes tipPulse { 0%, 100% { transform: scale(.8); } 50% { transform: scale(1.3); } }
 
 /* pass-mark: a red radial line, drawn vertical then rotated to its angle */
 .gauge .g-redwrap { transform-box: view-box; transform-origin: 120px 116px; transform: rotate(var(--at)); }
-.gauge .g-red { stroke: #ff5b5b; stroke-width: 3.5; stroke-linecap: round; filter: drop-shadow(0 0 4px rgba(255,91,91,.8)); }
-.gauge .g-passlabel { fill: #ff8a8a; font-size: 9px; font-weight: 800; text-anchor: middle; }
+.gauge .g-red { stroke: #c0392b; stroke-width: 3.5; stroke-linecap: round; }
+.gauge .g-passlabel { fill: #e08a80; font-size: 9px; font-weight: 800; text-anchor: middle; }
 
-/* counter-weighted needle — sweeps in with a damped bounce, then a faint idle tremor */
+/* counter-weighted needle — sweeps in once, settles, no idle tremor */
 .gauge .g-needle {
   transform-box: view-box; transform-origin: 120px 116px;
-  animation: needleSweep 1.7s cubic-bezier(.33, 1.06, .5, 1) both;
-  filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.55));
+  animation: needleSweep 0.9s cubic-bezier(.22, .9, .4, 1) both;
+  filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.45));
 }
 .gauge .g-needle-in {
   transform-box: view-box; transform-origin: 120px 116px;
-  animation: needleTremor 2.6s ease-in-out 1.9s infinite;
 }
 .gauge .g-needle-tip { fill: #eef3fb; }
 .gauge .g-needle-tail { fill: #8b97ab; }
 @keyframes needleSweep {
   0%   { transform: rotate(-125deg); }
-  52%  { transform: rotate(calc(var(--to) + 10deg)); }
-  66%  { transform: rotate(calc(var(--to) - 6deg)); }
-  78%  { transform: rotate(calc(var(--to) + 3.2deg)); }
-  87%  { transform: rotate(calc(var(--to) - 1.6deg)); }
-  94%  { transform: rotate(calc(var(--to) + 0.7deg)); }
   100% { transform: rotate(var(--to)); }
-}
-@keyframes needleTremor {
-  0%, 100% { transform: rotate(-0.32deg); }
-  50%      { transform: rotate(0.32deg); }
 }
 
 /* machined hub */
 .gauge .g-hub-o { fill: #0c0f16; stroke: #39445a; stroke-width: 1.5; }
 .gauge .g-hub-m { fill: #1c2230; stroke: rgba(255,255,255,0.10); stroke-width: 1; }
-.gauge .g-hub-c { fill: var(--accent, #4ea8ff); filter: drop-shadow(0 0 4px rgba(78,168,255,.8)); }
+.gauge .g-hub-c { fill: var(--accent, #1854c4); }
 
 .gaugereadout {
   position: absolute; left: 0; right: 0; top: 34%;
   transform: translateY(-50%);
   text-align: center; pointer-events: none;
 }
-.gaugereadout .stat { font-size: 29px; letter-spacing: -1.5px; line-height: 1; text-shadow: 0 2px 8px rgba(0,0,0,0.65); }
-.gaugereadout .stat small { display: block; font-size: 9.5px; font-weight: 700; color: var(--ink-3, rgba(255,255,255,.4)); letter-spacing: 0.3px; margin-top: 2px; }
+.gaugereadout .stat { font-size: 29px; letter-spacing: -1.5px; line-height: 1; text-shadow: 0 2px 8px rgba(0,0,0,0.65); color: #fff; }
+.gaugereadout .stat small { display: block; font-size: 9.5px; font-weight: 700; color: rgba(255,255,255,.5); letter-spacing: 0.3px; margin-top: 2px; }
 .gaugesub {
   text-align: center;
   margin-top: 14px;
   font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.5px;
-  color: var(--accent-2, #7cc4ff);
-  text-shadow: 0 0 10px rgba(78, 168, 255, 0.55);
+  letter-spacing: 0.2px;
+  color: var(--ink-2);
 }
-.gaugesub .v { color: #eaf5ff; font-weight: 700; }
+.gaugesub .v { color: var(--ink); font-weight: 700; }
 .gaugesub .sep { display: inline-block; padding: 0 7px; opacity: 0.45; }
-.gaugesub .pastmark {
-  color: var(--ok, #63c894); font-weight: 700;
-  text-shadow: 0 0 10px rgba(99, 200, 148, 0.55);
-}
+.gaugesub .pastmark { color: var(--ok, #167a45); font-weight: 700; }
 
 @media (prefers-reduced-motion: reduce) {
   .g-val { stroke-dashoffset: 0 !important; }

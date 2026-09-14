@@ -1,5 +1,33 @@
 # Changelog
 
+## 4.0.0 — a proper visual overhaul, light &amp; dark
+
+The whole UI, redone. Same features, same layout structure, a completely
+different finish:
+
+- **Flat, restrained, no more glow.** Every idle pulsing animation is gone —
+  the breathing window border, the glowing buttons and pills, the bouncing
+  gauge needle and its idle tremor, the flickering flame. What's left
+  animates only when something actually happens: a tab switches, a bar
+  fills, a value you tap updates.
+- **One accent colour**, not a blue-and-violet mix. Gradients on cards and
+  tiles are gone in favour of flat surfaces with a thin border — closer to
+  real trade software (Xero, Fergus, Joblogic) than a generated dashboard
+  template.
+- **Light theme by default, dark theme built in.** A toggle in the title bar
+  switches instantly and remembers your choice; with nothing chosen it
+  follows your system setting. Every input, checkbox, chip, scrollbar and
+  date-picker was re-checked in both.
+- **No more emoji.** The streak indicator and photo buttons now use plain
+  text instead of &#128293; and &#128247;.
+- **The exported PDF is a proper white printable document now**, not a dark
+  screen-style report — the kind of thing that looks right handed to an
+  assessor or printed.
+- Removed the **desktop widget** entirely (the floating on-desktop card and
+  its menu-bar controls) — it wasn't earning its keep. The menu-bar icon
+  still shows your hours at a glance, opens the app, and can log +2&nbsp;h
+  on the spot.
+
 ## 3.8.0 — Job Log gets its own page, and dates go UK-wide
 
 - **Job Log is now its own tab**, not just a Progress-tab section &mdash; the

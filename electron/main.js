@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Menu, Tray, nativeImage, screen, shell, dialog, Notification, powerMonitor } = require("electron");
+const { app, BrowserWindow, ipcMain, Menu, Tray, nativeImage, shell, dialog, Notification, powerMonitor } = require("electron");
 const path = require("path");
 const fs = require("fs");
 
@@ -105,100 +105,8 @@ const STATE_FILE = path.join(app.getPath("userData"), "ui-state.json");
 function loadState() { try { return JSON.parse(fs.readFileSync(STATE_FILE, "utf8")) || {}; } catch { return {}; } }
 function saveState(s) { try { fs.writeFileSync(STATE_FILE, JSON.stringify(s)); } catch {} }
 
-// ---------- desktop widget: a translucent card that lives on the desktop ----------
-// On macOS `type: "desktop"` sits it on the wallpaper — behind every window, on
-// every Space, never taking focus or a click. All interaction is via the menu-bar
-// (tray) icon. The main process keeps it fed with computed status over IPC.
-let widgetWin = null;
-const WIDGET_MARGIN = 22;
-const WIDGET_SIZES = { small: 240, medium: 300, large: 372 };
-function widgetSize() {
-  const k = loadState().widgetSize;
-  return WIDGET_SIZES[k] || WIDGET_SIZES.medium;
-}
-
-function widgetStatus() {
+function trayStatus() {
   try { return GasLogic.computeStatus(loadData()); } catch { return null; }
-}
-function pushWidget() {
-  if (widgetWin && !widgetWin.isDestroyed()) {
-    const s = widgetStatus();
-    if (s) widgetWin.webContents.send("widget:data", s);
-  }
-  refreshTray();
-}
-
-function widgetXY(corner) {
-  const wa = screen.getPrimaryDisplay().workArea;
-  const c = corner || "tr";
-  const left = c[1] === "l";
-  const top = c[0] === "t";
-  const sz = widgetSize();
-  return {
-    x: Math.round(left ? wa.x + WIDGET_MARGIN : wa.x + wa.width - sz - WIDGET_MARGIN),
-    y: Math.round(top ? wa.y + WIDGET_MARGIN : wa.y + wa.height - sz - WIDGET_MARGIN),
-  };
-}
-function positionWidget() {
-  if (!widgetWin || widgetWin.isDestroyed()) return;
-  const { x, y } = widgetXY(loadState().widgetCorner);
-  const sz = widgetSize();
-  widgetWin.setBounds({ x, y, width: sz, height: sz });
-}
-
-function createWidgetWindow() {
-  const mac = process.platform === "darwin";
-  const { x, y } = widgetXY(loadState().widgetCorner);
-  const sz = widgetSize();
-  widgetWin = new BrowserWindow({
-    width: sz,
-    height: sz,
-    x, y,
-    frame: false,
-    transparent: true,
-    backgroundColor: "#00000000",
-    hasShadow: false,
-    resizable: false,
-    focusable: false,
-    skipTaskbar: true,
-    show: false,
-    roundedCorners: true,
-    ...(mac ? { type: "desktop" } : {}),
-    ...(process.platform === "win32" ? { backgroundMaterial: "acrylic" } : {}),
-    webPreferences: {
-      preload: path.join(__dirname, "widget-preload.js"),
-      contextIsolation: true,
-      nodeIntegration: false,
-    },
-  });
-  widgetWin.loadFile(path.join(__dirname, "..", "src", "widget.html"));
-  if (mac) widgetWin.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: false });
-  else widgetWin.setAlwaysOnTop(false);
-
-  widgetWin.webContents.once("did-finish-load", () => {
-    pushWidget();
-    widgetWin.showInactive();
-    positionWidget();
-  });
-  widgetWin.on("closed", () => { widgetWin = null; refreshTray(); });
-}
-
-function showWidget(on) {
-  on = !!on;
-  if (on) {
-    if (!widgetWin || widgetWin.isDestroyed()) createWidgetWindow();
-    else { widgetWin.showInactive(); pushWidget(); }
-  } else if (widgetWin && !widgetWin.isDestroyed()) {
-    widgetWin.close();
-  }
-  saveState({ ...loadState(), widget: on });
-  if (app.isPackaged) {
-    try { app.setLoginItemSettings({ openAtLogin: on, openAsHidden: true }); } catch {}
-  }
-  const mi = Menu.getApplicationMenu() && Menu.getApplicationMenu().getMenuItemById("widgetToggle");
-  if (mi) mi.checked = on;
-  if (win && !win.isDestroyed()) win.webContents.send("widget-mode", on);
-  refreshTray();
 }
 
 // ---------- menu-bar (tray) — the 24/7 control surface ----------
@@ -220,7 +128,7 @@ function quickLog(h) {
   d.hours.push({ date: iso, h, note: "" });
   saveData(d);
   if (win && !win.isDestroyed()) win.webContents.send("data-changed", d);
-  pushWidget();
+  refreshTray();
 }
 
 function showMainWindow() {
@@ -232,22 +140,11 @@ function showMainWindow() {
 
 function refreshTray() {
   if (!tray) return;
-  const s = widgetStatus();
-  const widgetOn = !!(widgetWin && !widgetWin.isDestroyed());
-  const corner = loadState().widgetCorner || "tr";
+  const s = trayStatus();
   if (s) {
     if (process.platform === "darwin") tray.setTitle("  " + fmtH(s.total));
     tray.setToolTip(`Gas Portfolio — ${fmtH(s.total)} of ${s.goal} h logged`);
   }
-  const cItem = (id, label) => ({
-    label, type: "radio", checked: corner === id,
-    click: () => { saveState({ ...loadState(), widgetCorner: id }); positionWidget(); refreshTray(); },
-  });
-  const curSize = loadState().widgetSize || "medium";
-  const sItem = (id, label) => ({
-    label, type: "radio", checked: curSize === id,
-    click: () => { saveState({ ...loadState(), widgetSize: id }); positionWidget(); refreshTray(); },
-  });
   const tpl = [
     ...(s ? [
       { label: `${fmtH(s.total)} of ${s.goal} h logged`, enabled: false },
@@ -257,11 +154,6 @@ function refreshTray() {
     ] : []),
     { label: "Open Gas Portfolio Tracker", click: showMainWindow },
     { label: "Log +2 h now", click: () => quickLog(2) },
-    { type: "separator" },
-    { label: "Show desktop widget", type: "checkbox", checked: widgetOn, click: (it) => showWidget(it.checked) },
-    { label: "Widget position", submenu: [cItem("tl", "Top left"), cItem("tr", "Top right"), cItem("bl", "Bottom left"), cItem("br", "Bottom right")] },
-    { label: "Widget size", submenu: [sItem("small", "Small"), sItem("medium", "Medium"), sItem("large", "Large")] },
-    { label: "Refresh now", click: () => pushWidget() },
     { type: "separator" },
     {
       label: "Start at login", type: "checkbox",
@@ -385,7 +277,7 @@ function createWindow(opts = {}) {
   };
   win.on("resize", saveBounds);
   win.on("move", saveBounds);
-  // "Closing" the app just tucks it away — the tray and desktop widget keep running.
+  // "Closing" the app just tucks it away — the tray keeps running.
   win.on("close", (e) => {
     if (isQuitting) return;
     e.preventDefault();
@@ -403,13 +295,6 @@ function createWindow(opts = {}) {
           type: "checkbox",
           accelerator: "CmdOrCtrl+T",
           click: (item) => win.setAlwaysOnTop(item.checked),
-        },
-        {
-          id: "widgetToggle",
-          label: "Desktop Widget",
-          type: "checkbox",
-          accelerator: "CmdOrCtrl+Shift+W",
-          click: (item) => showWidget(item.checked),
         },
         { role: "reload" },
         { role: "toggleDevTools" },
@@ -437,7 +322,7 @@ function createWindow(opts = {}) {
             if (r.response !== 1) return;
             saveData({});
             win.webContents.send("data-changed", {});
-            pushWidget();
+            refreshTray();
           },
         },
       ],
@@ -449,7 +334,7 @@ function createWindow(opts = {}) {
 ipcMain.handle("get-data", () => loadData());
 ipcMain.handle("set-data", (_e, d) => {
   saveData(d);
-  pushWidget();
+  refreshTray();
   return true;
 });
 ipcMain.on("win", (_e, cmd) => {
@@ -459,8 +344,6 @@ ipcMain.on("win", (_e, cmd) => {
   if (cmd === "pin") win.setAlwaysOnTop(!win.isAlwaysOnTop());
 });
 ipcMain.handle("is-pinned", () => (win ? win.isAlwaysOnTop() : false));
-ipcMain.on("widget-mode", (_e, on) => showWidget(!!on));
-ipcMain.handle("widget-state", () => !!(widgetWin && !widgetWin.isDestroyed()));
 
 ipcMain.on("set-reminder", (_e, on) => {
   saveState({ ...loadState(), remind: !!on });
@@ -664,8 +547,7 @@ ipcMain.handle("export-pdf", async (_e, html) => {
   return { ok: true, filePath };
 });
 
-// only one copy of the app at a time — otherwise you get a second tray icon and
-// a second desktop widget stacked on the first.
+// only one copy of the app at a time — otherwise you get a second tray icon.
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
@@ -678,12 +560,11 @@ app.whenReady().then(() => {
   const openedHidden = (() => { try { return app.getLoginItemSettings().wasOpenedAsHidden; } catch { return false; } })();
   createWindow({ show: !openedHidden });
   if (openedHidden && process.platform === "darwin") app.dock.hide();
-  if (loadState().widget) showWidget(true);
-  setInterval(pushWidget, 30 * 60 * 1000);   // keep the widget + tray current day-to-day
+  setInterval(refreshTray, 30 * 60 * 1000);   // keep the tray current day-to-day
   scheduleReminder();
   powerMonitor.on("resume", scheduleReminder); // re-time after the machine sleeps
 });
-// Keep running with just the tray + desktop widget when the window is closed.
+// Keep running with just the tray when the window is closed.
 app.on("window-all-closed", () => {});
 app.on("before-quit", () => { isQuitting = true; });
 app.on("activate", () => showMainWindow());

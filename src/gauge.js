@@ -1,5 +1,4 @@
-// The pressure-gauge SVG — shared by the main window (Home hero) and the desktop
-// widget so they look and animate identically. Pure string builder, no DOM.
+// The pressure-gauge SVG for the Home tab's hero panel. Pure string builder, no DOM.
 // Needs a matching <linearGradient id="gaugeGrad"> + <radialGradient id="gaugeFace">
 // in the host document, and the rules in gauge.css.
 (function () {

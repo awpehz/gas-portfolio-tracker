@@ -45,9 +45,9 @@ Everything is stored on your machine. Nothing is uploaded.
 |---|---|---|
 | ![Home](docs/home.png) | ![Hours](docs/hours.png) | ![Jobs](docs/jobs.png) |
 
-| Report — PDF for your assessor | Desktop widget |
-|---|---|
-| ![Report](docs/report.png) | ![Widget](docs/widget.png) |
+| Progress | Job Log | Report — PDF for your assessor |
+|---|---|---|
+| ![Progress](docs/progress.png) | ![Job Log](docs/job-log.png) | ![Report](docs/report.png) |
 
 ## Features
 
@@ -67,12 +67,10 @@ Everything is stored on your machine. Nothing is uploaded.
   **Gas Safe engineers** you've worked under (name, registration, licence, categories,
   card expiry). Export /
   import your whole tracker as a file.
-- **Desktop widget** — an optional translucent card that sits on your desktop, behind
-  your windows, and stays there even when the app is closed. Total, bar and daily rate,
-  updating live. It's driven from a **menu-bar icon**: open the app, log +2 h, move the
-  widget between corners, start it at login. Closing the app window just tucks it away;
-  the widget and menu-bar icon keep running until you Quit. Toggle with the titlebar
-  button, Cmd/Ctrl + Shift + W, or the Settings tick-box.
+- **Menu-bar icon** — shows hours logged at a glance, opens the app, logs +2 h on the
+  spot, and keeps running (with a daily reminder, if you turn it on) even when the app
+  window is closed. Closing the window just tucks it away; **Quit** from the menu-bar
+  icon to actually stop it.
 - **In-app updates** — on launch it checks GitHub for a newer release. **Settings ->
   Check for updates -> Download & install** (or the banner button) downloads the new
   version and swaps it in on restart. No re-install, no DMG, and your logged hours and
@@ -117,8 +115,7 @@ npm run dist:win     # -> dist/*.exe   (on Windows)
 | `src/logic.js` | the maths — pure, no DOM, unit-tested |
 | `src/renderer.js` | the UI |
 | `src/style.css` | the look |
-| `electron/main.js` | main window, menu, data file, update check, desktop-widget window |
-| `src/widget.html` / `widget.js` | the standalone desktop widget |
+| `electron/main.js` | main window, menu, tray, data file, update check |
 | `scripts/shots.js` | regenerates the screenshots in `docs/` |
 
 MIT licensed. Bundles the **Inter** typeface under the SIL Open Font License 1.1

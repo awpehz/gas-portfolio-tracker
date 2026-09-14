@@ -2,7 +2,6 @@
 const { app, BrowserWindow } = require("electron");
 const path = require("path");
 const fs = require("fs");
-const GasLogic = require(path.join(__dirname, "..", "src", "logic.js"));
 
 const OUT = path.join(__dirname, "..", "docs");
 fs.mkdirSync(OUT, { recursive: true });
@@ -68,21 +67,6 @@ app.whenReady().then(async () => {
     await sleep(650);
     await shot(win, tab.toLowerCase().replace(/[^a-z]+/g, "-"));
   }
-
-  // desktop widget — its own window loading widget.html, over a wallpaper-ish backdrop
-  const wv = new BrowserWindow({
-    width: 300, height: 300, show: true, frame: false,
-    transparent: false, backgroundColor: "#2a3f5c", x: -3000, y: 80,
-    webPreferences: { contextIsolation: true },
-  });
-  await wv.loadFile(path.join(__dirname, "..", "src", "widget.html"));
-  await sleep(400);
-  const st = GasLogic.computeStatus(SAMPLE);
-  await wv.webContents.executeJavaScript(
-    `document.body.style.background = 'linear-gradient(135deg,#3a6ea5,#1f3a52 55%,#6b4a7a)';
-     window.__wpaint(${JSON.stringify(st)}); true`, true);
-  await sleep(700);
-  await shot(wv, "widget");
 
   app.quit();
 });

@@ -32,10 +32,7 @@ FEATURES = [
      ["Date, description, engineer, running total", "Starting hours as line one", "Updates itself &mdash; nothing to keep in sync"]),
     ("report.png", "left", "Hand your assessor a clean PDF",
      "One page, your name on it, in the app's own colours &mdash; hours, pace, counts, coverage, the engineers you've worked under and the full log, running total included. Export and email it.",
-     ["No photos, just the record", "Your Gas&nbsp;Safe engineers listed", "One click"]),
-    ("widget.png", "right", "It lives on your desktop",
-     "A menu&#8209;bar icon and a frosted desktop widget with the same gauge, sitting behind your windows and running even when the app is closed. Small, medium or large.",
-     ["Always&#8209;there widget", "Starts at login", "Nothing uploaded &mdash; your data stays on your machine"]),
+     ["No photos, just the record", "Your Gas&nbsp;Safe engineers listed", "Nothing uploaded &mdash; stays on your machine"]),
 ]
 
 def feat(img, side, title, body, pills):

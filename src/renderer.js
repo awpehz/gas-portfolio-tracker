@@ -32,9 +32,9 @@ function hubMatch(dateISO) {
 function hubPhotoControl(dateISO, label, type) {
   if (!hubLinked) return "";
   const m = hubMatch(dateISO);
-  if (m) return `<button class="photopill" data-hubopen="${esc(m.name)}" title="open ${m.count} photo${m.count === 1 ? "" : "s"} in Finder">&#128247; ${m.count}</button>`;
+  if (m) return `<button class="photopill" data-hubopen="${esc(m.name)}" title="open ${m.count} photo${m.count === 1 ? "" : "s"} in Finder">Photos (${m.count})</button>`;
   if (hubFolders === null) return "";   // still loading
-  return `<button class="photopill add" data-hubadd="${esc(dateISO)}" data-hublabel="${esc(label || "")}" data-hubtype="${esc(type || "")}" title="add photos for this entry">&#128247; add</button>`;
+  return `<button class="photopill add" data-hubadd="${esc(dateISO)}" data-hublabel="${esc(label || "")}" data-hubtype="${esc(type || "")}" title="add photos for this entry">+ Photos</button>`;
 }
 
 function todayISO() { return toISO(new Date()); }
@@ -109,65 +109,65 @@ function buildReport(d, s) {
   <style>
     @page { size: A4; margin: 0; }
     * { box-sizing: border-box; }
-    html, body { background: #0f1116; }
+    html, body { background: #ffffff; }
     body { font: 11px/1.5 "Inter", -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-           color: #eef1f5; margin: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .sheet { padding: 15mm 14mm; background: linear-gradient(180deg, #171a20, #0f1116); }
+           color: #10151f; margin: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .sheet { padding: 15mm 14mm; background: #ffffff; }
 
-    .head { display: flex; align-items: center; gap: 12px; padding-bottom: 13px; border-bottom: 2px solid #4ea8ff; }
-    .head .name { font-size: 15px; font-weight: 800; letter-spacing: -.3px; color: #f4f6fa; }
-    .head .name span { color: rgba(255,255,255,.5); font-weight: 600; }
-    .head .eyebrow { font-size: 8px; letter-spacing: 2.2px; text-transform: uppercase; color: #6bb0ff; margin-bottom: 2px; }
-    .head .gen { margin-left: auto; font-size: 9px; text-transform: uppercase; letter-spacing: .6px; color: rgba(255,255,255,.4); text-align: right; }
+    .head { display: flex; align-items: center; gap: 12px; padding-bottom: 13px; border-bottom: 2px solid #1854c4; }
+    .head .name { font-size: 15px; font-weight: 800; letter-spacing: -.3px; color: #10151f; }
+    .head .name span { color: rgba(16,21,31,.5); font-weight: 600; }
+    .head .eyebrow { font-size: 8px; letter-spacing: 2.2px; text-transform: uppercase; color: #1854c4; margin-bottom: 2px; }
+    .head .gen { margin-left: auto; font-size: 9px; text-transform: uppercase; letter-spacing: .6px; color: rgba(16,21,31,.42); text-align: right; }
 
     section { margin-top: 22px; }
-    h2 { font-size: 8.5px; text-transform: uppercase; letter-spacing: 1.8px; color: #6bb0ff; margin: 0 0 10px; font-weight: 800; }
+    h2 { font-size: 8.5px; text-transform: uppercase; letter-spacing: 1.8px; color: #1854c4; margin: 0 0 10px; font-weight: 800; }
 
     .hero { display: grid; grid-template-columns: 1.15fr 1fr; gap: 22px; align-items: start; }
-    .stat { font-size: 32px; font-weight: 800; letter-spacing: -1px; line-height: 1; color: #f4f6fa; }
-    .stat small { font-size: 13px; font-weight: 700; color: rgba(255,255,255,.42); margin-left: 4px; }
-    .barcap { font-size: 8px; color: #eb8f8f; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; margin: 11px 0 4px; }
-    .bar { position: relative; height: 9px; border-radius: 5px; background: rgba(255,255,255,.09); }
-    .bar > i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 5px; background: linear-gradient(90deg,#2c78f2,#7cc4ff); }
-    .bar > b { position: absolute; top: -3px; bottom: -3px; width: 2px; background: #e77a7a; border-radius: 1px; }
-    .barlbls { position: relative; height: 12px; font-size: 8px; color: rgba(255,255,255,.4); margin-top: 3px; }
+    .stat { font-size: 32px; font-weight: 800; letter-spacing: -1px; line-height: 1; color: #10151f; }
+    .stat small { font-size: 13px; font-weight: 700; color: rgba(16,21,31,.42); margin-left: 4px; }
+    .barcap { font-size: 8px; color: #b3261e; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; margin: 11px 0 4px; }
+    .bar { position: relative; height: 8px; border-radius: 4px; background: #eceef1; }
+    .bar > i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; background: #167a45; }
+    .bar > b { position: absolute; top: -3px; bottom: -3px; width: 2px; background: #b3261e; border-radius: 1px; }
+    .barlbls { position: relative; height: 12px; font-size: 8px; color: rgba(16,21,31,.42); margin-top: 3px; }
     .barlbls .l0 { position: absolute; left: 0; } .barlbls .lg { position: absolute; right: 0; }
-    .sub { font-size: 10px; color: rgba(255,255,255,.6); margin-top: 9px; }
-    .sub b { color: #eef1f5; }
+    .sub { font-size: 10px; color: rgba(16,21,31,.62); margin-top: 9px; }
+    .sub b { color: #10151f; }
 
     .kvgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-    .kv { border: 1px solid rgba(255,255,255,.12); border-radius: 10px; padding: 9px 11px; background: rgba(255,255,255,.03); }
-    .kv-k { font-size: 7.5px; font-weight: 800; letter-spacing: .8px; text-transform: uppercase; color: rgba(255,255,255,.45); }
-    .kv-v { font-size: 16px; font-weight: 800; letter-spacing: -.4px; margin: 2px 0 1px; color: #f4f6fa; }
-    .kv-s { font-size: 8.5px; color: rgba(255,255,255,.55); }
+    .kv { border: 1px solid #e2e4e9; border-radius: 6px; padding: 9px 11px; background: #f7f8fa; }
+    .kv-k { font-size: 7.5px; font-weight: 800; letter-spacing: .8px; text-transform: uppercase; color: rgba(16,21,31,.45); }
+    .kv-v { font-size: 16px; font-weight: 800; letter-spacing: -.4px; margin: 2px 0 1px; color: #10151f; }
+    .kv-s { font-size: 8.5px; color: rgba(16,21,31,.55); }
 
-    .callout { border: 1px solid rgba(78,168,255,.32); background: rgba(78,168,255,.08); border-radius: 12px; padding: 13px 15px; }
+    .callout { border: 1px solid #cfe0f7; background: #eef4fc; border-radius: 6px; padding: 13px 15px; }
     .callout .big { font-size: 15px; font-weight: 800; letter-spacing: -.3px; }
-    .callout.warn { border-color: rgba(230,178,92,.35); background: rgba(230,178,92,.09); }
-    .callout .big.ok { color: #63c894; } .callout .big.warn { color: #e6b25c; }
+    .callout.warn { border-color: #f0d9b0; background: #fbf3e4; }
+    .callout .big.ok { color: #167a45; } .callout .big.warn { color: #a15c07; }
 
     .jrow { display: flex; align-items: center; gap: 10px; margin: 6px 0; }
-    .jl { width: 60px; font-size: 10px; color: rgba(255,255,255,.62); }
-    .jbar { flex: 1; height: 7px; border-radius: 4px; background: rgba(255,255,255,.09); position: relative; }
-    .jbar > i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; background: linear-gradient(90deg,#2c78f2,#7cc4ff); }
-    .jn { width: 44px; text-align: right; font-size: 10px; font-weight: 700; color: rgba(255,255,255,.42); }
-    .jn.done { color: #63c894; }
+    .jl { width: 60px; font-size: 10px; color: rgba(16,21,31,.62); }
+    .jbar { flex: 1; height: 7px; border-radius: 4px; background: #eceef1; position: relative; }
+    .jbar > i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; background: #1854c4; }
+    .jn { width: 44px; text-align: right; font-size: 10px; font-weight: 700; color: rgba(16,21,31,.45); }
+    .jn.done { color: #167a45; }
     .cov { margin-top: 11px; font-size: 9.5px; }
-    .cov .cl { display: inline-block; width: 52px; color: rgba(255,255,255,.42); text-transform: uppercase; letter-spacing: .5px; font-size: 8px; }
+    .cov .cl { display: inline-block; width: 52px; color: rgba(16,21,31,.45); text-transform: uppercase; letter-spacing: .5px; font-size: 8px; }
     .chip { display: inline-block; padding: 2px 8px; margin: 0 2px; border-radius: 999px;
-            background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12); color: rgba(255,255,255,.5); font-weight: 600; }
-    .chip.on { background: rgba(99,200,148,.16); border-color: rgba(99,200,148,.42); color: #8fe0b3; }
+            background: #f7f8fa; border: 1px solid #e2e4e9; color: rgba(16,21,31,.55); font-weight: 600; }
+    .chip.on { background: #e5f3ea; border-color: #a9dabb; color: #146138; }
 
     table { border-collapse: collapse; width: 100%; font-size: 9.5px; margin-top: 4px; }
-    th { text-align: left; padding: 6px 9px; color: rgba(255,255,255,.5); font-weight: 800; text-transform: uppercase;
-         font-size: 7.5px; letter-spacing: .7px; border-bottom: 1.5px solid rgba(255,255,255,.16); white-space: nowrap; }
-    td { padding: 6px 9px; color: rgba(255,255,255,.82); border-bottom: 1px solid rgba(255,255,255,.07); vertical-align: top; }
+    th { text-align: left; padding: 6px 9px; color: rgba(16,21,31,.5); font-weight: 800; text-transform: uppercase;
+         font-size: 7.5px; letter-spacing: .7px; border-bottom: 1.5px solid #d6d9df; white-space: nowrap; }
+    td { padding: 6px 9px; color: rgba(16,21,31,.82); border-bottom: 1px solid #ececef; vertical-align: top; }
     td:first-child { white-space: nowrap; }
-    tr:nth-child(even) td { background: rgba(255,255,255,.025); }
-    td.empty { color: rgba(255,255,255,.4); font-style: italic; text-align: center; padding: 11px; }
-    td.note { color: rgba(255,255,255,.6); }
+    tr:nth-child(even) td { background: #fafafb; }
+    td.empty { color: rgba(16,21,31,.4); font-style: italic; text-align: center; padding: 11px; }
+    td.note { color: rgba(16,21,31,.62); }
 
-    footer { margin-top: 24px; padding-top: 9px; border-top: 1px solid rgba(255,255,255,.1); font-size: 8px; color: rgba(255,255,255,.35); }
+    footer { margin-top: 24px; padding-top: 9px; border-top: 1px solid #e2e4e9; font-size: 8px; color: rgba(16,21,31,.4); }
   </style></head><body>
     <div class="sheet">
       <div class="head">
@@ -195,7 +195,7 @@ function buildReport(d, s) {
               : `<b>${s.toRequired} h</b> to the ${d.required} h pass mark &nbsp;&middot;&nbsp; `}<b>${s.toGoal} h</b> to goal &nbsp;&middot;&nbsp; ${Math.round(s.pctGoal)}% &nbsp;&middot;&nbsp; ${s.assistedHours} h assisted, ${s.jobHours} h in write-ups</div>
           </div>
           <div class="kvgrid">
-            ${kv("Rate needed", `${s.perDayGoal} <span style="font-size:9px;color:#9aa3b2">h/day</span>`, esc(s.verdict))}
+            ${kv("Rate needed", `${s.perDayGoal} <span style="font-size:9px;color:rgba(16,21,31,.5)">h/day</span>`, esc(s.verdict))}
             ${kv("Working days left", s.availDays, `deadline ${dl}`)}
             ${kv("Write-ups", `${s.jobsDone} / ${s.jobsTotal}`, `${s.jobsNeeded} to go`)}
             ${kv("Earliest finish", portDate, s.portfolioGate === "write-ups" ? "write-ups are the hold-up" : "hours are the hold-up")}
@@ -208,7 +208,7 @@ function buildReport(d, s) {
         <div class="callout ${s.verdictOk ? "" : "warn"}">
           <div class="big ${s.verdictOk ? "ok" : "warn"}">${s.perDayGoal} h per working day needed</div>
           <div class="sub"><b>Quickest way there:</b> ${fastestFinishText(s)}</div>
-          <div class="sub" style="color:#9aa3b2">A working day is Mon&ndash;Fri that isn't a college block week or a booked day off.</div>
+          <div class="sub" style="color:rgba(16,21,31,.5)">A working day is Mon&ndash;Fri that isn't a college block week or a booked day off.</div>
         </div>
       </section>
 
@@ -408,7 +408,7 @@ function countUp(scope) {
 }
 function trimNum(n, dp) { return dp ? n.toFixed(dp).replace(/\.0$/, "") : String(Math.round(n)); }
 
-// The pressure gauge lives in gauge.js (shared with the desktop widget).
+// The pressure gauge lives in gauge.js.
 const gaugeSVG = (s) => window.GaugeUI.svg(s);
 
 // ---------- render ----------
@@ -501,7 +501,7 @@ function accountabilityHTML(s) {
     `${trimNum(s.weekLogged, 1)} h this week`,
   ].filter(Boolean).join(" &middot; ");
   return `<div class="astrip ${cls}">
-    <span class="as-mark">${streak > 1 ? "&#128293;" : cls === "good" ? "&#10003;" : "&#9888;"}</span>
+    <span class="as-mark">${cls === "good" ? "&#10003;" : "&#9888;"}</span>
     <div class="as-text"><div class="as-head">${head}</div><div class="as-body">${body}</div>
       <div class="as-meta">${meta}</div></div>
   </div>`;
@@ -1047,7 +1047,6 @@ function settingsPane() {
       </div>
     </div>
 
-    <label class="chk" id="s_widget_l"><input type="checkbox" id="s_widget"> Show desktop widget &mdash; a translucent card on your desktop, controlled from the menu bar</label>
     <label class="chk" id="s_remind_l"><input type="checkbox" id="s_remind"> Daily reminder at 5:30&thinsp;pm (weekdays) to log jobs &mdash; skipped if you've already logged something that day</label>
     <p class="dim sm" id="s_remind_cal_p" style="margin:-6px 0 0 24px"><button type="button" class="linklike" id="s_remind_cal">Add it to your Calendar</button> &mdash; syncs the alert to your phone</p>
 
@@ -1129,8 +1128,6 @@ function helpPane() {
     Portfolio folder (an existing one, or an empty one to set up fresh) &mdash; once linked,
     every Hours / Jobs entry gets a camera button: add photos straight from the entry, or open
     the ones you've already filed.</p>
-    <h4>Desktop widget</h4>
-    <p>Turn it on with the <span class="k">&#9713;</span> button, <span class="k">Cmd/Ctrl + Shift + W</span>, or the tick-box in Settings. It sits on your desktop behind your windows &mdash; total, bar and daily rate, updating live &mdash; and stays there even when the app is closed. Control it from the <b>menu-bar flame</b> at the top of the screen: open the app, log +2 h, move the widget to another corner, or set it to start at login. Closing the app window just tucks it away; the widget and menu-bar icon keep going until you pick <b>Quit</b>. The <span class="k">pin</span> button just keeps the app window itself on top.</p>
 
     <h3 style="margin-top:16px">FAQ</h3>
     ${faq("Does any of this leave my computer?", "No. Everything is saved on your machine. The PDF and data export are files you choose to share.")}
@@ -1146,6 +1143,21 @@ function helpPane() {
   return el;
 }
 
+// true if the app should currently render dark — an explicit choice, else the OS preference
+function isDarkNow() {
+  const t = document.documentElement.getAttribute("data-theme");
+  if (t === "dark") return true;
+  if (t === "light") return false;
+  return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+}
+function paintThemeButton() {
+  const btn = document.getElementById("theme");
+  if (!btn) return;
+  const dark = isDarkNow();
+  btn.innerHTML = dark ? "&#9788;" : "&#9680;";
+  btn.title = dark ? "Switch to light theme" : "Switch to dark theme";
+}
+
 // titlebar buttons live outside #app &mdash; wire once
 function wireTitlebar() {
   const pin = document.getElementById("pin");
@@ -1158,22 +1170,15 @@ function wireTitlebar() {
   const close = document.getElementById("close");
   if (close) close.onclick = () => window.api.win("close");
 
-  const wbtn = document.getElementById("widget");
-  if (wbtn) {
-    if (!window.api.widget) { wbtn.style.display = "none"; }
-    else {
-      wbtn.onclick = () => window.api.widget(!wbtn.classList.contains("on"));
-      if (window.api.widgetState) {
-        window.api.widgetState().then((on) => wbtn.classList.toggle("on", !!on)).catch(() => {});
-      }
-    }
-  }
-  if (window.api.onWidgetMode) {
-    window.api.onWidgetMode((on) => {
-      document.getElementById("widget")?.classList.toggle("on", !!on);
-      const chk = document.getElementById("s_widget");
-      if (chk) chk.checked = !!on;
-    });
+  const themeBtn = document.getElementById("theme");
+  if (themeBtn) {
+    paintThemeButton();
+    themeBtn.onclick = () => {
+      const next = isDarkNow() ? "light" : "dark";
+      document.documentElement.setAttribute("data-theme", next);
+      try { localStorage.setItem("gpt-theme", next); } catch (e) {}
+      paintThemeButton();
+    };
   }
 }
 
@@ -1340,14 +1345,6 @@ function wire(s) {
   }
 
   if (tab === "settings") {
-    const wchk = document.getElementById("s_widget");
-    if (!window.api.widget) {
-      document.getElementById("s_widget_l").style.display = "none";
-    } else {
-      if (window.api.widgetState) window.api.widgetState().then((on) => { wchk.checked = !!on; }).catch(() => {});
-      wchk.onchange = () => window.api.widget(wchk.checked);
-    }
-
     const rchk = document.getElementById("s_remind");
     if (!window.api.setReminder) {
       document.getElementById("s_remind_l").style.display = "none";
