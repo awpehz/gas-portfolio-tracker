@@ -1,5 +1,14 @@
 # Changelog
 
+## 3.7.1 — job log on the PDF, and a dash fix
+
+- **The job log is on the exported PDF now too** — same running total as the
+  Progress tab, in the format asked for: date, job number, hours, running
+  total.
+- Fixed a display bug on the PDF: an engineer with no categories on file, or
+  an entry with nothing to show for engineer/notes, was printing the literal
+  text "&amp;mdash;" instead of a dash.
+
 ## 3.7.0 — the job log
 
 - **Job log**, on the Progress tab. Every hours and write-up entry you've
