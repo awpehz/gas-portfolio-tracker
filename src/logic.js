@@ -25,7 +25,7 @@ function mondayOf(dt) {
   return d;
 }
 function fmtShort(dt) {
-  return dt.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" });
+  return dt.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
 }
 
 const DEFAULT_DATA = {

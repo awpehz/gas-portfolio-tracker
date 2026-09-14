@@ -1,5 +1,18 @@
 # Changelog
 
+## 3.8.0 — Job Log gets its own page, and dates go UK-wide
+
+- **Job Log is now its own tab**, not just a Progress-tab section &mdash; the
+  full chronological register: date, description, engineer, hours, running
+  total, with entry-count and hours-to-go tiles up top. The Progress tab
+  keeps a 5-row preview with a link straight through to it.
+- **Every date in the app, the PDF included, is UK format now** (day before
+  month &mdash; "04 Sept 2026", not "Sept 4, 2026"). A few spots were
+  quietly using the system locale and could drift to US ordering depending
+  on the machine; they're all pinned to en-GB now.
+- The footer credit now reads **"made by C. Wales"**, in the app and on the
+  PDF.
+
 ## 3.7.1 — job log on the PDF, and a dash fix
 
 - **The job log is on the exported PDF now too** — same running total as the

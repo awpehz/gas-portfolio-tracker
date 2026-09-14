@@ -282,27 +282,27 @@ main > .card:nth-of-type(2) { animation-delay: 0.08s; }
 .home .hero { position: relative; padding-top: 2px; }
 .home .flame.md { position: absolute; top: 2px; right: 2px; width: 26px; height: 32px; opacity: 0.9; }
 
-/* ---- stat tiles ---- */
-.home .hgrid {
+/* ---- stat tiles (used on Home and the Job Log page) ---- */
+.hgrid {
   display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px;
 }
-.home .htile {
+.htile {
   background: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.012));
   border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px;
 }
-.home .ht-k {
+.ht-k {
   font-size: 9px; font-weight: 700; letter-spacing: 0.9px; text-transform: uppercase;
   color: var(--ink-3);
 }
-.home .ht-v { font-size: 21px; font-weight: 800; letter-spacing: -0.5px; margin: 3px 0 1px; }
-.home .ht-v em { font-size: 12px; font-weight: 600; font-style: normal; color: var(--ink-3); letter-spacing: 0; }
-.home .ht-s {
+.ht-v { font-size: 21px; font-weight: 800; letter-spacing: -0.5px; margin: 3px 0 1px; }
+.ht-v em { font-size: 12px; font-weight: 600; font-style: normal; color: var(--ink-3); letter-spacing: 0; }
+.ht-s {
   font-size: 10.5px; line-height: 1.35; font-weight: 600; letter-spacing: 0.3px;
   color: var(--accent-2); text-shadow: 0 0 9px rgba(78, 168, 255, 0.5);
 }
-.home .htile.good .ht-v { color: #7fe0b0; }
-.home .htile.amber .ht-v { color: var(--warn); }
-.home .htile.bad .ht-v { color: var(--danger); }
+.htile.good .ht-v { color: #7fe0b0; }
+.htile.amber .ht-v { color: var(--warn); }
+.htile.bad .ht-v { color: var(--danger); }
 
 /* ---- portfolio strip ---- */
 .home .pstrip {
@@ -1245,6 +1245,42 @@ label.wide.ta textarea { min-height: 58px; font-family: inherit; font-size: 12.5
   background: rgba(230,178,92,0.08); border: 1px solid rgba(230,178,92,0.28);
 }
 .ok-line { color: var(--ok) !important; }
+
+/* ---- Job Log page: a proper chronological register ---- */
+.joblog-page .jlt-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.joblog-page .jlt-top p { max-width: 62ch; }
+.joblog-page .jlt-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 14px 0 18px; }
+@media (max-width: 560px) { .joblog-page .jlt-stats { grid-template-columns: 1fr 1fr; } }
+
+.jlt-wrap { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.jlt-row {
+  display: grid; grid-template-columns: 30px 94px 1fr 150px 56px 84px; gap: 10px; align-items: center;
+  padding: 9px 13px; font-size: 12px; color: var(--ink-2);
+  border-bottom: 1px solid var(--line);
+}
+.jlt-row:last-child { border-bottom: none; }
+.jlt-row:nth-child(even) { background: rgba(255,255,255,0.015); }
+.jlt-row.jlt-head {
+  background: var(--surface-2); color: var(--ink-3);
+  font-size: 9.5px; font-weight: 800; letter-spacing: 0.7px; text-transform: uppercase;
+}
+.jlt-row.base { color: var(--ink-3); }
+.jlt-row.wu .jlt-desc { color: var(--ink); }
+.jlt-n { color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.jlt-d { color: var(--ink-2); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.jlt-desc { min-width: 0; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.jlt-eng { min-width: 0; color: var(--ink-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; }
+.jlt-h { text-align: right; font-variant-numeric: tabular-nums; color: var(--ink); }
+.jlt-t { text-align: right; font-variant-numeric: tabular-nums; color: var(--accent-2); font-weight: 800; }
+.jlt-tag {
+  display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 999px;
+  background: rgba(109,63,242,0.16); border: 1px solid rgba(109,63,242,0.4); color: #b9a2ff;
+  font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px;
+}
+@media (max-width: 720px) {
+  .jlt-row { grid-template-columns: 22px 78px 1fr 56px 76px; }
+  .jlt-eng { display: none; }
+}
 
 /* ---- progress: running job log ---- */
 .jlog { max-height: 320px; overflow-y: auto; border: 1px solid var(--line); border-radius: 10px; }

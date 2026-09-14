@@ -63,7 +63,7 @@ app.whenReady().then(async () => {
   await js(win, `document.getElementById('splash') && document.getElementById('splash').remove()`);
   await sleep(500);
 
-  for (const tab of ["Home", "Hours", "Jobs", "Progress", "Report"]) {
+  for (const tab of ["Home", "Hours", "Jobs", "Progress", "Job Log", "Report"]) {
     await js(win, `[...document.querySelectorAll('.tabs button')].find(b=>b.textContent===${JSON.stringify(tab)}).click(); document.querySelector('main').scrollTop=0; true`);
     await sleep(650);
     await shot(win, tab.toLowerCase().replace(/[^a-z]+/g, "-"));
