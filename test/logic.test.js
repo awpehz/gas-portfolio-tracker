@@ -3,7 +3,7 @@ const assert = require("assert");
 const {
   computeStatus, DEFAULT_DATA, toISO, parseISO,
   SCHEMES, weeklyHours, buildChecklist, engineerCardWarnings, dataWarnings,
-  matchHubFolder, nextDaysStrip,
+  matchHubFolder, nextDaysStrip, runningLog,
 } = require("../src/logic.js");
 
 let pass = 0, fail = 0;
@@ -398,6 +398,33 @@ t("nextDaysStrip: a college week wins over a day off booked in it", () => {
   const tue = days.find((d) => d.date === "2026-09-15");
   assert.strictEqual(tue.status, "college");
   assert.strictEqual(tue.off, true); // still flagged as off, just outranked for display
+});
+
+// ---------- runningLog ----------
+t("runningLog: numbers entries oldest-first with a running hours total", () => {
+  const log = runningLog({
+    hours: [{ date: "2026-09-02", h: 8 }, { date: "2026-09-01", h: 8 }],
+    jobs: [{ date: "2026-09-03", type: "install", h: 10 }],
+  });
+  assert.strictEqual(log.length, 3);
+  assert.deepStrictEqual(log.map((r) => r.date), ["2026-09-01", "2026-09-02", "2026-09-03"]);
+  assert.deepStrictEqual(log.map((r) => r.n), [1, 2, 3]);
+  assert.deepStrictEqual(log.map((r) => r.running), [8, 16, 26]);
+});
+
+t("runningLog: starting hours appear as a base row before entry #1", () => {
+  const log = runningLog({ baseHours: 29, hours: [{ date: "2026-09-01", h: 8 }] });
+  assert.strictEqual(log.length, 2);
+  assert.strictEqual(log[0].kind, "base");
+  assert.strictEqual(log[0].running, 29);
+  assert.strictEqual(log[1].n, 1);
+  assert.strictEqual(log[1].running, 37);
+});
+
+t("runningLog: no base row when starting hours are zero", () => {
+  const log = runningLog({ hours: [{ date: "2026-09-01", h: 8 }] });
+  assert.strictEqual(log.length, 1);
+  assert.strictEqual(log[0].kind, "hours");
 });
 
 // ---------- date helpers (previously only exercised indirectly) ----------

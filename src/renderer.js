@@ -805,6 +805,15 @@ function progressPane(s) {
     ? `<ul class="warns">${warns.map((w) => `<li>&#9888; ${w.msg}</li>`).join("")}</ul>`
     : `<p class="dim sm ok-line">&#10003; Nothing looks off in your log.</p>`;
 
+  const log = L.runningLog(data);
+  const logRows = log.map((r) => r.kind === "base"
+    ? `<div class="jlog-row base"><span class="jlog-n">&mdash;</span><span class="jlog-d">before this app</span><span class="jlog-h">${trimNum(r.h, 1)} h</span><span class="jlog-t">${trimNum(r.running, 1)} h</span></div>`
+    : `<div class="jlog-row"><span class="jlog-n">${r.n}</span><span class="jlog-d">${esc(fmtDate(r.date, { day: "numeric", month: "short", year: "numeric" }))}</span><span class="jlog-h">${trimNum(r.h, 1)} h</span><span class="jlog-t">${trimNum(r.running, 1)} h</span></div>`
+  ).join("");
+  const logHTML = log.length
+    ? `<div class="jlog"><div class="jlog-row jlog-head"><span class="jlog-n">#</span><span class="jlog-d">Date</span><span class="jlog-h">Hrs</span><span class="jlog-t">Running</span></div>${logRows}</div>`
+    : `<p class="dim sm">Nothing logged yet.</p>`;
+
   el.innerHTML = `
     <h3>Progress <span class="h3-r">${chk.done}/${chk.total} boxes ticked</span></h3>
 
@@ -823,6 +832,11 @@ function progressPane(s) {
     <div class="prog-sec">
       <div class="ps-h">Worth a look</div>
       ${warnHTML}
+    </div>
+
+    <div class="prog-sec">
+      <div class="ps-h">Job log <span class="dim sm">&mdash; every entry, oldest first, running total</span></div>
+      ${logHTML}
     </div>`;
   return el;
 }

@@ -1,5 +1,14 @@
 # Changelog
 
+## 3.7.0 — the job log
+
+- **Job log**, on the Progress tab. Every hours and write-up entry you've
+  ever logged, oldest first, numbered, with a running hours total next to
+  each one &mdash; including your starting hours as a "before this app" row
+  at the top. It's built from your existing log, so it stays current on its
+  own: add, edit or delete an entry anywhere in the app and it updates with
+  everything else.
+
 ## 3.6.2 — flat-out finish date, exact
 
 - Fixed the **"Flat out, hours done" tile** (and the rate-needed maths behind
